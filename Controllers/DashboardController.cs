@@ -7,16 +7,16 @@ namespace PdaAerolineas.Controllers;
 public class DashboardController : Controller
 {
 
-    private RepositoryFlota _repoFlota;
+    private RepositoryFlotas _repoFlotas;
 
-    public DashboardController(RepositoryFlota repoFlota)
+    public DashboardController(RepositoryFlotas repoFlotas)
     {
-        _repoFlota = repoFlota;
+        _repoFlotas = repoFlotas;
     }
 
     public async Task<IActionResult> Index()
     {
-        FlotaResumen flota= await _repoFlota.GetFlotasByAerolineaAsync("Iberia");
+        FlotaResumen flota= await _repoFlotas.GetFlotasByAerolineaAsync("Iberia");
         return View(flota);
     }
 }

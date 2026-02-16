@@ -140,8 +140,15 @@
                                     </td>
                                     
                                     <td class="px-4 py-3 whitespace-nowrap">
+                                        
+                                        @if (avion.IdEstadoAvion == 3)
+                                        {
+                                            <a class="text-blue-700 ">Ver posición</a>
+                                        }else{
                                         <div class="text-sm text-gray-900 font-medium">@avion.CodigoAeropuerto</div>
                                         <div class="text-xs text-gray-500">@avion.Ubicacion</div>
+                                        }
+                                  
                                     </td>
                                     
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-mono">
@@ -153,7 +160,7 @@
                                     </td>
                                     
                                     <td class="px-4 py-3 whitespace-nowrap text-sm">
-                                        @if (avion.ProximoMantenimiento != "N/A")
+                                        @if (avion.ProximoMantenimiento != null)
                                         {
                                             <span class="text-gray-900">@avion.ProximoMantenimiento</span>
                                         }

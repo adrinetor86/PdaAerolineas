@@ -8,43 +8,45 @@ namespace PdaAerolineas.Models;
 public class VistaFlota
 {
     [Key]
-    [Column("avion_id")]
+    [Column("AVION_ID")]
     public int AvionId { get; set; }
     
-    [Column("matricula")]
+    [Column("MATRICULA")]
     public string Matricula { get; set; }
     
-    [Column("aerolinea")]
+    [Column("AEROLINEA")]
     public string Aerolinea { get; set; }
     
-    [Column("fabricante")]
+    [Column("FABRICANTE")]
     public string Fabricante { get; set; }
     
-    [Column("nombre_modelo")]
+    [Column("NOMBRE_MODELO")]
     public string NombreModelo { get; set; }
     
-    [Column("capacidad_total")]
+    [Column("CAPACIDAD_TOTAL")]
     public int CapacidadTotal { get; set; }
     
-    [Column("estado")]
+    [Column("IDESTADO")]
+    public int IdEstadoAvion { get; set; }
+    
+    [Column("ESTADO")]
     public string Estado { get; set; }
     
-    [Column("ubicacion")]
+    [Column("UBICACION")]
     public string Ubicacion { get; set; }
     
-    [Column("codigo_aeropuerto")]
+    [Column("CODIGO_AEROPUERTO")]
     public string CodigoAeropuerto { get; set; }
     
-    [Column("horas_vuelo_totales")]
+    [Column("HORAS_VUELO_TOTALES")]
     public int HorasVueloTotales { get; set; }
     
-    [Column("ciclos_totales")]
+    [Column("CICLOS_TOTALES")]
     public int CiclosTotales { get; set; }
     
-    //PROBAR CAMBIAR DATO
-    [Column("proximo_mantenimiento")]
-    public string ProximoMantenimiento { get; set; } 
+    [Column("PROXIMO_MANTENIMIENTO")]
+    public DateTime? ProximoMantenimiento { get; set; }
     
-    [Column("vuelo_actual")]
-    public string VueloActual { get; set; }
+    [Column("VUELO_ACTUAL")]
+    public string? VueloActual { get; set; }
 }

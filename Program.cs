@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PdaAerolineas.Data;
 using PdaAerolineas.Repositories;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -10,7 +11,10 @@ builder.Services.AddControllersWithViews();
 
 string connectionString = builder.Configuration.GetConnectionString("SqlPda");
 
-builder.Services.AddTransient<RepositoryFlota>();
+builder.Services.AddTransient<RepositoryFlotas>();
+builder.Services.AddTransient<RepositoryVuelos>();
+
+
 builder.Services.AddDbContext<DataContext>
     (options => options.UseSqlServer(connectionString));
 

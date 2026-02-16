@@ -17,6 +17,7 @@ namespace PdaAerolineas.Repositories;
 // m.fabricante,
 // m.nombre_modelo,
 // m.capacidad_total,
+// ea.id as idestado,
 // ea.nombre AS estado,
 //     CASE
 // WHEN aer.id IS NOT NULL THEN aer.nombre
@@ -29,23 +30,18 @@ namespace PdaAerolineas.Repositories;
 //     av.horas_vuelo_totales,
 // av.ciclos_totales,
 //
-// -- Próximo mantenimiento (retorna 'N/A' si es NULL)
-// ISNULL(CONVERT(NVARCHAR(10),
-//     (SELECT MIN(mp.fecha_programada)
+// (SELECT MIN(mp.fecha_programada)
 // FROM mantenimiento_programado mp
 //     WHERE mp.avion_id = av.id AND mp.estado = 'Programado'
-//     ), 103), 'N/A') AS proximo_mantenimiento,
+//     ) AS proximo_mantenimiento,
 //
-// -- Vuelo actual si está en vuelo (retorna 'N/A' si es NULL)
-// ISNULL(
-//     (SELECT TOP 1 v.numero_vuelo
-// FROM vuelo v
-//     WHERE v.avion_id = av.id
+// (SELECT TOP 1 v.numero_vuelo
+//     FROM vuelo v
+// WHERE v.avion_id = av.id
 // AND v.estado_id = 3
 // AND v.fecha_salida <= GETDATE()
 // AND (v.fecha_llegada IS NULL OR v.fecha_llegada >= GETDATE())
-// ORDER BY v.fecha_salida DESC
-//     ), 'N/A') AS vuelo_actual
+// ORDER BY v.fecha_salida DESC) AS vuelo_actual
 // FROM avion av
 //     INNER JOIN modelo_avion m ON av.modelo_id = m.id
 // INNER JOIN estado_avion ea ON av.estado_id = ea.id
@@ -54,12 +50,12 @@ namespace PdaAerolineas.Repositories;
 // GO
 
 #endregion
-public class RepositoryFlota 
+public class RepositoryFlotas 
 {
     
     private DataContext _context;
     
-    public RepositoryFlota(DataContext context)
+    public RepositoryFlotas(DataContext context)
     {
         _context = context;
     }
@@ -70,7 +66,7 @@ public class RepositoryFlota
     {
 
         var consulta = from datos in _context.Flotas
-            where datos.Aerolinea == aerolinea
+            where datos.Aerolinea==aerolinea
             select datos;
 
         FlotaResumen flota = new FlotaResumen();
