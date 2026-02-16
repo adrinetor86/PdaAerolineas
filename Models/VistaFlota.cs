@@ -41,9 +41,9 @@ public class VistaFlota
     [Column("ciclos_totales")]
     public int CiclosTotales { get; set; }
     
-    // ✅ ESTOS DOS DEBEN SER STRING, NO DateTime
+    //PROBAR CAMBIAR DATO
     [Column("proximo_mantenimiento")]
-    public string ProximoMantenimiento { get; set; } // ⬅️ STRING (era DateTime? probablemente)
+    public string ProximoMantenimiento { get; set; } 
     
     [Column("vuelo_actual")]
     public string VueloActual { get; set; }
