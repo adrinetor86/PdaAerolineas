@@ -54,5 +54,5 @@ public class Vuelo
     public Avion? Avion { get; set; }
     
     [ForeignKey("IdEstado")]
-    public int Estado { get; set; }
+    public EstadoVuelo? Estado { get; set; }
 }

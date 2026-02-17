@@ -10,7 +10,10 @@ public class DataContext:DbContext
     
     
     public DbSet<VistaFlota> Flotas { get; set; }
-    public DbSet<VistaVuelo> Vuelos { get; set; }
-    public DbSet<Usuario> Usuario { get; set; }
+    public DbSet<VistaVuelo> VistaVuelos { get; set; }
+    public DbSet<Vuelo> Vuelos { get; set; }
+    public DbSet<EstadoVuelo> EstadoVuelos { get; set; }
+    
+    public DbSet<Usuario> Usuarios { get; set; }
     
 }

@@ -1,0 +1,152 @@
+﻿@model List<VistaVuelo>
+@using PdaAerolineas.Helpers;
+
+@{
+
+  List<EstadoVuelo> estados = ViewData["ESTADOS"] as List<EstadoVuelo>;
+}
+<div class="flex gap-6 items-start">
+
+  <!-- TABLA -->
+  <div class="flex-1 max-w-4xl">
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      
+      <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+        <h2 class="text-sm font-semibold text-slate-800 tracking-wide">
+          Vuelos Activos
+        </h2>
+      </div>
+
+      <div class="overflow-x-auto max-h-[700px] overflow-y-auto">
+        <table class="min-w-full text-sm">
+          
+          <thead class="bg-slate-100 text-slate-600 uppercase text-xs tracking-wider">
+            <tr>
+              <th class="px-6 py-3 text-left">Vuelo</th>
+              <th class="px-6 py-3 text-left">Ruta</th>
+              <th class="px-6 py-3 text-left">Aeronave</th>
+              <th class="px-6 py-3 text-left">Salida</th>
+              <th class="px-6 py-3 text-left">Llegada</th>
+              <th class="px-6 py-3 text-left">Estado</th>
+              <th class="px-6 py-3 text-left">Acciones</th>
+            </tr>
+          </thead>
+
+          <tbody class="divide-y divide-slate-100 bg-white">
+            @foreach (VistaVuelo vuelo in Model)
+            {
+              <tr class="hover:bg-slate-50 transition-colors duration-150">
+                <td class="px-6 py-4 font-semibold text-slate-800">
+                  @vuelo.NumVuelo
+                </td>
+
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-slate-700">@vuelo.CodOrigen</span>
+                    <span class="text-slate-400">→</span>
+                    <span class="font-bold text-slate-700">@vuelo.CodDestino</span>
+                  </div>
+                </td>
+
+                <td class="px-6 py-4 text-slate-600">
+                  @vuelo.Matricula
+                </td>
+
+                <td class="px-6 py-4 text-slate-600">
+                  @vuelo.Salida.ToFomatoCorto()
+                </td>
+
+                <td class="px-6 py-4 text-slate-600">
+                  @vuelo.Llegada.ToFomatoCorto()
+                </td>
+                
+                <td class=" text-center text-slate-600">
+                  
+                  <select class="estado-select border rounded px-2 py-1"
+                          data-vuelo-id="@vuelo.IdVuelo"
+                          name="estadovuelo">
+                 
+                    <option disabled selected> @vuelo.Estado</option>
+                    @foreach (EstadoVuelo es in estados)
+                    {
+                      <option value="@es.IdEstado">
+                        @es.NombreEstado
+                      </option>
+                    }
+                  </select>
+                </td>
+                
+                
+                <td class=" text-center text-slate-600">
+                <div class="flex justify-center gap-2" >
+                
+                  <a asp-controller="Dashboard" asp-action="Index">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83l3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
+                  </a>
+                  <span >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16m-10 4v6m4-6v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>
+                  </span>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL DERECHO -->
+  <div class="flex-1">
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm p-6">
+      <h3 class="text-sm font-semibold text-slate-900 mb-4">
+        Estado de Flota
+      </h3>
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.querySelectorAll(".estado-select").forEach(select => {
+
+    select.addEventListener("change", function () {
+
+        const vueloId = this.dataset.vueloId;
+        const estadoId = this.value;
+
+      fetch("/Vuelos/Index", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: `idVuelo=${vueloId}&idEstado=${estadoId}`
+      })
+        .then(response => {
+            if (response.ok) {
+                this.classList.add("bg-green-100");
+                setTimeout(() => {
+                    this.classList.remove("bg-green-100");
+                }, 800);
+            }
+        });
+    });
+
+});
+</script>
+
+@* TODO VER COMO USAR EL MAPA *@
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+    var map = L.map('map').setView([40.4168, -3.7038], 5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Ejemplo marcador Madrid
+    L.marker([40.4168, -3.7038]).addTo(map)
+        .bindPopup('Centro de control')
+        .openPopup();
+</script>

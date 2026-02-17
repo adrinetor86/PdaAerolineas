@@ -17,6 +17,20 @@ public class VuelosController : Controller
     public async Task<IActionResult> Index()
     {
         List<VistaVuelo> vuelo = await _repoVuelos.GetVuelosAsync();
+        ViewData["ESTADOS"]=  await _repoVuelos.GetEstadosVuelosAync();
         return View(vuelo);
     }
+
+    
+    
+
+    [HttpPost]
+
+    public async Task<IActionResult> Index(int idVuelo, int idEstado)
+    {
+        
+        await _repoVuelos.UpdateEstadoVueloAsync(idVuelo, idEstado);
+        return RedirectToAction("Index");
+    }
+    
 }
