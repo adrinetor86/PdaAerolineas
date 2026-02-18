@@ -65,27 +65,34 @@ public class RepositoryFlotas
     public async Task<FlotaResumen> GetFlotasByAerolineaAsync(string aerolinea)
     {
 
-        var consulta = from datos in _context.Flotas
+        var consultaFlota = from datos in _context.Flotas
             where datos.Aerolinea==aerolinea
+            
             select datos;
-
+        
+    
+         var consultaVuelo = from datos in _context.Vuelos
+             where datos.Aerolinea.Nombre==aerolinea
+             select datos;
+        
+        
         FlotaResumen flota = new FlotaResumen();
 
-        flota.NumeroFlota = await consulta.CountAsync();
+        flota.NumeroFlota = await consultaFlota.CountAsync();
         
-        flota.AvionesMantenimiento = await consulta
+        flota.AvionesMantenimiento = await consultaFlota
             .Where(a => a.Estado == "En Mantenimiento")
             .CountAsync();
 
-        flota.AvionesOperativos = await consulta
+        flota.AvionesOperativos = await consultaFlota
             .Where(a => a.Estado == "Operativo")
             .CountAsync();
 
-        flota.VuelosActivos = await consulta
-            .Where(a => a.Estado == "En Vuelo")
+        flota.VuelosActivos = await consultaVuelo
+            .Where(a => a.Estado.NombreEstado == "En Vuelo")
             .CountAsync();
 
-        flota.Flota = await consulta.ToListAsync();
+        flota.Flota = await consultaFlota.ToListAsync();
         
         return flota;
 

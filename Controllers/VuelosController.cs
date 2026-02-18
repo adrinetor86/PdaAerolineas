@@ -20,8 +20,6 @@ public class VuelosController : Controller
         ViewData["ESTADOS"]=  await _repoVuelos.GetEstadosVuelosAync();
         return View(vuelo);
     }
-
-    
     
 
     [HttpPost]
@@ -32,5 +30,14 @@ public class VuelosController : Controller
         await _repoVuelos.UpdateEstadoVueloAsync(idVuelo, idEstado);
         return RedirectToAction("Index");
     }
-    
+
+    [HttpPost]
+    public async Task<IActionResult> Create(Vuelo vuelo)
+    {
+
+        await _repoVuelos.CreateVueloAsync(vuelo.NumeroVuelo, vuelo.IdAerolinea, vuelo.IdRuta,
+            vuelo.IdAvion, vuelo.FechaLlegada, vuelo.FechaLlegada, vuelo.Puerta);
+        
+        return View();
+    }
 }

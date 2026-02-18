@@ -5,79 +5,85 @@
 
   List<EstadoVuelo> estados = ViewData["ESTADOS"] as List<EstadoVuelo>;
 }
+
+
 <div class="flex gap-6 items-start">
 
   <!-- TABLA -->
   <div class="flex-1 max-w-4xl">
     <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       
-      <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+      <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
         <h2 class="text-sm font-semibold text-slate-800 tracking-wide">
           Vuelos Activos
         </h2>
+        <button id="btnOpenModal"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition">
+            Nuevo Vuelo
+        </button>
       </div>
 
       <div class="overflow-x-auto max-h-[700px] overflow-y-auto">
         <table class="min-w-full text-sm">
           
           <thead class="bg-slate-100 text-slate-600 uppercase text-xs tracking-wider">
-            <tr>
-              <th class="px-6 py-3 text-left">Vuelo</th>
-              <th class="px-6 py-3 text-left">Ruta</th>
-              <th class="px-6 py-3 text-left">Aeronave</th>
-              <th class="px-6 py-3 text-left">Salida</th>
-              <th class="px-6 py-3 text-left">Llegada</th>
-              <th class="px-6 py-3 text-left">Estado</th>
-              <th class="px-6 py-3 text-left">Acciones</th>
-            </tr>
+          <tr>
+            <th class="px-6 py-3 text-left">Vuelo</th>
+            <th class="px-6 py-3 text-left">Ruta</th>
+            <th class="px-6 py-3 text-left">Aeronave</th>
+            <th class="px-6 py-3 text-left">Salida</th>
+            <th class="px-6 py-3 text-left">Llegada</th>
+            <th class="px-6 py-3 text-left">Estado</th>
+            <th class="px-6 py-3 text-left">Acciones</th>
+          </tr>
           </thead>
 
           <tbody class="divide-y divide-slate-100 bg-white">
-            @foreach (VistaVuelo vuelo in Model)
-            {
-              <tr class="hover:bg-slate-50 transition-colors duration-150">
-                <td class="px-6 py-4 font-semibold text-slate-800">
-                  @vuelo.NumVuelo
-                </td>
+          @foreach (VistaVuelo vuelo in Model)
+          {
+            <tr class="hover:bg-slate-50 transition-colors duration-150">
+              <td class="px-6 py-4 font-semibold text-slate-800">
+                @vuelo.NumVuelo
+              </td>
 
-                <td class="px-6 py-4">
-                  <div class="flex items-center gap-2">
-                    <span class="font-bold text-slate-700">@vuelo.CodOrigen</span>
-                    <span class="text-slate-400">→</span>
-                    <span class="font-bold text-slate-700">@vuelo.CodDestino</span>
-                  </div>
-                </td>
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-slate-700">@vuelo.CodOrigen</span>
+                  <span class="text-slate-400">→</span>
+                  <span class="font-bold text-slate-700">@vuelo.CodDestino</span>
+                </div>
+              </td>
 
-                <td class="px-6 py-4 text-slate-600">
-                  @vuelo.Matricula
-                </td>
+              <td class="px-6 py-4 text-slate-600">
+                @vuelo.Matricula
+              </td>
 
-                <td class="px-6 py-4 text-slate-600">
-                  @vuelo.Salida.ToFomatoCorto()
-                </td>
+              <td class="px-6 py-4 text-slate-600">
+                @vuelo.Salida.ToFomatoCorto()
+              </td>
 
-                <td class="px-6 py-4 text-slate-600">
-                  @vuelo.Llegada.ToFomatoCorto()
-                </td>
+              <td class="px-6 py-4 text-slate-600">
+                @vuelo.Llegada.ToFomatoCorto()
+              </td>
                 
-                <td class=" text-center text-slate-600">
+              <td class=" text-center text-slate-600">
                   
-                  <select class="estado-select border rounded px-2 py-1"
-                          data-vuelo-id="@vuelo.IdVuelo"
-                          name="estadovuelo">
+                <select class="estado-select border rounded px-2 py-1"
+                        data-vuelo-id="@vuelo.IdVuelo"
+                        name="estadovuelo">
                  
-                    <option disabled selected> @vuelo.Estado</option>
-                    @foreach (EstadoVuelo es in estados)
-                    {
-                      <option value="@es.IdEstado">
-                        @es.NombreEstado
-                      </option>
-                    }
-                  </select>
-                </td>
+                  <option disabled selected> @vuelo.Estado</option>
+                  @foreach (EstadoVuelo es in estados)
+                  {
+                    <option value="@es.IdEstado">
+                      @es.NombreEstado
+                    </option>
+                  }
+                </select>
+              </td>
                 
                 
-                <td class=" text-center text-slate-600">
+              <td class=" text-center text-slate-600">
                 <div class="flex justify-center gap-2" >
                 
                   <a asp-controller="Dashboard" asp-action="Index">
@@ -86,10 +92,10 @@
                   <span >
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16m-10 4v6m4-6v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>
                   </span>
-                  </div>
-                </td>
-              </tr>
-            }
+                </div>
+              </td>
+            </tr>
+          }
           </tbody>
 
         </table>
@@ -108,6 +114,159 @@
 
 </div>
 
+<div id="modalOverlay"
+     class="fixed inset-0 bg-black/40 backdrop-blur-sm hidden items-center justify-center z-50">
+
+    <!-- Modal -->
+    <div class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl p-8 relative">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800">
+                Nuevo Vuelo
+            </h2>
+            <button onclick="closeModal()"
+                    class="text-gray-400 hover:text-gray-700 text-xl transition">
+                ✕
+            </button>
+        </div>
+
+        <form method="post" class="space-y-6">
+
+            <!-- Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- Nº Vuelo -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">
+                        Nº Vuelo *
+                    </label>
+         
+             
+                    <input type="text" name="Origen"
+                           placeholder="IB6666"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg
+                                  focus:ring-2 focus:ring-blue-500 focus:outline-none
+                                  transition" required />
+                    
+                </div>
+                
+
+                <!-- Origen -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">
+                        Origen *
+                    </label>
+                    <input type="text" name="Origen"
+                           placeholder="MAD"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg
+                                  focus:ring-2 focus:ring-blue-500 focus:outline-none
+                                  transition" required />
+                </div>
+
+                <!-- Destino -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">
+                        Destino *
+                    </label>
+                    <input type="text" name="Destino"
+                           placeholder="BCN"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg
+                                  focus:ring-2 focus:ring-blue-500 focus:outline-none
+                                  transition" required />
+                </div>
+
+                <!-- Salida -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">
+                        Salida *
+                    </label>
+                    <input type="datetime-local" name="FechaSalida"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg
+                                  focus:ring-2 focus:ring-blue-500 focus:outline-none
+                                  transition" required />
+                </div>
+
+                <!-- Llegada -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">
+                        Llegada
+                    </label>
+                    <input type="datetime-local" name="FechaLlegada"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg
+                                  focus:ring-2 focus:ring-blue-500 focus:outline-none
+                                  transition" />
+                </div>
+
+
+
+
+                <!-- Capitán -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">
+                        Capitán
+                    </label>
+                    <input type="text" name="Capitan"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg
+                                  focus:ring-2 focus:ring-blue-500 focus:outline-none
+                                  transition" />
+                </div>
+
+                <!-- Primer Oficial -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">
+                        Primer Oficial
+                    </label>
+                    <input type="text" name="PrimerOficial"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg
+                                  focus:ring-2 focus:ring-blue-500 focus:outline-none
+                                  transition" />
+                </div>
+
+                <!-- Puerta -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">
+                        Puerta
+                    </label>
+                    <input type="text" name="Puerta"
+                           placeholder="A12"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg
+                                  focus:ring-2 focus:ring-blue-500 focus:outline-none
+                                  transition" />
+                </div>
+
+            </div>
+
+            <!-- Notas -->
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">
+                    Notas
+                </label>
+                <textarea name="Notas"
+                          rows="3"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg
+                                 focus:ring-2 focus:ring-blue-500 focus:outline-none
+                                 transition resize-none"></textarea>
+            </div>
+
+            <!-- Botones -->
+            <div class="flex justify-end space-x-3 pt-4">
+                <button type="button"
+                        class="btnCloseModal px-5 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition">
+                    Cancelar
+                </button>
+
+                <button type="submit"
+                        class="px-5 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow transition">
+                    Crear Vuelo
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+@* ESTADO *@
 <script>
 document.querySelectorAll(".estado-select").forEach(select => {
 
@@ -135,7 +294,35 @@ document.querySelectorAll(".estado-select").forEach(select => {
 
 });
 </script>
+@* MODAL*@
+<script>
+    $(document).ready(function () {
 
+        // Abrir modal
+        $("#btnOpenModal").on("click", function () {
+            $("#modalOverlay")
+                .removeClass("hidden")
+                .addClass("flex");
+        });
+
+        // Cerrar modal (botones)
+        $(".btnCloseModal").on("click", function () {
+            $("#modalOverlay")
+                .addClass("hidden")
+                .removeClass("flex");
+        });
+
+        // Cerrar haciendo click fuera
+        $("#modalOverlay").on("click", function (e) {
+            if ($(e.target).is("#modalOverlay")) {
+                $(this)
+                    .addClass("hidden")
+                    .removeClass("flex");
+            }
+        });
+
+    });
+</script>
 @* TODO VER COMO USAR EL MAPA *@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>

@@ -11,7 +11,7 @@ public class Vuelo
     public int IdVuelo { get; set; }
     
     [Column("NUMERO_VUELO")]
-    public string? NumeroVuelo { get; set; }
+    public string NumeroVuelo { get; set; }
     
     [Column("AEROLINEA_ID")]
     public int IdAerolinea { get; set; }
@@ -23,10 +23,10 @@ public class Vuelo
     public int IdAvion { get; set; }
     
     [Column("FECHA_SALIDA")]
-    public DateTime? FechaSalida { get; set; }
+    public DateTime FechaSalida { get; set; }
     
     [Column("FECHA_LLEGADA")]
-    public DateTime? FechaLlegada { get; set; }
+    public DateTime FechaLlegada { get; set; }
     
     [Column("ESTADO_ID")]
     public int IdEstado { get; set; }
@@ -45,7 +45,7 @@ public class Vuelo
     
     // Navegación
     [ForeignKey("IdAerolinea")]
-    public Aerolinea? Aerolinea { get; set; }
+    public Aerolinea Aerolinea { get; set; }
     
     [ForeignKey("IdRuta")]
     public Ruta? Ruta { get; set; }
@@ -54,5 +54,5 @@ public class Vuelo
     public Avion? Avion { get; set; }
     
     [ForeignKey("IdEstado")]
-    public EstadoVuelo? Estado { get; set; }
+    public EstadoVuelo Estado { get; set; }
 }
