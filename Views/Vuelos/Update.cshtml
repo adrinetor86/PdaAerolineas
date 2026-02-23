@@ -1,0 +1,202 @@
+﻿@model VistaVuelo;
+
+@{
+    List<TripulantesDisponibles> tripulantesList = ViewData["TRIPULANTES"] as List<TripulantesDisponibles>;
+}
+
+<div class="container mx-auto p-4">
+    <div class="flex flex-col md:flex-row gap-6">
+        <div class="md:w-2/3">
+            <h2 class="text-2xl font-semibold mb-4">Editar Vuelo</h2>
+
+            <form method="post" class="bg-white p-4 rounded-lg shadow space-y-4">
+                <input id="estadoVuelo" type="hidden" name="estado" value="@Model.IdEstado" />
+                <input id="idVuelo" type="hidden" name="idVuelo" value="@Model.IdVuelo" />
+                <input type="hidden" name="aerolinea" value="@Model.IdAerolinea" />
+                <input type="hidden" name="ruta" value="@Model.IdRuta" />
+                <input type="hidden" name="avion" value="@Model.IdAvion" />
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Número de vuelo</label>
+                        <input name="numerovuelo" value="@Model.NumVuelo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Avión (matrícula)</label>
+                        <input disabled value="@Model.Matricula" class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Modelo</label>
+                        <input disabled value="@Model.Modelo" class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Puerta</label>
+                        <input name="puerta" value="@Model.Puerta" class="mt-1 block w-full rounded-md border-gray-300" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Origen</label>
+                        <input disabled value="@Model.CiudadOrigen" class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Destino</label>
+                        <input disabled value="@Model.CiudadDestino" class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Salida</label>
+                        <input name="salida" value="@Model.Salida" class="mt-1 block w-full rounded-md border-gray-300" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Llegada</label>
+                        <input name="llegada" value="@Model.Llegada" class="mt-1 block w-full rounded-md border-gray-300" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Capacidad total</label>
+                        <input disabled name="capacidad" value="@Model.Capacidad" class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Pasajeros embarcados</label>
+                        <input type="number" name="embarcados" value="@Model.PasajerosEmbarcados" class="mt-1 block w-full rounded-md border-gray-300" />
+                    </div>
+                </div>
+                <hr/>
+                <h2 class="text-lg font-semibold mb-4">Tripulación:</h2>
+
+                <!-- Botón que abre el modal -->
+                <div class="flex items-center gap-3">
+                    <button type="button" id="openTripModal" class="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700">Seleccionar tripulación</button>
+                    @* <span class="text-sm text-gray-600">Tripulantes seleccionados: <span id="selectedCount">@initialSelectedCount</span></span> *@
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Guardar Cambios</button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: tabla con checkboxes por fila -->
+<div id="tripModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
+    <div class="bg-white rounded-lg w-11/12 md:w-2/3 lg:w-1/2 shadow-lg overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-3 border-b">
+            <h3 class="text-lg font-medium">Seleccionar Tripulación</h3>
+            <button id="closeTripModal" class="text-gray-500 hover:text-gray-700">Cerrar ✕</button>
+        </div>
+
+        <div class="p-4">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left">
+                                <input id="selectAllTrip" type="checkbox" class="form-checkbox h-4 w-4 text-blue-600" />
+                            </th>
+                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Nombre</th>
+                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Rol</th>
+                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Licencia</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-100">
+                        @if (tripulantesList != null && tripulantesList.Any())
+                        {
+                            foreach (var t in tripulantesList)
+                            {
+                                <tr>
+                                    <td class="px-4 py-2">
+                                        <input type="checkbox" name="tripulantes" value="@t.TripulanteId" class="trip-checkbox form-checkbox h-4 w-4 text-blue-600" />
+                                    </td>
+                                    <td class="px-4 py-2 text-sm text-gray-700">@t.Nombre</td>
+                                    <td class="px-4 py-2 text-sm text-gray-700">@t.Rol</td>
+                                    <td class="px-4 py-2 text-sm text-gray-500">@t.Licencia</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" class="px-4 py-6 text-center text-gray-500">No hay tripulantes disponibles.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4 flex justify-end gap-2">
+                <button id="applyTripSelection" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Aplicar selección</button>
+                <button id="cancelTripSelection" class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function(){
+            var openBtn = document.getElementById('openTripModal');
+            var modal = document.getElementById('tripModal');
+            var closeBtn = document.getElementById('closeTripModal');
+            var cancelBtn = document.getElementById('cancelTripSelection');
+            var applyBtn = document.getElementById('applyTripSelection');
+            var selectAll = document.getElementById('selectAllTrip');
+            var selectedCountEl = document.getElementById('selectedCount');
+
+            function countChecked() {
+                return document.querySelectorAll('.trip-checkbox:checked').length;
+            }
+
+            function updateSelectedCount() {
+                var c = countChecked();
+                if (selectedCountEl) selectedCountEl.textContent = c;
+            }
+
+            if (openBtn) openBtn.addEventListener('click', function(){
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            });
+
+            if (closeBtn) closeBtn.addEventListener('click', function(){
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+
+            if (cancelBtn) cancelBtn.addEventListener('click', function(){
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+
+            if (selectAll) selectAll.addEventListener('change', function(e){
+                var checked = e.target.checked;
+                var boxes = document.querySelectorAll('.trip-checkbox');
+                boxes.forEach(function(b){ b.checked = checked; });
+                updateSelectedCount();
+            });
+
+            if (applyBtn) applyBtn.addEventListener('click', function(){
+                // Cerrar modal y actualizar contador; los checkboxes ya están dentro del form
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                updateSelectedCount();
+            });
+
+            // Cuando se modifique individualmente, actualizar contador
+            document.addEventListener('change', function(e){
+                if (e.target && e.target.classList && e.target.classList.contains('trip-checkbox')) {
+                    updateSelectedCount();
+                }
+            });
+
+            // Inicializar contador con los que estén marcados por defecto
+            updateSelectedCount();
+        })();
+    </script>
+}

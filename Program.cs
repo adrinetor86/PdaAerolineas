@@ -7,12 +7,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-
+builder.Services.AddAntiforgery();
 
 string connectionString = builder.Configuration.GetConnectionString("SqlPda");
 
 builder.Services.AddTransient<RepositoryFlotas>();
 builder.Services.AddTransient<RepositoryVuelos>();
+builder.Services.AddTransient<RepositoryTripulantes>();
 
 
 builder.Services.AddDbContext<DataContext>

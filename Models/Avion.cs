@@ -24,7 +24,7 @@ public class Avion
     public int IdEstado { get; set; } 
     
     [Column("AEROPUERTO_ACTUAL_ID")]
-    public int? IdAeropuertoActual { get; set; }
+    public int IdAeropuertoActual { get; set; }
     
     [Column("HORAS_VUELO_TOTALES")]
     public int HorasTotales { get; set; }

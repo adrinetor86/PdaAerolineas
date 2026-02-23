@@ -14,6 +14,14 @@ public class DataContext:DbContext
     public DbSet<Vuelo> Vuelos { get; set; }
     public DbSet<EstadoVuelo> EstadoVuelos { get; set; }
     
+    public DbSet<Avion> Aviones { get; set; }
+    public DbSet<Ruta> Rutas { get; set; }
+    public DbSet<VistaRuta> VistaRutas { get; set; }
+    
+    public DbSet<Tripulante> Tripulantes { get; set; }
+
+    public DbSet<VistaTripulante> VistaTripulantes { get; set; }
+    
     public DbSet<Usuario> Usuarios { get; set; }
     
 }

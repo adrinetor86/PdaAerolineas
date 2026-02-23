@@ -1,0 +1,30 @@
+﻿@model List<VistaTripulante>
+
+<h1>Tripulacion</h1>
+
+
+@if (Model != null)
+{
+
+
+    <table>
+        <thead>
+        <tr>
+            <th>Nombre Completo</th>
+            <th>Rol</th>
+            <th>Licencia</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (VistaTripulante tripulante in Model)
+        {
+            <tr>
+                <td>@tripulante.Nombre</td>
+                <td>@tripulante.Rol</td>
+                <td>@tripulante.Licencia</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
