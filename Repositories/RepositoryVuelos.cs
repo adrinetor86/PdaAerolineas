@@ -635,27 +635,27 @@ public class RepositoryVuelos
         
             return rutas;
         
+    }     
+    
+    public async Task<List<VistaRuta>> GetRutasAerolinea()
+    {
+        var consulta = from datos in _context.VistaRutas
+            select datos;
+        
+        
+            return await consulta.ToListAsync();
+        
     }    
+    
+    
     public async Task UpdateDatosVuelo(int idVuelo,string numerovuelo,int aerolinea,int ruta,int avion,
-        DateTime salida,DateTime llegada,int estado,string puerta,int capacidad,int confirmados,int embarcados)
+        DateTime salida,DateTime llegada,int estado,string puerta,int capacidad,int confirmados,int embarcados,
+        int[]idsTripulantes)
     {
         string sql = @"SP_UPDATE_VUELO @idvuelo, @numerovuelo, @idaerolinea,
                    @idruta, @idavion, @fechasalida, @fechallegada,
                    @idestado, @puerta, @capacidadtotal, @confirmados, @embarcados";
-
-        // new SqlParameter("@idvuelo", idVuelo);
-        // new SqlParameter("@numerovuelo", numerovuelo);
-        // new SqlParameter("@idaerolinea", aerolinea);
-        // new SqlParameter("@idruta", ruta);
-        // new SqlParameter("@idavion", avion);
-        // new SqlParameter("@fechasalida", salida);
-        // new SqlParameter("@fechallegada", llegada);
-        // new SqlParameter("@idestado", estado);
-        // new SqlParameter("@puerta", puerta);
-        // new SqlParameter("@capacidadtotal", capacidad);
-        // new SqlParameter("@confirmados", confirmados);
-        // new SqlParameter("@embarcados", embarcados);
-
+        
         var parametros = new[]
         {
             new SqlParameter("@idvuelo",        idVuelo),
@@ -671,9 +671,21 @@ public class RepositoryVuelos
             new SqlParameter("@confirmados",    confirmados),
             new SqlParameter("@embarcados",     embarcados),
         };
-
-        await _context.Database.ExecuteSqlRawAsync(sql, parametros);
         
+        await _context.Database.ExecuteSqlRawAsync(sql, parametros);
+
+        string sqlTripulantes = "SP_ASIGNAR_TRIPULACION @vuelo_id,@tripulante_id";
+        
+        foreach (int idTripulante in idsTripulantes)
+        {
+            SqlParameter pamVuelo = new SqlParameter("@vuelo_id", idVuelo);
+            SqlParameter pamTripulante = new SqlParameter("@tripulante_id", idTripulante);
+            await _context.Database.ExecuteSqlRawAsync(sqlTripulantes, pamVuelo, pamTripulante);
+        }
+        
+
+
+        // Console.WriteLine();
     }
 
 }

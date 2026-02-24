@@ -67,8 +67,14 @@ public class VuelosController : Controller
     {
        VistaVuelo vuelo= await _repoVuelos.GetDatosVueloByIdAsync(idVuelo);
        
-       var tripulantes = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo);
-       ViewData["TRIPULANTES"] = tripulantes;
+       var comandantes = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, "Comandante");
+       var copilotos   = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, "Primer Oficial");
+       var tcps        = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, "Tripulante de Cabina");
+       List<Tripulante> tripulantesAsignados = await _repoTripulantes.GetTripulantesVueloAsync(idVuelo);
+       ViewData["COMANDANTES"] = comandantes;
+       ViewData["COPILOTOS"]   = copilotos;
+       ViewData["TCPS"]        = tcps;
+       ViewData["TRIPULANTES"] = tripulantesAsignados;
 
        return View(vuelo);
     }  
@@ -76,7 +82,9 @@ public class VuelosController : Controller
     [HttpPost]
     public async Task<IActionResult> Update
         (int idVuelo,string numerovuelo,int aerolinea,int ruta,int avion,
-        DateTime salida,DateTime llegada,int estado,string puerta,int capacidad,int confirmados,int embarcados)
+        DateTime salida,DateTime llegada,int estado,string puerta,int capacidad,
+        int confirmados,int embarcados,
+        int idCapitan,int idCopiloto,int[]idsTcp)
     {
         Console.WriteLine("=============================");
         Console.WriteLine($"idVuelo    = {idVuelo}");
@@ -91,10 +99,19 @@ public class VuelosController : Controller
         Console.WriteLine($"capacidad  = {capacidad}");
         Console.WriteLine($"confirmados= {confirmados}");
         Console.WriteLine($"embarcados = {embarcados}");
+        Console.WriteLine($"capitan = {idCapitan}");
+        Console.WriteLine($"copi = {idCopiloto}");
+        Console.WriteLine($"tcps = {idsTcp}");
         Console.WriteLine("=============================");
 
+        int[] idsTripulantes = new[] { idCapitan, idCopiloto }
+            .Where(id => id > 0)                    // filtrar los que no se asignaron
+            .Concat(idsTcp ?? Array.Empty<int>())   // añadir los TCPs
+            .ToArray();
+        
        await _repoVuelos.UpdateDatosVuelo
-           (idVuelo,numerovuelo, 1, ruta, avion, salida, llegada, estado, puerta, capacidad, embarcados, embarcados);
+           (idVuelo,numerovuelo, 1, ruta, avion, salida, llegada, estado, puerta,
+               capacidad, embarcados, embarcados,idsTripulantes);
         
        return RedirectToAction("Index");
     }

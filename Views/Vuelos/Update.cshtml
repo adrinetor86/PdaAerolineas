@@ -1,7 +1,10 @@
 ﻿@model VistaVuelo;
 
 @{
-    List<TripulantesDisponibles> tripulantesList = ViewData["TRIPULANTES"] as List<TripulantesDisponibles>;
+    var comandantes = ViewData["COMANDANTES"] as List<Tripulante> ?? new();
+    var copilotos   = ViewData["COPILOTOS"]   as List<Tripulante> ?? new();
+    var tcps        = ViewData["TCPS"]        as List<Tripulante> ?? new();
+    List<Tripulante> tripulantesAsignados = ViewData["TRIPULANTES"] as List<Tripulante>;
 }
 
 <div class="container mx-auto p-4">
@@ -10,74 +13,134 @@
             <h2 class="text-2xl font-semibold mb-4">Editar Vuelo</h2>
 
             <form method="post" class="bg-white p-4 rounded-lg shadow space-y-4">
-                <input id="estadoVuelo" type="hidden" name="estado" value="@Model.IdEstado" />
-                <input id="idVuelo" type="hidden" name="idVuelo" value="@Model.IdVuelo" />
+                <input type="hidden" name="estado"    value="@Model.IdEstado" />
+                <input type="hidden" name="idVuelo"   value="@Model.IdVuelo" />
                 <input type="hidden" name="aerolinea" value="@Model.IdAerolinea" />
-                <input type="hidden" name="ruta" value="@Model.IdRuta" />
-                <input type="hidden" name="avion" value="@Model.IdAvion" />
+                <input type="hidden" name="ruta"      value="@Model.IdRuta" />
+                <input type="hidden" name="avion"     value="@Model.IdAvion" />
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Número de vuelo</label>
-                        <input name="numerovuelo" value="@Model.NumVuelo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+                        <input name="numerovuelo" value="@Model.NumVuelo"
+                               class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm" />
                     </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Avión (matrícula)</label>
-                        <input disabled value="@Model.Matricula" class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50" />
+                        <input disabled value="@Model.Matricula"
+                               class="mt-1 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2" />
                     </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Modelo</label>
-                        <input disabled value="@Model.Modelo" class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50" />
+                        <input disabled value="@Model.Modelo"
+                               class="mt-1 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2" />
                     </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Puerta</label>
-                        <input name="puerta" value="@Model.Puerta" class="mt-1 block w-full rounded-md border-gray-300" />
+                        <input name="puerta" value="@Model.Puerta"
+                               class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2" />
                     </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Origen</label>
-                        <input disabled value="@Model.CiudadOrigen" class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50" />
+                        <input disabled value="@Model.CiudadOrigen"
+                               class="mt-1 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2" />
                     </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Destino</label>
-                        <input disabled value="@Model.CiudadDestino" class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50" />
+                        <input disabled value="@Model.CiudadDestino"
+                               class="mt-1 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2" />
                     </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Salida</label>
-                        <input name="salida" value="@Model.Salida" class="mt-1 block w-full rounded-md border-gray-300" />
+                        <input name="salida" value="@Model.Salida"
+                               class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2" />
                     </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Llegada</label>
-                        <input name="llegada" value="@Model.Llegada" class="mt-1 block w-full rounded-md border-gray-300" />
+                        <input name="llegada" value="@Model.Llegada"
+                               class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2" />
                     </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Capacidad total</label>
-                        <input disabled name="capacidad" value="@Model.Capacidad" class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50" />
+                        <input disabled name="capacidad" value="@Model.Capacidad"
+                               class="mt-1 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2" />
                     </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Pasajeros embarcados</label>
-                        <input type="number" name="embarcados" value="@Model.PasajerosEmbarcados" class="mt-1 block w-full rounded-md border-gray-300" />
+                        <input type="number" name="embarcados" value="@Model.PasajerosEmbarcados"
+                               class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2" />
                     </div>
                 </div>
-                <hr/>
-                <h2 class="text-lg font-semibold mb-4">Tripulación:</h2>
 
-                <!-- Botón que abre el modal -->
-                <div class="flex items-center gap-3">
-                    <button type="button" id="openTripModal" class="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700">Seleccionar tripulación</button>
-                    @* <span class="text-sm text-gray-600">Tripulantes seleccionados: <span id="selectedCount">@initialSelectedCount</span></span> *@
+                <hr />
+
+                <h2 class="text-lg font-semibold">Tripulación</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                    <div class="border rounded-lg p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-semibold text-indigo-700">Primer Oficial</span>
+                            <button type="button" onclick="abrirModal('capitan')"
+                                class="text-xs bg-indigo-600 text-white px-2 py-1 rounded hover:bg-indigo-700">
+                                Asignar
+                            </button>
+                        </div>
+                        <div id="capitan-display"
+                             class="text-sm text-gray-600 bg-gray-50 rounded px-3 py-2 min-h-[36px] flex items-center justify-between">
+                            @if (tripulantesAsignados.Count == 0)
+                            {
+                                <span class="text-gray-400 italic">Sin asignar</span>    
+                            }
+                            else
+                            {
+                                foreach (Tripulante tripulante in tripulantesAsignados)
+                                {
+                                    <span class="text-gray-400 italic">@tripulante.Nombre+@tripulante.Apellido</span>   
+                                }
+                            }
+                            
+                        </div>
+                        <input type="hidden" name="idCapitan" id="capitan-input" value="" />
+                    </div>
+
+                    <div class="border rounded-lg p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-semibold text-emerald-700">Copiloto</span>
+                            <button type="button" onclick="abrirModal('copiloto')"
+                                class="text-xs bg-emerald-600 text-white px-2 py-1 rounded hover:bg-emerald-700">
+                                Asignar
+                            </button>
+                        </div>
+                        <div id="copiloto-display"
+                             class="text-sm text-gray-600 bg-gray-50 rounded px-3 py-2 min-h-[36px] flex items-center justify-between">
+                            <span class="text-gray-400 italic">Sin asignar</span>
+                        </div>
+                        <input type="hidden" name="idCopiloto" id="copiloto-input" value="" />
+                    </div>
+
+                    <div class="border rounded-lg p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-semibold text-yellow-700">TCPs</span>
+                            <button type="button" onclick="abrirModal('tcp')"
+                                class="text-xs bg-yellow-600 text-white px-2 py-1 rounded hover:bg-yellow-700">
+                                Asignar
+                            </button>
+                        </div>
+                        <div id="tcp-display"
+                             class="text-sm text-gray-600 bg-gray-50 rounded px-3 py-2 min-h-[36px] space-y-1">
+                            <span class="text-gray-400 italic">Sin asignar</span>
+                        </div>
+                        <div id="tcp-inputs"></div>
+                    </div>
+
                 </div>
 
-                <div class="flex justify-end">
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Guardar Cambios</button>
+                <div class="flex justify-end pt-2">
+                    <button type="submit"
+                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Guardar Cambios
+                    </button>
                 </div>
 
             </form>
@@ -85,118 +148,231 @@
     </div>
 </div>
 
-<!-- Modal: tabla con checkboxes por fila -->
-<div id="tripModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
+
+<div id="tripModal"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50">
     <div class="bg-white rounded-lg w-11/12 md:w-2/3 lg:w-1/2 shadow-lg overflow-hidden">
+
         <div class="flex items-center justify-between px-4 py-3 border-b">
-            <h3 class="text-lg font-medium">Seleccionar Tripulación</h3>
-            <button id="closeTripModal" class="text-gray-500 hover:text-gray-700">Cerrar ✕</button>
+            <h3 class="text-lg font-medium">
+                Seleccionar <span id="modalRoleLabel" class="font-bold text-indigo-600 ml-1"></span>
+            </h3>
+            <button onclick="cerrarModal()" class="text-gray-500 hover:text-gray-700 text-xl">✕</button>
         </div>
 
         <div class="p-4">
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto max-h-80 overflow-y-auto">
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
+                    <thead class="bg-gray-50 sticky top-0">
                         <tr>
-                            <th class="px-4 py-2 text-left">
-                                <input id="selectAllTrip" type="checkbox" class="form-checkbox h-4 w-4 text-blue-600" />
-                            </th>
+                            <th class="px-4 py-2 w-8"></th>
                             <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Nombre</th>
                             <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Rol</th>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Licencia</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-100">
-                        @if (tripulantesList != null && tripulantesList.Any())
-                        {
-                            foreach (var t in tripulantesList)
-                            {
-                                <tr>
-                                    <td class="px-4 py-2">
-                                        <input type="checkbox" name="tripulantes" value="@t.TripulanteId" class="trip-checkbox form-checkbox h-4 w-4 text-blue-600" />
-                                    </td>
-                                    <td class="px-4 py-2 text-sm text-gray-700">@t.Nombre</td>
-                                    <td class="px-4 py-2 text-sm text-gray-700">@t.Rol</td>
-                                    <td class="px-4 py-2 text-sm text-gray-500">@t.Licencia</td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="4" class="px-4 py-6 text-center text-gray-500">No hay tripulantes disponibles.</td>
-                            </tr>
-                        }
-                    </tbody>
+                    <tbody id="modalTableBody" class="bg-white divide-y divide-gray-100"></tbody>
                 </table>
             </div>
 
             <div class="mt-4 flex justify-end gap-2">
-                <button id="applyTripSelection" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Aplicar selección</button>
-                <button id="cancelTripSelection" class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">Cancelar</button>
+                <button onclick="aplicarSeleccion()"
+                    class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Aplicar
+                </button>
+                <button onclick="cerrarModal()"
+                    class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">
+                    Cancelar
+                </button>
             </div>
         </div>
     </div>
 </div>
 
+
 @section Scripts {
-    <script>
-        (function(){
-            var openBtn = document.getElementById('openTripModal');
-            var modal = document.getElementById('tripModal');
-            var closeBtn = document.getElementById('closeTripModal');
-            var cancelBtn = document.getElementById('cancelTripSelection');
-            var applyBtn = document.getElementById('applyTripSelection');
-            var selectAll = document.getElementById('selectAllTrip');
-            var selectedCountEl = document.getElementById('selectedCount');
+<script>
 
-            function countChecked() {
-                return document.querySelectorAll('.trip-checkbox:checked').length;
+// ✅ Listas separadas por rol, cada una desde su ViewData
+const tripulantesPorRol = {
+    capitan: [
+        @foreach (var t in comandantes) {
+            @:{ id: @t.IdTripulante, nombre: "@Html.Raw(t.Nombre)", rol: "@Html.Raw(t.Rol ?? "")" },
+        }
+    ],
+    copiloto: [
+        @foreach (var t in copilotos) {
+            @:{ id: @t.IdTripulante, nombre: "@Html.Raw(t.Nombre)", rol: "@Html.Raw(t.Rol ?? "")" },
+        }
+    ],
+    tcp: [
+        @foreach (var t in tcps) {
+            @:{ id: @t.IdTripulante, nombre: "@Html.Raw(t.Nombre)", rol: "@Html.Raw(t.Rol ?? "")"},
+        }
+    ]
+};
+
+const labels = { capitan: 'Primer Oficial', copiloto: 'Copiloto', tcp: 'TCPs' };
+let rolActual = null;
+
+// ---------------------------------------------------------------
+// Abrir modal — carga solo la lista del rol correspondiente
+// ---------------------------------------------------------------
+function abrirModal(rol) {
+    rolActual = rol;
+    document.getElementById('modalRoleLabel').textContent = labels[rol];
+
+    const esTcp     = rol === 'tcp';
+    const inputType = esTcp ? 'checkbox' : 'radio';
+    const lista     = tripulantesPorRol[rol];
+    const tbody     = document.getElementById('modalTableBody');
+    tbody.innerHTML = '';
+
+    if (lista.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="px-4 py-6 text-center text-gray-400 italic">
+                    No hay tripulantes disponibles para este rol.
+                </td>
+            </tr>`;
+    }
+
+    lista.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50 cursor-pointer';
+        tr.innerHTML = `
+            <td class="px-4 py-2">
+                <input type="${inputType}" name="modalSelect"
+                       value="${t.id}" data-nombre="${t.nombre}"
+                       class="modal-check h-4 w-4 text-blue-600 cursor-pointer"/>
+            </td>
+            <td class="px-4 py-2 text-sm text-gray-700">${t.nombre}</td>
+            <td class="px-4 py-2 text-sm text-gray-500">${t.rol}</td>
+        `;
+
+        tr.addEventListener('click', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            const input = tr.querySelector('input');
+            if (!esTcp) {
+                document.querySelectorAll('.modal-check').forEach(i => i.checked = false);
             }
+            input.checked = !input.checked;
+        });
 
-            function updateSelectedCount() {
-                var c = countChecked();
-                if (selectedCountEl) selectedCountEl.textContent = c;
-            }
+        tbody.appendChild(tr);
+    });
 
-            if (openBtn) openBtn.addEventListener('click', function(){
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            });
+    // Preseleccionar los ya asignados
+    if (rol === 'capitan') {
+        preseleccionar(document.getElementById('capitan-input').value);
+    } else if (rol === 'copiloto') {
+        preseleccionar(document.getElementById('copiloto-input').value);
+    } else {
+        document.querySelectorAll('#tcp-inputs input').forEach(h => preseleccionar(h.value));
+    }
 
-            if (closeBtn) closeBtn.addEventListener('click', function(){
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            });
+    const modal = document.getElementById('tripModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
 
-            if (cancelBtn) cancelBtn.addEventListener('click', function(){
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            });
+function preseleccionar(id) {
+    if (!id) return;
+    const input = document.querySelector(`.modal-check[value="${id}"]`);
+    if (input) input.checked = true;
+}
 
-            if (selectAll) selectAll.addEventListener('change', function(e){
-                var checked = e.target.checked;
-                var boxes = document.querySelectorAll('.trip-checkbox');
-                boxes.forEach(function(b){ b.checked = checked; });
-                updateSelectedCount();
-            });
+// ---------------------------------------------------------------
+// Cerrar modal
+// ---------------------------------------------------------------
+function cerrarModal() {
+    document.getElementById('tripModal').classList.add('hidden');
+    document.getElementById('tripModal').classList.remove('flex');
+    rolActual = null;
+}
 
-            if (applyBtn) applyBtn.addEventListener('click', function(){
-                // Cerrar modal y actualizar contador; los checkboxes ya están dentro del form
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                updateSelectedCount();
-            });
+// ---------------------------------------------------------------
+// Aplicar selección → actualiza hidden + display visual
+// ---------------------------------------------------------------
+function aplicarSeleccion() {
+    const seleccionados = [...document.querySelectorAll('.modal-check:checked')];
 
-            // Cuando se modifique individualmente, actualizar contador
-            document.addEventListener('change', function(e){
-                if (e.target && e.target.classList && e.target.classList.contains('trip-checkbox')) {
-                    updateSelectedCount();
-                }
-            });
+    if (rolActual === 'capitan' || rolActual === 'copiloto') {
+        if (seleccionados.length === 0) { cerrarModal(); return; }
 
-            // Inicializar contador con los que estén marcados por defecto
-            updateSelectedCount();
-        })();
-    </script>
+        const s = seleccionados[0];
+
+        // ✅ Actualiza el input hidden que llega al controller
+        document.getElementById(`${rolActual}-input`).value = s.value;
+
+        // ✅ Actualiza el display visual
+        document.getElementById(`${rolActual}-display`).innerHTML = `
+            <span class="font-medium">${s.dataset.nombre}</span>
+            <button type="button" onclick="limpiar('${rolActual}')"
+                class="text-xs text-red-400 hover:text-red-600 ml-2">✕</button>
+        `;
+
+    } else if (rolActual === 'tcp') {
+        // ✅ Limpia hiddens y display anteriores
+        document.getElementById('tcp-inputs').innerHTML  = '';
+        document.getElementById('tcp-display').innerHTML = '';
+
+        if (seleccionados.length === 0) {
+            document.getElementById('tcp-display').innerHTML =
+                '<span class="text-gray-400 italic">Sin asignar</span>';
+            cerrarModal();
+            return;
+        }
+
+        seleccionados.forEach(s => {
+            // Hidden → llega como int[] idsTcp al controller
+            const hidden = document.createElement('input');
+            hidden.type  = 'hidden';
+            hidden.name  = 'idsTcp';
+            hidden.value = s.value;
+            document.getElementById('tcp-inputs').appendChild(hidden);
+
+            // Tag visual con botón quitar
+            const tag       = document.createElement('div');
+            tag.className   = 'flex items-center justify-between';
+            tag.dataset.id  = s.value;
+            tag.innerHTML   = `
+                <span class="text-xs font-medium">${s.dataset.nombre}</span>
+                <button type="button" onclick="quitarTcp(${s.value})"
+                    class="text-xs text-red-400 hover:text-red-600 ml-2">✕</button>
+            `;
+            document.getElementById('tcp-display').appendChild(tag);
+        });
+    }
+
+    cerrarModal();
+}
+
+// ---------------------------------------------------------------
+// Limpiar piloto / copiloto
+// ---------------------------------------------------------------
+function limpiar(rol) {
+    document.getElementById(`${rol}-input`).value = '';
+    document.getElementById(`${rol}-display`).innerHTML =
+        '<span class="text-gray-400 italic">Sin asignar</span>';
+}
+
+// ---------------------------------------------------------------
+// Quitar un TCP individual
+// ---------------------------------------------------------------
+function quitarTcp(id) {
+    document.querySelector(`#tcp-inputs input[value="${id}"]`)?.remove();
+    document.querySelector(`#tcp-display div[data-id="${id}"]`)?.remove();
+
+    if (document.getElementById('tcp-display').children.length === 0) {
+        document.getElementById('tcp-display').innerHTML =
+            '<span class="text-gray-400 italic">Sin asignar</span>';
+    }
+}
+
+// Cerrar al clicar fuera del modal
+document.getElementById('tripModal').addEventListener('click', function(e) {
+    if (e.target === this) cerrarModal();
+});
+
+</script>
 }

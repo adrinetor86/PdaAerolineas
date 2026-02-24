@@ -15,8 +15,8 @@ public class Tripulante
     [Column("APELLIDO")]
     public string  Apellido { get; set; }
     
-    [Column("LICENCIA")]
-    public string  Licencia { get; set; }
+    [Column("ROL")]
+    public string  Rol { get; set; }
     
     [Column("ACTIVO")]
     public bool  Activo { get; set; } 

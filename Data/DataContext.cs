@@ -22,6 +22,9 @@ public class DataContext:DbContext
 
     public DbSet<VistaTripulante> VistaTripulantes { get; set; }
     
+    public DbSet<Mantenimiento> Mantenimientos { get; set; }
+    public DbSet<VistaMantenimientos> VistaMantenimientos { get; set; }
+    
     public DbSet<Usuario> Usuarios { get; set; }
     
 }

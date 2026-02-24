@@ -1,0 +1,47 @@
+﻿@model List<VistaRuta>
+
+@{
+    
+    ViewData["Title"] = "Mapa 3D";
+}
+
+
+<div id="map" style="height:600px;"></div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@@elfalem/leaflet-curve/dist/leaflet.curve.js"></script>
+<script>
+    // Crear mapa centrado en el mundo
+    var map = L.map('map').setView([20, 0], 2);
+
+    // Capa base OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Coordenadas de ciudades
+    var madrid = [40.4168, -3.7038];
+    var paris = [48.8566, 2.3522];
+    var newYork = [40.7128, -74.0060];
+    var buenosAires = [-34.6037, -58.3816];
+
+    // Marcadores
+    L.marker(madrid).addTo(map).bindPopup("Madrid");
+    L.marker(paris).addTo(map).bindPopup("París");
+    L.marker(newYork).addTo(map).bindPopup("New York");
+    L.marker(buenosAires).addTo(map).bindPopup("Buenos Aires");
+
+    // Rutas aéreas (líneas)
+    @* var route1 = L.polyline([madrid, paris], { color: 'blue' }).addTo(map); *@
+    @* var route2 = L.polyline([paris, newYork], { color: 'red' }).addTo(map); *@
+    @* var route3 = L.polyline([newYork, buenosAires], { color: 'green' }).addTo(map); *@
+    @* *@
+    var curvedPath = L.curve([
+        'M', madrid,
+        'Q', [50, -30], newYork
+    ], {color:'orange'}).addTo(map);
+    
+    // Ajustar vista al contenido
+    map.fitBounds(route3.getBounds());
+</script>

@@ -20,6 +20,10 @@ public class VistaRuta
         public string NombreOrigen { get; set; }
         [Column("CIUDAD_ORIGEN")]
         public string CiudadOrigen { get; set; } 
+        [Column("LATITUD_ORIGEN")]
+        public decimal LatitudOrigen {get; set; }
+        [Column("LONGITUD_ORIGEN")]
+        public decimal LongitudOrigen {get; set; }
         [Column("ID_DESTINO")]
         public int IdDestino { get; set; }    
         [Column("CODIGO_DESTINO")]
@@ -27,7 +31,12 @@ public class VistaRuta
         [Column("NOMBRE_DESTINO")]
         public string NombreDestino { get; set; }
         [Column("CIUDAD_DESTINO")]
-        public string CiudadDestino {get; set; }
+        public string CiudadDestino {get; set; } 
+        [Column("LATITUD_DESTINO")]
+        public decimal LatitudDestino {get; set; }
+        [Column("LONGITUD_DESTINO")]
+        public decimal LongitudDestino {get; set; }
+        
         [Column("DURACION_MINUTOS")]
         public int Duracion { get; set; }
         [Column("DURACION_FORMATEADA")]

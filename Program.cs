@@ -14,6 +14,8 @@ string connectionString = builder.Configuration.GetConnectionString("SqlPda");
 builder.Services.AddTransient<RepositoryFlotas>();
 builder.Services.AddTransient<RepositoryVuelos>();
 builder.Services.AddTransient<RepositoryTripulantes>();
+builder.Services.AddTransient<RepositoryMantenimientos>();
+builder.Services.AddTransient<RepositoryRutas>();
 
 
 builder.Services.AddDbContext<DataContext>

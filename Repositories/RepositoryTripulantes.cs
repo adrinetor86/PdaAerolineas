@@ -24,48 +24,46 @@ public class RepositoryTripulantes
 
         return await consulta.ToListAsync();
     }
-    
-    public async Task<List<TripulantesDisponibles>> GetTripulantesDisponiblesAsync(int idVuelo)
+
+
+    public async Task<List<Tripulante>> GetTripulantesVueloAsync(int idVuelo)
     {
+        string sql = "SP_GET_TRIPULANTES_VUELO @vuelo_id";
 
-        using (DbCommand com = _context.Database.GetDbConnection().CreateCommand())
-        {
-            string sql = "SP_GET_TRIPULANTES_DISPONIBLES";
+        SqlParameter pamVuelo = new SqlParameter("@vuelo_id", idVuelo);
 
-            com.CommandType = CommandType.StoredProcedure;
-            com.CommandText = sql;
-            SqlParameter pamVuelo = new SqlParameter("@vuelo_id", idVuelo);
+        var consulta= _context.Tripulantes.FromSqlRaw(sql, pamVuelo);
 
-            com.Parameters.Add(pamVuelo);
-            await com.Connection.OpenAsync();
-            DbDataReader reader = await com.ExecuteReaderAsync();
-            
-            List<TripulantesDisponibles> tripulantes = new List<TripulantesDisponibles>();
-            
-            
-            while (await reader.ReadAsync())
-            {
-                for (int i = 0; i < reader.FieldCount; i++)
-                {
-                    Console.WriteLine($"[{reader.GetName(i)}] = '{reader[i]}' | IsNull: {reader[i] == DBNull.Value}");
-                }
-                Console.WriteLine("---");
-                
-                TripulantesDisponibles tripulante = new TripulantesDisponibles();
-                tripulante.TripulanteId = int.Parse(reader["TRIPULANTE_ID"].ToString());
-                tripulante.Nombre = reader["NOMBRE_COMPLETO"].ToString();
-                tripulante.Licencia = reader["LICENCIA"].ToString();
-                tripulante.Rol =reader["ROL"].ToString();
-                // tripulante.YaAsignado = int.Parse(reader["YA_ASIGNADO"].ToString());
-                
-                tripulantes.Add(tripulante);
-            }
-
-            await com.Connection.CloseAsync();
-            await reader.CloseAsync();
-            com.Parameters.Clear();
-            return tripulantes;
-        }
-        
+        return await consulta.ToListAsync();
     }
+    
+    public async Task<List<Tripulante>> GetTripulantesDisponiblesAsync(int idVuelo, string rol)
+{
+    var resultado = new List<Tripulante>();
+
+    using DbCommand cmd = _context.Database.GetDbConnection().CreateCommand();
+    cmd.CommandType = CommandType.StoredProcedure;
+    cmd.CommandText = "SP_GET_TRIPULANTES_DISPONIBLES";
+    cmd.Parameters.Add(new SqlParameter("@vuelo_id", idVuelo));
+    cmd.Parameters.Add(new SqlParameter("@rol", (object?)rol ?? DBNull.Value));
+
+    await cmd.Connection.OpenAsync();
+    DbDataReader reader = await cmd.ExecuteReaderAsync();
+
+    while (await reader.ReadAsync())
+    {
+        resultado.Add(new Tripulante
+        {
+            IdTripulante = int.Parse(reader["tripulante_id"].ToString()),
+            Nombre       = reader["nombre_completo"].ToString(),
+            Rol          = reader["rol"].ToString(),
+        });
+    }
+
+    await reader.CloseAsync();
+    await cmd.Connection.CloseAsync();
+    cmd.Parameters.Clear();
+
+    return resultado;
+}
 }

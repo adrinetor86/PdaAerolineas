@@ -16,8 +16,6 @@ public class AsignacionTripulacion
         
     [Column("VUELO_ID")]
     public int IdVuelo { get; set; }
-            
-    [Column("ROL_TRIPULACION_ID")]
-    public int IdRol { get; set; }
+
     
 }

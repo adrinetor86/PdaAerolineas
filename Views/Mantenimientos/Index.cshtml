@@ -1,0 +1,201 @@
+﻿@model List<VistaMantenimientos>
+
+<div class="container mx-auto px-4 py-6">
+
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Mantenimientos</h1>
+            <p class="text-sm text-gray-500 mt-0.5">Registro de mantenimientos programados y en curso</p>
+        </div>
+        <a href="/Mantenimientos/Create"
+           class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
+                  text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            <i class="bi bi-plus-lg"></i> Nuevo
+        </a>
+    </div>
+
+    <div class="flex flex-wrap gap-2 mb-4">
+        <button onclick="filtrar('todos')"
+            class="filtro-btn activo text-xs font-semibold px-3 py-1.5 rounded-full border transition-all"
+            data-estado="todos">
+            Todos
+        </button>
+        <button onclick="filtrar('Programado')"
+            class="filtro-btn text-xs font-semibold px-3 py-1.5 rounded-full border transition-all"
+            data-estado="Programado">
+            Programado
+        </button>
+        <button onclick="filtrar('En Curso')"
+            class="filtro-btn text-xs font-semibold px-3 py-1.5 rounded-full border transition-all"
+            data-estado="En Curso">
+            En Curso
+        </button>
+        <button onclick="filtrar('Completado')"
+            class="filtro-btn text-xs font-semibold px-3 py-1.5 rounded-full border transition-all"
+            data-estado="Completado">
+            Completado
+        </button>
+        <button onclick="filtrar('Cancelado')"
+            class="filtro-btn text-xs font-semibold px-3 py-1.5 rounded-full border transition-all"
+            data-estado="Cancelado">
+            Cancelado
+        </button>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-100" id="tablaMantenimientos">
+                <thead>
+                    <tr class="bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        <th class="px-4 py-3 text-left">Avión</th>
+                        <th class="px-4 py-3 text-left">Estado</th>
+                        <th class="px-4 py-3 text-left">F. Programada</th>
+                        <th class="px-4 py-3 text-left">F. Inicio</th>
+                        <th class="px-4 py-3 text-left">F. Fin</th>
+                        <th class="px-4 py-3 text-left">Descripción</th>
+                        <th class="px-4 py-3 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var m in Model)
+                        {
+                            <tr class="fila-mantenimiento hover:bg-gray-50 transition-colors"
+                                data-estado="@m.Estado">
+
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+                                            <i class="bi bi-airplane text-blue-500 text-xs"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-semibold text-gray-800">@m.Matricula</div>
+                                            <div class="text-xs text-gray-400">@m.Modelo</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                
+                                <td class="px-4 py-3">
+                                    @{
+                                        var (bg, text, dot) = m.Estado switch {
+                                            "Programado" => ("bg-blue-50",   "text-blue-700",  "bg-blue-400"),
+                                            "En Curso"   => ("bg-amber-50",  "text-amber-700", "bg-amber-400"),
+                                            "Completado" => ("bg-green-50",  "text-green-700", "bg-green-400"),
+                                            "Cancelado"  => ("bg-red-50",    "text-red-700",   "bg-red-400"),
+                                            _            => ("bg-gray-50",   "text-gray-700",  "bg-gray-400")
+                                        };
+                                    }
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold @bg @text">
+                                        <span class="w-1.5 h-1.5 rounded-full @dot
+                                            @(m.Estado == "En Curso" ? "animate-pulse" : "")"></span>
+                                        @m.Estado
+                                    </span>
+                                </td>
+
+                                <td class="px-4 py-3 text-sm text-gray-600">
+                                    @m.FechaProgramada.ToString("dd/MM/yyyy")
+                                </td>
+
+                                <td class="px-4 py-3 text-sm text-gray-600">
+                                    @(m.FechaInicio.HasValue
+                                        ? m.FechaInicio.Value.ToString("dd/MM/yyyy HH:mm")
+                                        : "Por Iniciar")
+                                </td>
+
+                                <td class="px-4 py-3 text-sm text-gray-600">
+                                    @(m.FechaFin.HasValue
+                                        ? m.FechaFin.Value.ToString("dd/MM/yyyy HH:mm")
+                                        : "En Curso")
+                                </td>
+
+                                <td class="px-4 py-3 max-w-xs">
+                                    @if (!string.IsNullOrEmpty(m.Descripcion))
+                                    {
+                                        <span class="text-sm text-gray-600 line-clamp-1"
+                                              title="@m.Descripcion">
+                                            @m.Descripcion
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-gray-300 italic text-xs">Sin descripción</span>
+                                    }
+                                </td>
+
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center justify-center gap-1">
+                                        <a href="/Mantenimientos/Detail/@m.Id"
+                                           class="p-1.5 rounded-lg text-gray-400 hover:text-blue-600
+                                                  hover:bg-blue-50 transition-all"
+                                           title="Ver detalle">
+                                            <i class="bi bi-eye text-sm"></i>
+                                        </a>
+                                        <a href="/Mantenimientos/Update/@m.Id"
+                                           class="p-1.5 rounded-lg text-gray-400 hover:text-amber-600
+                                                  hover:bg-amber-50 transition-all"
+                                           title="Editar">
+                                            <i class="bi bi-pencil text-sm"></i>
+                                        </a>
+                                    </div>
+                                </td>
+
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="px-4 py-12 text-center">
+                                <div class="flex flex-col items-center gap-2 text-gray-400">
+                                    <i class="bi bi-tools text-3xl"></i>
+                                    <p class="text-sm font-medium">No hay mantenimientos registrados</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+            <span class="text-xs text-gray-400">
+                <span id="contadorFilas">@(Model?.Count ?? 0)</span> registros
+            </span>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Estado activo del filtro
+    const btnActivo   = 'bg-blue-600 text-white border-blue-600';
+    const btnInactivo = 'bg-white text-gray-600 border-gray-200 hover:border-gray-400';
+
+    // Aplicar estilo inicial
+    document.querySelectorAll('.filtro-btn').forEach(b => {
+        b.classList.add(...btnInactivo.split(' '));
+    });
+    document.querySelector('[data-estado="todos"]')
+        .classList.replace('bg-white', 'bg-blue-600');
+
+    function filtrar(estado) {
+        // Actualizar botones
+        document.querySelectorAll('.filtro-btn').forEach(b => {
+            b.className = 'filtro-btn text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ' + btnInactivo;
+        });
+        const btnSeleccionado = document.querySelector(`[data-estado="${estado}"]`);
+        btnSeleccionado.className = 'filtro-btn text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ' + btnActivo;
+
+        // Filtrar filas
+        let visibles = 0;
+        document.querySelectorAll('.fila-mantenimiento').forEach(fila => {
+            const mostrar = estado === 'todos' || fila.dataset.estado === estado;
+            fila.style.display = mostrar ? '' : 'none';
+            if (mostrar) visibles++;
+        });
+
+        document.getElementById('contadorFilas').textContent = visibles;
+    }
+</script>
+}
