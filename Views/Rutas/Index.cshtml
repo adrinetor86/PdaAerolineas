@@ -1,4 +1,5 @@
-﻿@model List<VistaRuta>
+﻿@using System.Runtime.InteropServices.JavaScript
+@model List<VistaRuta>
 
 @{
     
@@ -6,42 +7,95 @@
 }
 
 
-<div id="map" style="height:600px;"></div>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/@@elfalem/leaflet-curve/dist/leaflet.curve.js"></script>
+
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div id="map" style="height: 420px; width: 100%;"
+     class="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+</div>
+
+@* @foreach (VistaRuta ruta in Model) *@
+@* { *@
+@*     <p> @ruta.CiudadOrigen -> @ruta.CiudadDestino</p> *@
+@* } *@
+
+@section Scripts {
 <script>
-    // Crear mapa centrado en el mundo
-    var map = L.map('map').setView([20, 0], 2);
+// ✅ Datos de rutas serializados desde el servidor
+const rutas = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
 
-    // Capa base OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
+// Inicializar mapa centrado en España
+const map = L.map('map').setView([40.4, -3.7], 5);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+}).addTo(map);
+
+// Iconos personalizados
+const iconoAeropuerto = L.divIcon({
+    className: '',
+    html: `<div style="
+        background:#2563eb;color:white;border-radius:50%;
+        width:28px;height:28px;display:flex;align-items:center;
+        justify-content:center;font-size:13px;font-weight:700;
+        border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">
+        ✈</div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14]
+});
+
+// Evitar marcadores duplicados (mismo aeropuerto en varias rutas)
+const aeropuertosVistos = new Set();
+
+rutas.forEach(ruta => {
+    const origen  = [parseFloat(ruta.LatitudOrigen),  parseFloat(ruta.LongitudOrigen)];
+    const destino = [parseFloat(ruta.LatitudDestino), parseFloat(ruta.LongitudDestino)];
+
+    // Línea de la ruta
+    const linea = L.polyline([origen, destino], {
+        color: '#3b82f6',
+        weight: 2,
+        opacity: 0.6,
+        dashArray: '6 4'
     }).addTo(map);
 
-    // Coordenadas de ciudades
-    var madrid = [40.4168, -3.7038];
-    var paris = [48.8566, 2.3522];
-    var newYork = [40.7128, -74.0060];
-    var buenosAires = [-34.6037, -58.3816];
+    linea.bindTooltip(`
+        ${ruta.CiudadOrigen} (${ruta.CodOrigen}) → ${ruta.CiudadDestino} (${ruta.CodDestino})<br>
+        ${ruta.Distancia} km · ${ruta.DuracionFomateada}
+    `, { sticky: true });
 
-    // Marcadores
-    L.marker(madrid).addTo(map).bindPopup("Madrid");
-    L.marker(paris).addTo(map).bindPopup("París");
-    L.marker(newYork).addTo(map).bindPopup("New York");
-    L.marker(buenosAires).addTo(map).bindPopup("Buenos Aires");
+    // Marcador origen
+    if (!aeropuertosVistos.has(ruta.CodOrigen)) {
+        aeropuertosVistos.add(ruta.CodOrigen);
+        L.marker(origen, { icon: iconoAeropuerto })
+            .addTo(map)
+            .bindPopup(`
+                <b>${ruta.CodOrigen}</b> — ${ruta.NombreOrigen}<br>
+                <span class="text-gray-500">${ruta.CiudadOrigen}</span>
+            `);
+    }
 
-    // Rutas aéreas (líneas)
-    @* var route1 = L.polyline([madrid, paris], { color: 'blue' }).addTo(map); *@
-    @* var route2 = L.polyline([paris, newYork], { color: 'red' }).addTo(map); *@
-    @* var route3 = L.polyline([newYork, buenosAires], { color: 'green' }).addTo(map); *@
-    @* *@
-    var curvedPath = L.curve([
-        'M', madrid,
-        'Q', [50, -30], newYork
-    ], {color:'orange'}).addTo(map);
-    
-    // Ajustar vista al contenido
-    map.fitBounds(route3.getBounds());
+    // Marcador destino
+    if (!aeropuertosVistos.has(ruta.CodDestino)) {
+        aeropuertosVistos.add(ruta.CodDestino);
+        L.marker(destino, { icon: iconoAeropuerto })
+            .addTo(map)
+            .bindPopup(`
+                <b>${ruta.CodDestino}</b> — ${ruta.NombreDestino}<br>
+                <span class="text-gray-500">${ruta.CiudadDestino}</span>
+            `);
+    }
+});
+
+// Ajustar zoom para que entren todos los puntos
+if (rutas.length > 0) {
+    const puntos = rutas.flatMap(r => [
+        [parseFloat(r.LatitudOrigen),  parseFloat(r.LongitudOrigen)],
+        [parseFloat(r.LatitudDestino), parseFloat(r.LongitudDestino)]
+    ]);
+    map.fitBounds(puntos, { padding: [40, 40] });
+}
 </script>
+}

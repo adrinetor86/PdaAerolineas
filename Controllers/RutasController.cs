@@ -21,8 +21,10 @@ public class RutasController : Controller
     public async Task<IActionResult> Index()
     {
         
-        //TODO METER EN SESION EL ID
-         List<VistaRuta> rutas = await _repoVuelos.GetRutasAerolinea();
+        //TODO METER EN SESION EL ID 
+        //HARDCODEADO PARA QUE EL AEROPUERTO BASE SEA EL 1 (MADRID)
+         List<VistaRuta> rutas = await _repoRutas.GetRutasAerolinea(1);
+         
         return View(rutas);
     }
 }
