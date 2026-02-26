@@ -1,4 +1,4 @@
-﻿CREATE    VIEW V_FLOTA_ESTADO AS
+﻿CREATE or alter  VIEW V_FLOTA_ESTADO AS
 SELECT
     av.id               AS avion_id,
     av.matricula,
@@ -43,7 +43,7 @@ FROM avion av
          LEFT  JOIN aeropuerto aer  ON av.aeropuerto_actual_id = aer.id
 go
 
-CREATE     VIEW V_MANTENIMIENTOS AS
+CREATE  or alter  VIEW V_MANTENIMIENTOS AS
 select m.*,av.matricula,mod.nombre_modelo from mantenimiento as m
 
                                                    inner join avion as av on
@@ -52,7 +52,7 @@ select m.*,av.matricula,mod.nombre_modelo from mantenimiento as m
     av.modelo_id=mod.id
 go
 
-create    view V_PRUEBA_AVION
+create or alter  view V_PRUEBA_AVION
 AS
 SELECT a.ID,ae.nombre aerolinea,a.MATRICULA,m.nombre_modelo modelo,
        e.nombre estado, ap.nombre aeropuerto_actual,a.horas_vuelo_totales,a.ciclos_totales
@@ -67,7 +67,7 @@ FROM AVION as a
     a.aeropuerto_actual_id = ap.id
 go
 
-CREATE      VIEW V_RUTAS_AVION
+CREATE or alter    VIEW V_RUTAS_AVION
 AS
 SELECT r.id AS ruta_id,
        r.distancia_km,
@@ -95,7 +95,7 @@ FROM ruta r
          INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
 go
 
-CREATE     VIEW V_TRIPULACION_ROLES AS
+CREATE or alter   VIEW V_TRIPULACION_ROLES AS
 SELECT
     t.id                            AS tripulante_id,
     t.nombre + ' ' + t.apellido     AS nombre_completo,
@@ -104,7 +104,7 @@ SELECT
 FROM tripulante t
 go
 
-CREATE      VIEW V_TRIPULACION_VUELOS AS
+CREATE or alter    VIEW V_TRIPULACION_VUELOS AS
 SELECT
     v.id                            AS vuelo_id,
     v.numero_vuelo,
@@ -122,7 +122,7 @@ FROM vuelo v
          INNER JOIN aeropuerto ad              ON r.aeropuerto_destino_id = ad.id
 go
 
-CREATE      VIEW V_VUELOS AS
+CREATE  or alter   VIEW V_VUELOS AS
 SELECT
     v.id AS vuelo_id,
     v.numero_vuelo,
@@ -174,7 +174,7 @@ FROM vuelo v
          INNER JOIN estado_vuelo ev ON v.estado_id = ev.id
 go
 
-CREATE    VIEW v_dashboard_operacional AS
+CREATE or alter  VIEW v_dashboard_operacional AS
 SELECT
     (SELECT COUNT(*) FROM vuelo WHERE estado_id = 1 AND fecha_salida >= CAST(GETDATE() AS DATE)) AS vuelos_programados_hoy,
     (SELECT COUNT(*) FROM vuelo WHERE estado_id = 3) AS vuelos_en_curso,
@@ -189,7 +189,7 @@ SELECT
      WHERE fecha_salida >= CAST(GETDATE() AS DATE)) AS ocupacion_promedio_hoy
 go
 
-CREATE    VIEW v_vuelos_completos AS
+CREATE or alter  VIEW v_vuelos_completos AS
 SELECT
     v.id AS vuelo_id,
     v.numero_vuelo,
@@ -230,10 +230,10 @@ FROM vuelo v
          INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
          INNER JOIN avion av ON v.avion_id = av.id
          INNER JOIN modelo_avion m ON av.modelo_id = m.id
-         INNER JOIN estado_vuelo ev ON v.estado_id = ev.id
+         INNER JOIN estado_vuelo ev ON v.estado_id = ev.id;
 go
 
-CREATE     PROCEDURE SP_ASIGNAR_TRIPULACION
+CREATE  or alter  PROCEDURE SP_ASIGNAR_TRIPULACION
     @vuelo_id      INT,
     @tripulante_id INT
 AS
@@ -280,7 +280,7 @@ BEGIN
 END;
 go
 
-CREATE    PROCEDURE SP_CREATE_AVION
+CREATE or alter  PROCEDURE SP_CREATE_AVION
 (@matricula nvarchar(20),@modelo int,@aerolinea int,@estado int,@aeropuertoactual int,@horasvuelo int,@ciclos int)
 AS
 INSERT INTO AVION (matricula, modelo_id, aerolinea_id, estado_id, aeropuerto_actual_id, horas_vuelo_totales, ciclos_totales) VALUES
@@ -380,7 +380,7 @@ BEGIN
 END;
 go
 
-CREATE   PROCEDURE SP_GET_RUTAS_DISPONIBLES_POR_AVION_Y_FECHA
+CREATE OR ALTER PROCEDURE SP_GET_RUTAS_DISPONIBLES_POR_AVION_Y_FECHA
     @avion_id            INT,
     @fecha_salida_deseada DATETIME
 AS
@@ -457,9 +457,9 @@ BEGIN
     WHERE r.aeropuerto_origen_id = @aeropuerto_actual_id
     ORDER BY r.distancia_km ASC;
 END;
-go
+GO
 
-CREATE     PROCEDURE SP_GET_RUTAS_POR_AVION
+CREATE or alter   PROCEDURE SP_GET_RUTAS_POR_AVION
 @avion_id INT
 AS
 BEGIN
@@ -502,7 +502,7 @@ BEGIN
 END;
 go
 
-CREATE     PROCEDURE SP_GET_TRIPULANTES_DISPONIBLES
+CREATE or alter   PROCEDURE SP_GET_TRIPULANTES_DISPONIBLES
     @vuelo_id INT,
     @rol      NVARCHAR(50) = NULL  -- 'Comandante' | 'Primer Oficial' | 'Tripulante de Cabina' | NULL = todos
 AS
@@ -558,34 +558,55 @@ BEGIN
 END;
 go
 
-CREATE PROCEDURE SP_GET_TRIPULANTES_VUELO
+CREATE  or alter   PROCEDURE SP_GET_TRIPULANTES_VUELO
 @vuelo_id INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- 1️⃣ Comandantes (Ensure column names match the C# Mapper)
+    IF NOT EXISTS (SELECT 1 FROM vuelo WHERE id = @vuelo_id)
+        BEGIN
+            RAISERROR('El vuelo no existe.', 16, 1);
+            RETURN;
+        END
+
+    -- 1️⃣ Comandantes
     SELECT
-        t.id       AS ID,
-        t.nombre   AS NOMBRE,
-        t.apellido AS APELLIDO,
-        t.rol      AS ROL,
-        1          AS ACTIVO -- Adding a dummy 'Activo' if needed by your model
+        t.id,
+        t.nombre ,
+        t.apellido,
+        t.rol,
+        t.activo
     FROM asignacion_tripulacion at2
              INNER JOIN tripulante t ON at2.tripulante_id = t.id
-    WHERE at2.vuelo_id = @vuelo_id AND t.rol = 'Comandante';
+    WHERE at2.vuelo_id = @vuelo_id
+      AND t.rol = 'Comandante'
+    UNION
+-- 2️⃣ Primeros Oficiales
+    SELECT
+        t.id                    ,
+        t.nombre ,
+        t.apellido,
+        t.rol,
+        t.activo
+    FROM asignacion_tripulacion at2
+             INNER JOIN tripulante t ON at2.tripulante_id = t.id
+    WHERE at2.vuelo_id = @vuelo_id
+      AND t.rol = 'Primer Oficial'
 
-    -- 2️⃣ Primeros Oficiales
-    SELECT t.id AS ID, t.nombre AS NOMBRE, t.apellido AS APELLIDO, t.rol AS ROL, 1 AS ACTIVO
-    FROM asignacion_tripulacion at2
-             INNER JOIN tripulante t ON at2.tripulante_id = t.id
-    WHERE at2.vuelo_id = @vuelo_id AND t.rol = 'Primer Oficial';
+    UNION
 
-    -- 3️⃣ Tripulantes de Cabina
-    SELECT t.id AS ID, t.nombre AS NOMBRE, t.apellido AS APELLIDO, t.rol AS ROL, 1 AS ACTIVO
+    SELECT
+        t.id                        ,
+        t.nombre ,
+        t.apellido,
+        t.rol,
+        t.activo
     FROM asignacion_tripulacion at2
              INNER JOIN tripulante t ON at2.tripulante_id = t.id
-    WHERE at2.vuelo_id = @vuelo_id AND t.rol = 'Tripulante de Cabina';
+    WHERE at2.vuelo_id = @vuelo_id
+      AND t.rol = 'Tripulante de Cabina';
+
 END;
 go
 
@@ -596,7 +617,7 @@ UPDATE VUELO SET estado_id=@idestado
 WHERE id=@idvuelo
 go
 
-CREATE    PROCEDURE SP_UPDATE_ESTADO_VUELO
+CREATE or alter  PROCEDURE SP_UPDATE_ESTADO_VUELO
 (
     @vuelo_id INT,
     @nuevo_estado_id INT,
@@ -696,7 +717,7 @@ BEGIN
 END;
 go
 
-CREATE     PROCEDURE SP_UPDATE_VUELO
+CREATE  or alter  PROCEDURE SP_UPDATE_VUELO
 (@idvuelo int,@numerovuelo nvarchar(50), @idaerolinea int,
  @idruta int,@idavion int, @fechasalida datetime,
  @fechallegada datetime, @idestado int,@puerta nvarchar(10),
@@ -772,12 +793,13 @@ BEGIN
 END;
 go
 
-CREATE   PROCEDURE SP_VALIDAR_TRIPULACION_VUELO
+CREATE OR ALTER PROCEDURE SP_VALIDAR_TRIPULACION_VUELO
 @vuelo_id INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- Contadores por rol
     DECLARE @comandantes INT = 0;
     DECLARE @oficiales   INT = 0;
     DECLARE @tcps        INT = 0;
@@ -792,42 +814,58 @@ BEGIN
              INNER JOIN tripulante t ON at2.tripulante_id = t.id
     WHERE at2.vuelo_id = @vuelo_id;
 
-    -- Tabla temporal para acumular errores
-    DECLARE @errores TABLE (
-                               codigo  NVARCHAR(50),
-                               mensaje NVARCHAR(255)
-                           );
-
-    -- Sin tripulación
+    -- Sin tripulación asignada
     IF @total = 0
-        INSERT INTO @errores VALUES ('SIN_TRIPULACION', 'El vuelo no tiene tripulación asignada.');
+        BEGIN
+            SELECT
+                0           AS valido,
+                'SIN_TRIPULACION' AS codigo,
+                'El vuelo no tiene tripulación asignada.' AS mensaje;
+            RETURN;
+        END
 
-    -- Comandante
+    -- Validar comandante
     IF @comandantes = 0
-        INSERT INTO @errores VALUES ('FALTA_COMANDANTE', 'El vuelo debe tener un Comandante.');
-    ELSE IF @comandantes > 1
-        INSERT INTO @errores VALUES ('EXCESO_COMANDANTES',
-                                     'Solo puede haber 1 Comandante. Hay ' + CAST(@comandantes AS VARCHAR) + '.');
+        BEGIN
+            SELECT 0 AS valido, 'FALTA_COMANDANTE' AS codigo,
+                   'El vuelo debe tener un Comandante.' AS mensaje;
+            RETURN;
+        END
 
-    -- Primer Oficial
+    IF @comandantes > 1
+        BEGIN
+            SELECT 0 AS valido, 'EXCESO_COMANDANTES' AS codigo,
+                   'El vuelo solo puede tener 1 Comandante. Hay ' + CAST(@comandantes AS VARCHAR) + '.' AS mensaje;
+            RETURN;
+        END
+
+    -- Validar primer oficial
     IF @oficiales = 0
-        INSERT INTO @errores VALUES ('FALTA_OFICIAL', 'El vuelo debe tener un Primer Oficial.');
-    ELSE IF @oficiales > 1
-        INSERT INTO @errores VALUES ('EXCESO_OFICIALES',
-                                     'Solo puede haber 1 Primer Oficial. Hay ' + CAST(@oficiales AS VARCHAR) + '.');
+        BEGIN
+            SELECT 0 AS valido, 'FALTA_OFICIAL' AS codigo,
+                   'El vuelo debe tener un Primer Oficial.' AS mensaje;
+            RETURN;
+        END
 
-    -- TCPs
+    IF @oficiales > 1
+        BEGIN
+            SELECT 0 AS valido, 'EXCESO_OFICIALES' AS codigo,
+                   'El vuelo solo puede tener 1 Primer Oficial. Hay ' + CAST(@oficiales AS VARCHAR) + '.' AS mensaje;
+            RETURN;
+        END
+
+    -- Validar TCPs
     IF @tcps < 4
-        INSERT INTO @errores VALUES ('POCOS_TCPS',
-                                     'Se necesitan al menos 4 TCPs. Hay ' + CAST(@tcps AS VARCHAR) + '.');
+        BEGIN
+            SELECT 0 AS valido, 'POCOS_TCPS' AS codigo,
+                   'El vuelo debe tener al menos 4 Tripulantes de Cabina. Hay ' + CAST(@tcps AS VARCHAR) + '.' AS mensaje;
+            RETURN;
+        END
 
-    -- Devolver resultado
-    IF EXISTS (SELECT 1 FROM @errores)
-        SELECT 0 AS valido, codigo, mensaje FROM @errores;
-    ELSE
-        SELECT 1 AS valido, 'OK' AS codigo,
-               'Tripulación completa: 1 Comandante, 1 Primer Oficial, '
-                   + CAST(@tcps AS VARCHAR) + ' TCPs.' AS mensaje;
+    -- Todo correcto
+    SELECT
+        1                   AS valido,
+        'OK'                AS codigo,
+        'Tripulación completa: 1 Comandante, 1 Primer Oficial, ' + CAST(@tcps AS VARCHAR) + ' TCPs.' AS mensaje;
 END;
-go
-
+GO

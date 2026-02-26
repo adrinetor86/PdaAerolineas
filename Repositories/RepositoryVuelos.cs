@@ -565,7 +565,14 @@ public class RepositoryVuelos
         return await consulta.ToListAsync();
 
     }
-
+    public async Task<int> GetEstadoVueloByIdAsync(int idVuelo)
+    {
+        var consulta= _context.Vuelos
+            .Where(v => v.IdVuelo == idVuelo)
+            .Select(v => v.IdEstado)
+            .FirstOrDefaultAsync();
+        return await consulta;
+    }
 
     public async Task UpdateEstadoVueloAsync(int idVuelo,int idEstado)
     {

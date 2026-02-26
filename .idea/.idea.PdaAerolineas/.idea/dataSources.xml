@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="PDA_AEROLINEAS@localhost" uuid="a9c8f12d-b163-4c38-8598-43dcf5a76c77">
+    <data-source source="LOCAL" name="Microsoft SQL Server (JetBrains)" uuid="d6b35c88-0732-46e2-b54c-48c494709b02">
       <driver-ref>sqlserver.jb</driver-ref>
       <synchronize>true</synchronize>
+      <configured-by-url>true</configured-by-url>
       <jdbc-driver>com.jetbrains.jdbc.sqlserver.SqlServerDriver</jdbc-driver>
-      <jdbc-url>Server=localhost\developer;Database=PDA_AEROLINEAS</jdbc-url>
+      <jdbc-url>Data Source=LOCALHOST\DEVELOPER;Initial Catalog=PDA_AEROLINEAS;User ID=sa;Connect Timeout=30;Encrypt=True;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False;Command Timeout=30</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>
