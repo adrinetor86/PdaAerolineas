@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourcePerFileMappings">
+    <file url="dbSrc:///7ddfaf8b/a9c8f12d-b163-4c38-8598-43dcf5a76c77/database/PDA_AEROLINEAS/schema/dbo/routine/SP_ASIGNAR_TRIPULACION.sql" value="a9c8f12d-b163-4c38-8598-43dcf5a76c77" />
+    <file url="dbSrc:///7ddfaf8b/a9c8f12d-b163-4c38-8598-43dcf5a76c77/database/PDA_AEROLINEAS/schema/dbo/routine/SP_GET_RUTAS_POR_AVION.sql" value="a9c8f12d-b163-4c38-8598-43dcf5a76c77" />
+    <file url="dbSrc:///7ddfaf8b/a9c8f12d-b163-4c38-8598-43dcf5a76c77/database/PDA_AEROLINEAS/schema/dbo/routine/SP_GET_TRIPULANTES_DISPONIBLES.sql" value="a9c8f12d-b163-4c38-8598-43dcf5a76c77" />
+    <file url="dbSrc:///7ddfaf8b/a9c8f12d-b163-4c38-8598-43dcf5a76c77/database/PDA_AEROLINEAS/schema/dbo/routine/SP_GET_TRIPULANTES_VUELO.sql" value="a9c8f12d-b163-4c38-8598-43dcf5a76c77" />
+    <file url="dbSrc:///7ddfaf8b/a9c8f12d-b163-4c38-8598-43dcf5a76c77/database/PDA_AEROLINEAS/schema/dbo/routine/SP_UPDATE_VUELO.sql" value="a9c8f12d-b163-4c38-8598-43dcf5a76c77" />
+    <file url="dbSrc:///7ddfaf8b/a9c8f12d-b163-4c38-8598-43dcf5a76c77/database/PDA_AEROLINEAS/schema/dbo/routine/SP_VALIDADICION_CREACION_VUELO.sql" value="a9c8f12d-b163-4c38-8598-43dcf5a76c77" />
+    <file url="dbSrc:///7ddfaf8b/a9c8f12d-b163-4c38-8598-43dcf5a76c77/database/PDA_AEROLINEAS/schema/dbo/routine/sp_registrar_vuelo.sql" value="a9c8f12d-b163-4c38-8598-43dcf5a76c77" />
+  </component>
+</project>
