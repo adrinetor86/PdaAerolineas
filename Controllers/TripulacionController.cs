@@ -18,4 +18,6 @@ public class TripulacionController : Controller
       List<VistaTripulante> tripulantes= await _repoTripulantes.GetTripulantesAsync();
         return View(tripulantes);
     }
+    
+ 
 }

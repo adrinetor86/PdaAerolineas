@@ -26,16 +26,62 @@ public class RepositoryTripulantes
     }
 
 
-    public async Task<List<Tripulante>> GetTripulantesVueloAsync(int idVuelo)
+    public async Task<TripulanteAsignado> GetTripulantesVueloAsync(int idVuelo)
     {
-        string sql = "SP_GET_TRIPULANTES_VUELO @vuelo_id";
-
+        
+        var resultado = new TripulanteAsignado
+        {
+            Tcps = new List<Tripulante>()
+        };
         SqlParameter pamVuelo = new SqlParameter("@vuelo_id", idVuelo);
+        using (DbCommand com = _context.Database.GetDbConnection().CreateCommand())
+        {
+            
+            string sql = "SP_GET_TRIPULANTES_VUELO";
+            com.CommandType = CommandType.StoredProcedure;
+            com.CommandText = sql;
+            com.Parameters.Add(pamVuelo);
+            await com.Connection.OpenAsync();
+            DbDataReader reader = await com.ExecuteReaderAsync();
+// 1️⃣ Comandante
+            while (await reader.ReadAsync())
+                resultado.Comandante = MapTripulante(reader);
 
-        var consulta= _context.Tripulantes.FromSqlRaw(sql, pamVuelo);
+            Console.WriteLine($"Comandante: {resultado.Comandante?.Nombre}");
 
-        return await consulta.ToListAsync();
+// 2️⃣ Primer Oficial
+            bool haySegundo = await reader.NextResultAsync();
+            Console.WriteLine($"NextResult para Oficial: {haySegundo}");  // debe ser True
+
+            while (await reader.ReadAsync())
+                resultado.Oficial = MapTripulante(reader);
+
+            Console.WriteLine($"Oficial: {resultado.Oficial?.Nombre}");
+
+// 3️⃣ TCPs
+            bool hayTercero = await reader.NextResultAsync();
+            Console.WriteLine($"NextResult para TCPs: {hayTercero}");  // debe ser True
+
+            while (await reader.ReadAsync())
+                resultado.Tcps.Add(MapTripulante(reader));
+
+            Console.WriteLine($"TCPs: {resultado.Tcps.Count}");
+
+            await reader.CloseAsync();
+            await com.Connection.CloseAsync();
+             com.Parameters.Clear();
+
+            return resultado;
+        }
     }
+    
+    private Tripulante MapTripulante(DbDataReader reader) => new()
+    {
+        IdTripulante = int.Parse(reader["ID"].ToString()),
+        Nombre       = reader["NOMBRE"].ToString(),
+        Apellido       = reader["APELLIDO"].ToString(),
+        Rol          = reader.IsDBNull(reader.GetOrdinal("ROL")) ? null : reader["ROL"].ToString(),
+        Activo = reader["activo"] != DBNull.Value && Convert.ToBoolean(reader["activo"])    };
     
     public async Task<List<Tripulante>> GetTripulantesDisponiblesAsync(int idVuelo, string rol)
 {
@@ -66,4 +112,35 @@ public class RepositoryTripulantes
 
     return resultado;
 }
+
+    public async Task<(bool Valido, List<string> Errores)> ValidarTripulacionAsync(int idVuelo)
+    {
+        var errores = new List<string>();
+        SqlParameter pamVuelo = new SqlParameter("@vuelo_id",idVuelo);
+        using (DbCommand com = _context.Database.GetDbConnection().CreateCommand())
+        {
+            string sql = "SP_VALIDAR_TRIPULACION_VUELO";
+            com.CommandType = CommandType.StoredProcedure;
+            com.CommandText = sql;
+            
+            com.Parameters.Add(pamVuelo);
+
+            await com.Connection.OpenAsync();
+            DbDataReader reader = await com.ExecuteReaderAsync();
+
+            bool valido = true;
+            while (await reader.ReadAsync())
+            {
+                valido = int.Parse(reader["valido"].ToString()) == 1;
+                if (!valido)
+                    errores.Add(reader["mensaje"].ToString());
+            }
+
+            await reader.CloseAsync();
+            await com.Connection.CloseAsync();
+            com.Parameters.Clear();
+            return (valido, errores);
+        }
+        
+    }
 }
