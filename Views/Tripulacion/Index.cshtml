@@ -1,29 +1,53 @@
 ﻿@model List<VistaTripulante>
 
-<h1>Tripulacion</h1>
-
+<h1 class="text-3xl font-bold text-gray-800 mb-6">
+    Tripulación
+</h1>
 
 @if (Model != null)
 {
-
-
-    <table>
-        <thead>
-        <tr>
-            <th>Nombre Completo</th>
-            <th>Rol</th>
-            <th>Licencia</th>
-            <th></th>
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (VistaTripulante tripulante in Model)
-        {
+    <div class="overflow-x-auto bg-white shadow-lg rounded-2xl">
+        <table class="min-w-full text-sm text-left text-gray-600">
+            
+            <thead class="bg-gray-900 text-white uppercase text-xs tracking-wider">
             <tr>
-                <td>@tripulante.Nombre</td>
-                <td>@tripulante.Rol</td>
+                <th class="px-6 py-4">Nombre Completo</th>
+                <th class="px-6 py-4">Rol</th>
+                <th class="px-6 py-4 text-center">Acciones</th>
             </tr>
-        }
-        </tbody>
-    </table>
+            </thead>
+
+            <tbody class="divide-y divide-gray-200">
+            @foreach (VistaTripulante tripulante in Model)
+            {
+                <tr class="hover:bg-gray-50 transition duration-200">
+                        
+                    <td class="px-6 py-4 font-medium text-gray-900">
+                        @tripulante.Nombre
+                    </td>
+
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-violet-100 text-violet-700">
+                            @tripulante.Rol
+                        </span>
+                    </td>
+
+                    <td class="px-6 py-4 text-center">
+                        <button class="px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-xl shadow hover:bg-violet-700 transition duration-200">
+                            Ver
+                        </button>
+                    </td>
+
+                </tr>
+            }
+            </tbody>
+
+        </table>
+    </div>
+}
+else
+{
+    <div class="bg-yellow-50 border border-yellow-200 text-yellow-700 p-4 rounded-xl">
+        No hay tripulantes disponibles.
+    </div>
 }

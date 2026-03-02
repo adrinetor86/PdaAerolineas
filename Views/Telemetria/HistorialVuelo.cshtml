@@ -1,0 +1,56 @@
+﻿<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@7.0.0/dist/browser/signalr.min.js"></script>
+
+
+@* TODO QUITAR HARDCODEO *@
+<button onclick="verHistorialVuelo(2)" class="w-5 h-5">Prueba Historial</button>
+
+<div id="map" style="height: 800px; width: 100%"
+     class="rounded-xl borderborder-gray-200 shadow-sm overflow-hidden">
+</div>
+
+
+<script>
+    async function verHistorialVuelo(vueloId) {
+        const response = await fetch(`/api/telemetria/historial/${vueloId}`);
+        const data = await response.json();
+
+        if (data.posiciones && data.posiciones.length > 0) {
+            // Dibujar ruta completa
+            const coordenadas = data.posiciones.map(p => [p.lat, p.lng]);
+            const map = L.map('map').setView([40.4168, -3.7038], 5);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            
+            const rutaCompleta = L.polyline(coordenadas, {
+                color: '#ef4444',
+                weight: 3,
+                opacity: 0.8
+            }).addTo(map);
+
+            // Añadir marcadores de inicio y fin
+            L.marker(coordenadas[0], {
+                icon: L.divIcon({
+                    className: 'custom-marker',
+                    html: '',
+                    iconSize: [30, 30]
+                })
+            }).addTo(map).bindPopup('Inicio del vuelo');
+
+            L.marker(coordenadas[coordenadas.length - 1], {
+                icon: L.divIcon({
+                    className: 'custom-marker',
+                    html: '🛬',
+                    iconSize: [30, 30]
+                })
+            }).addTo(map).bindPopup('Posición actual');
+
+            // Centrar mapa en la ruta
+            map.fitBounds(rutaCompleta.getBounds());
+
+            console.log(`✈️ Historial cargado: ${data.totalPosiciones} posiciones`);
+        }
+    }
+</script>

@@ -7,23 +7,15 @@
 }
 
 
-
-
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<div id="map" style="height: 420px; width: 100%;"
-     class="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+<div id="map" style="height: 1500px; width: 100%"
+     class="rounded-xl borderborder-gray-200 shadow-sm overflow-hidden">
 </div>
-
-@* @foreach (VistaRuta ruta in Model) *@
-@* { *@
-@*     <p> @ruta.CiudadOrigen -> @ruta.CiudadDestino</p> *@
-@* } *@
 
 @section Scripts {
 <script>
-// ✅ Datos de rutas serializados desde el servidor
+//  Datos de rutas serializados desde el servidor
 const rutas = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
 
 // Inicializar mapa centrado en España

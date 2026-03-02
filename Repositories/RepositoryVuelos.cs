@@ -1,14 +1,14 @@
 ﻿using System.Data;
-using System.Data.Common;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using PdaAerolineas.Data;
 using PdaAerolineas.Models;
 using PdaAerolineas.Models.FormViews;
 
 namespace PdaAerolineas.Repositories;
 
-#region PROCEDURES AND VIEWS 
+#region PROCEDURES AND VIEWS
 
 // CREATE VIEW V_VUELOS AS
 // SELECT
@@ -127,11 +127,11 @@ namespace PdaAerolineas.Repositories;
 //                 WHERE id = @avion_id;
 //             END
 //             
-//         IF @nuevo_estado_id = 5 AND @estado_actual != 5
+//         IF @nuevo_estado_id = 1 AND @estado_actual != 1
 //          BEGIN
 //              
 //              UPDATE avion
-//              SET estado_id = 5
+//              SET estado_id = 1
 //              WHERE id = @avion_id;
 //          END   
 //         -- Si el vuelo aterriza (estado 4 - Aterrizado)
@@ -159,7 +159,7 @@ namespace PdaAerolineas.Repositories;
 //
 //                 -- Actualizar avión
 //                 UPDATE avion
-//                 SET estado_id = 5,
+//                 SET estado_id = 1,
 //                     aeropuerto_actual_id = @aeropuerto_destino_id,
 //                     horas_vuelo_totales = horas_vuelo_totales + CEILING(@duracion_vuelo_horas)
 //                 WHERE id = @avion_id;
@@ -332,7 +332,6 @@ namespace PdaAerolineas.Repositories;
 // END;
 // GO
 
-
 // CREATE OR ALTER PROCEDURE SP_GET_RUTAS_DISPONIBLES_POR_AVION_Y_FECHA
 //     @avion_id INT,
 //     @fecha_salida_deseada DATETIME
@@ -452,7 +451,6 @@ namespace PdaAerolineas.Repositories;
 // END;
 // GO
 
-
 // ALTER PROCEDURE SP_GET_RUTAS_POR_AVION @avion_id INT 
 //     AS 
 // BEGIN
@@ -517,18 +515,17 @@ namespace PdaAerolineas.Repositories;
 // INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
 // GO
 
-
 #endregion
 
 public class RepositoryVuelos
 {
+    private readonly DataContext _context;
+    private readonly IMemoryCache _memoryCache;
 
-    private DataContext _context;
-
-
-    public RepositoryVuelos(DataContext context)
+    public RepositoryVuelos(DataContext context, IMemoryCache memoryCache)
     {
         _context = context;
+        _memoryCache = memoryCache;
     }
 
 
@@ -538,51 +535,102 @@ public class RepositoryVuelos
             select datos;
 
         return await consulta.ToListAsync();
+    }   
+    
+
+    public async Task<(List<VistaVuelo> Vuelos, int TotalRegistros)> GetVuelosPaginadosConTotalAsync(
+        int numPag,
+        int numFilas,
+        int? idEstado,
+        int? idAerolinea,
+        DateTime? fechaSalida,
+        string? busqueda)
+    {
+        string sql = "EXEC SP_VUELOS_PAGINADO @PageNumber, @PageSize, @EstadoId, @AerolineaId, @FechaSalida, @Busqueda, @TotalRegistros OUTPUT";
+
+        var pamNumPagina = new SqlParameter("@PageNumber", numPag);
+        var pamNumFilas = new SqlParameter("@PageSize", numFilas);
+
+        var pamEstado = new SqlParameter("@EstadoId", idEstado.HasValue ? idEstado.Value : DBNull.Value);
+        var pamAerolinea = new SqlParameter("@AerolineaId", idAerolinea.HasValue ? idAerolinea.Value : DBNull.Value);
+
+        // El SP espera DATE. Mandamos DateTime.Date (o DBNull)
+        var pamSalida = new SqlParameter("@FechaSalida", fechaSalida.HasValue ? fechaSalida.Value.Date : DBNull.Value);
+
+        var pamBusqueda = new SqlParameter("@Busqueda", string.IsNullOrWhiteSpace(busqueda) ? DBNull.Value : busqueda!.Trim());
+
+        var pamTotal = new SqlParameter("@TotalRegistros", SqlDbType.Int);
+
+        pamTotal.Direction = System.Data.ParameterDirection.Output;
+        
+
+        var lista = await _context.VistaVuelos
+            .FromSqlRaw(sql, pamNumPagina, pamNumFilas, pamEstado, pamAerolinea, pamSalida, pamBusqueda, pamTotal)
+            .ToListAsync();
+
+        int total = 0;
+        if (pamTotal.Value != DBNull.Value && pamTotal.Value != null)
+        {
+            total = (int)pamTotal.Value;
+        }
+
+        return (lista, total);
     }
+
+    // Mantenemos el método antiguo por compatibilidad interna.
+    public async Task<List<VistaVuelo>> GetVuelosAvanzadoAsync(int numPag, int numFilas, int? idEstado, int? idAerolinea,
+        DateTime? fechaSalida, string? busqueda)
+    {
+        var (vuelos, _) = await GetVuelosPaginadosConTotalAsync(numPag, numFilas, idEstado, idAerolinea, fechaSalida, busqueda);
+        return vuelos;
+    }
+
+    
+    
     public async Task<Vuelo> FindVueloByIdAsync(int idVuelo)
     {
-        var consulta =from datos in _context.Vuelos
-            where datos.IdVuelo==idVuelo
-            select datos;
-
-        return await consulta.FirstOrDefaultAsync();
-    }    
-    
-    public async Task<VistaVuelo> GetDatosVueloByIdAsync(int idVuelo)
-    {
-        var consulta =from datos in _context.VistaVuelos
-            where datos.IdVuelo==idVuelo
+        var consulta = from datos in _context.Vuelos
+            where datos.IdVuelo == idVuelo
             select datos;
 
         return await consulta.FirstOrDefaultAsync();
     }
-    
+
+    public async Task<VistaVuelo> GetDatosVueloByIdAsync(int idVuelo)
+    {
+        var consulta = from datos in _context.VistaVuelos
+            where datos.IdVuelo == idVuelo
+            select datos;
+
+        return await consulta.FirstOrDefaultAsync();
+    }
+
     public async Task<List<EstadoVuelo>> GetEstadosVuelosAync()
     {
         var consulta = from datos in _context.EstadoVuelos
             select datos;
 
         return await consulta.ToListAsync();
-
     }
+
     public async Task<int> GetEstadoVueloByIdAsync(int idVuelo)
     {
-        var consulta= _context.Vuelos
+        var consulta = _context.Vuelos
             .Where(v => v.IdVuelo == idVuelo)
             .Select(v => v.IdEstado)
             .FirstOrDefaultAsync();
         return await consulta;
     }
 
-    public async Task UpdateEstadoVueloAsync(int idVuelo,int idEstado)
+    public async Task UpdateEstadoVueloAsync(int idVuelo, int idEstado)
     {
         // string sql = "SP_UPDATE_ESTADOVUELO @idvuelo,@idestado";
-        
-        string sql = "SP_UPDATE_ESTADO_VUELO @vuelo_id,@nuevo_estado_id";
-        
-        SqlParameter pamVuelo = new SqlParameter("@vuelo_id", idVuelo);
-        SqlParameter pamEstado = new SqlParameter("@nuevo_estado_id", idEstado);
-        
+
+        var sql = "SP_UPDATE_ESTADO_VUELO @vuelo_id,@nuevo_estado_id";
+
+        var pamVuelo = new SqlParameter("@vuelo_id", idVuelo);
+        var pamEstado = new SqlParameter("@nuevo_estado_id", idEstado);
+
         await _context.Database.ExecuteSqlRawAsync(sql, pamVuelo, pamEstado);
     }
 
@@ -590,35 +638,32 @@ public class RepositoryVuelos
     public async Task CreateVueloAsync(string numeroVuelo, int idAerolinea, int idRuta,
         int idAvion, DateTime fechaSalida, string puerta)
     {
+        var sql = "SP_CREATE_VUELO @numero_vuelo,@aerolinea_id,@ruta_id,@avion_id,@fecha_salida";
 
-        string sql = "SP_CREATE_VUELO @numero_vuelo,@aerolinea_id,@ruta_id,@avion_id,@fecha_salida";
 
+        var pamNumVuelo = new SqlParameter("@numero_vuelo", numeroVuelo);
+        var pamAerolinea = new SqlParameter("@aerolinea_id", idAerolinea);
+        var pamRuta = new SqlParameter("@ruta_id", idRuta);
+        var pamAvion = new SqlParameter("@avion_id", idAvion);
+        var pamSalida = new SqlParameter("@fecha_salida", fechaSalida);
 
-        SqlParameter pamNumVuelo = new SqlParameter("@numero_vuelo", numeroVuelo);
-        SqlParameter pamAerolinea = new SqlParameter("@aerolinea_id", idAerolinea);
-        SqlParameter pamRuta = new SqlParameter("@ruta_id", idRuta);
-        SqlParameter pamAvion = new SqlParameter("@avion_id", idAvion);
-        SqlParameter pamSalida = new SqlParameter("@fecha_salida", fechaSalida);
-        
         await _context.Database.ExecuteSqlRawAsync(sql, pamNumVuelo, pamAerolinea, pamRuta,
             pamAvion, pamSalida);
-        
     }
 
     public async Task<List<Avion>> GetAvionesByAerolineaAsync(int idAerolinea)
     {
-        var consulta= from datos in _context.Aviones 
-            where datos.IdAerolinea==idAerolinea
+        var consulta = from datos in _context.Aviones
+            where datos.IdAerolinea == idAerolinea
             select datos;
 
         return await consulta.ToListAsync();
-    }   
-    
+    }
+
     public async Task<List<string>> GetNumeroVueloByAerolineaAsync(int idAerolinea)
     {
-  
-        var consulta= (from datos in _context.Vuelos 
-            where datos.IdAerolinea==idAerolinea
+        var consulta = (from datos in _context.Vuelos
+            where datos.IdAerolinea == idAerolinea
             select datos.NumeroVuelo).Distinct();
 
         return await consulta.ToListAsync();
@@ -632,67 +677,290 @@ public class RepositoryVuelos
             .Select(a => a.IdAeropuertoActual)
             .FirstOrDefaultAsync();
 
-        
+
         if (idAeropuertoOrigen == 0)
             return new List<VistaRuta>();
-        
+
         var rutas = await _context.VistaRutas
             .Where(r => r.IdOrigen == idAeropuertoOrigen)
             .ToListAsync();
-        
-            return rutas;
-        
-    }     
-    
+
+        return rutas;
+    }
+
     public async Task<List<VistaRuta>> GetRutasAerolinea()
     {
         var consulta = from datos in _context.VistaRutas
             select datos;
-        
-        
-            return await consulta.ToListAsync();
-        
-    }    
-    
-    
-    public async Task UpdateDatosVuelo(int idVuelo,string numerovuelo,int aerolinea,int ruta,int avion,
-        DateTime salida,DateTime llegada,int estado,string puerta,int capacidad,int confirmados,int embarcados,
-        int[]idsTripulantes)
+
+
+        return await consulta.ToListAsync();
+    }
+
+
+    public async Task UpdateDatosVuelo(int idVuelo, string numerovuelo, int aerolinea, int ruta, int avion,
+        DateTime salida, DateTime llegada, int estado, string puerta, int capacidad, int confirmados, int embarcados,
+        int[] idsTripulantes)
     {
-        string sql = @"SP_UPDATE_VUELO @idvuelo, @numerovuelo, @idaerolinea,
+        var sql = @"SP_UPDATE_VUELO @idvuelo, @numerovuelo, @idaerolinea,
                    @idruta, @idavion, @fechasalida, @fechallegada,
                    @idestado, @puerta, @capacidadtotal, @confirmados, @embarcados";
-        
+
         var parametros = new[]
         {
-            new SqlParameter("@idvuelo",        idVuelo),
-            new SqlParameter("@numerovuelo",    numerovuelo),
-            new SqlParameter("@idaerolinea",    aerolinea),
-            new SqlParameter("@idruta",         ruta),
-            new SqlParameter("@idavion",        avion),
-            new SqlParameter("@fechasalida",    salida),
-            new SqlParameter("@fechallegada",   llegada),
-            new SqlParameter("@idestado",       estado),
-            new SqlParameter("@puerta",         puerta ),
+            new SqlParameter("@idvuelo", idVuelo),
+            new SqlParameter("@numerovuelo", numerovuelo),
+            new SqlParameter("@idaerolinea", aerolinea),
+            new SqlParameter("@idruta", ruta),
+            new SqlParameter("@idavion", avion),
+            new SqlParameter("@fechasalida", salida),
+            new SqlParameter("@fechallegada", llegada),
+            new SqlParameter("@idestado", estado),
+            new SqlParameter("@puerta", puerta),
             new SqlParameter("@capacidadtotal", capacidad),
-            new SqlParameter("@confirmados",    confirmados),
-            new SqlParameter("@embarcados",     embarcados),
+            new SqlParameter("@confirmados", confirmados),
+            new SqlParameter("@embarcados", embarcados)
         };
-        
+
         await _context.Database.ExecuteSqlRawAsync(sql, parametros);
 
-        string sqlTripulantes = "SP_ASIGNAR_TRIPULACION @vuelo_id,@tripulante_id";
-        
-        foreach (int idTripulante in idsTripulantes)
+        var sqlTripulantes = "SP_ASIGNAR_TRIPULACION @vuelo_id,@tripulante_id";
+
+        foreach (var idTripulante in idsTripulantes)
         {
-            SqlParameter pamVuelo = new SqlParameter("@vuelo_id", idVuelo);
-            SqlParameter pamTripulante = new SqlParameter("@tripulante_id", idTripulante);
+            var pamVuelo = new SqlParameter("@vuelo_id", idVuelo);
+            var pamTripulante = new SqlParameter("@tripulante_id", idTripulante);
             await _context.Database.ExecuteSqlRawAsync(sqlTripulantes, pamVuelo, pamTripulante);
         }
-        
 
 
         // Console.WriteLine();
     }
 
+    public VueloCache GetVueloCache(int idVuelo)
+    {
+        var key = $"VUELO_{idVuelo}";
+        _memoryCache.TryGetValue(key, out VueloCache vuelo);
+        return vuelo;
+    }
+    
+    public async Task<VueloCache> GetOrCreateVueloCacheAsync(int idVuelo, VistaVuelo vueloDb, TripulanteAsignado tripDb)
+    {
+        string key = $"VUELO_{idVuelo}";
+        if (!_memoryCache.TryGetValue(key, out VueloCache cache))
+        {
+            cache = new VueloCache {
+                IdVuelo = idVuelo,
+                IdEstado = vueloDb.IdEstado,
+                Puerta = vueloDb.Puerta,
+                PasajerosConfirmados = vueloDb.PasajerosConfirmados,
+                PasajerosEmbarcados = vueloDb.PasajerosEmbarcados,
+                IdCapitan = tripDb.Comandante?.IdTripulante ?? 0,
+                IdCopiloto = tripDb.Oficial?.IdTripulante ?? 0,
+                IdsTcp = tripDb.Tcps?.Select(t => t.IdTripulante).ToList() ?? new List<int>()
+            };
+            SaveVueloCache(cache);
+        }
+        return cache;
+    }
+
+    public void SaveVueloCache(VueloCache datos)
+    {
+        // Nota: no forzamos cambios de estado aquí. La validación del paso se hace en ConfirmarVueloFinal/Commit.
+        // Hacer "downgrade" de estado (2->1) provoca que el avance se pierda al recargar.
+
+        string key = $"VUELO_{datos.IdVuelo}";
+        _memoryCache.Set(key, datos, new MemoryCacheEntryOptions()
+            .SetSlidingExpiration(TimeSpan.FromMinutes(20)));
+    }
+
+    private List<FormError> ValidarGestionVuelo(VueloCache datos)
+    {
+        var errores = new List<FormError>();
+        if (datos.IdVuelo <= 0) errores.Add(new FormError { Field = "IdVuelo", Message = "Vuelo inválido." });
+
+        // Reglas por estado (alineadas al UI)
+        if (datos.IdEstado == 1)
+        {
+            if (datos.IdCapitan <= 0) errores.Add(new FormError { Field = "IdCapitan", Message = "Debe asignar un Comandante." });
+            if (datos.IdCopiloto <= 0) errores.Add(new FormError { Field = "IdCopiloto", Message = "Debe asignar un Primer Oficial." });
+            if (datos.IdsTcp == null || datos.IdsTcp.Count < 4)
+                errores.Add(new FormError { Field = "IdsTcp", Message = "Se requiere un mínimo de 4 tripulantes de cabina (TCP)." });
+        }
+
+        if (datos.IdEstado == 2)
+        {
+            if (string.IsNullOrWhiteSpace(datos.Puerta))
+                errores.Add(new FormError { Field = "Puerta", Message = "Debe asignar una puerta de embarque." });
+            if (datos.PasajerosConfirmados <= 0)
+                errores.Add(new FormError { Field = "PasajerosConfirmados", Message = "Los pasajeros confirmados deben ser mayor a 0." });
+            if (datos.PasajerosEmbarcados < 0)
+                errores.Add(new FormError { Field = "PasajerosEmbarcados", Message = "Los pasajeros embarcados no pueden ser negativos." });
+            if (datos.PasajerosEmbarcados > datos.PasajerosConfirmados)
+                errores.Add(new FormError { Field = "PasajerosEmbarcados", Message = "Los pasajeros embarcados no pueden superar a los confirmados." });
+        }
+
+        return errores;
+    }
+
+public async Task<(bool Success, string Message)> CommitVueloAsync(int idVuelo)
+{
+    // Recuperamos lo que el usuario tiene en la IMemoryCache
+    var datos = GetVueloCache(idVuelo);
+    if (datos == null) return (false, "No hay datos en el borrador.");
+
+    var errores = ValidarGestionVuelo(datos);
+    if (errores.Count > 0)
+    {
+        // Devolvemos un mensaje agregado (el controlador devolverá el detalle)
+        return (false, "Hay datos inválidos. Revisa los errores del formulario.");
+    }
+
+    using (var transaction = await _context.Database.BeginTransactionAsync())
+    {
+        try
+        {
+            // 1. Actualizar el Vuelo (Estado, Puerta, Pasajeros)
+            string sqlVuelo = "EXEC SP_UPDATE_GESTION_VUELO @id, @est, @ptr, @conf, @emb";
+            await _context.Database.ExecuteSqlRawAsync(sqlVuelo, 
+                new SqlParameter("@id", datos.IdVuelo),
+                new SqlParameter("@est", datos.IdEstado),
+                new SqlParameter("@ptr", (object)datos.Puerta ?? DBNull.Value),
+                new SqlParameter("@conf", datos.PasajerosConfirmados),
+                new SqlParameter("@emb", datos.PasajerosEmbarcados));
+
+            // 2. Gestionar Tripulación (Solo si no ha despegado: Estado <= 1)
+            if (datos.IdCapitan > 0 || 
+                datos.IdCopiloto > 0 || 
+                (datos.IdsTcp != null && datos.IdsTcp.Count > 0))
+            {
+                // LIMPIEZA DIRECTA: Borramos para que el SP de asignación no vea solapamientos
+                await _context.Database.ExecuteSqlRawAsync("DELETE FROM asignacion_tripulacion WHERE vuelo_id = @id", 
+                    new SqlParameter("@id", idVuelo));
+                
+                string sqlTrip = "EXEC SP_ASIGNAR_TRIPULACION @vuelo_id, @tripulante_id";
+                
+                if (datos.IdCapitan > 0)
+                    await _context.Database.ExecuteSqlRawAsync(sqlTrip,
+                        new SqlParameter("@vuelo_id", idVuelo),
+                        new SqlParameter("@tripulante_id", datos.IdCapitan));
+
+                if (datos.IdCopiloto > 0)
+                    await _context.Database.ExecuteSqlRawAsync(sqlTrip,
+                        new SqlParameter("@vuelo_id", idVuelo),
+                        new SqlParameter("@tripulante_id", datos.IdCopiloto));
+
+                foreach (var tcpId in datos.IdsTcp)
+                {
+                    await _context.Database.ExecuteSqlRawAsync(sqlTrip,
+                        new SqlParameter("@vuelo_id", idVuelo),
+                        new SqlParameter("@tripulante_id", tcpId));
+                }
+            }
+
+            await transaction.CommitAsync();
+            _memoryCache.Remove($"VUELO_{idVuelo}"); // Limpiar caché al terminar
+            return (true, "Vuelo actualizado correctamente.");
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            return (false, ex.Message);
+        }
+    }
 }
+
+    public async Task<(bool Success, string Message)> UpdateGestionVueloAsync(
+        int idVuelo,
+        int nuevoEstado,
+        string puerta,
+        int confirmados,
+        int embarcados,
+        int idCapitan,
+        int idCopiloto,
+        int[] idsTcp)
+    {
+        try
+        {
+            // 1. Actualizar datos básicos y estado mediante el SP dinámico
+            var sqlVuelo =
+                "EXEC SP_UPDATE_GESTION_VUELO @idvuelo, @nuevo_estado_id, @puerta, @confirmados, @embarcados";
+            var paramVuelo = new[]
+            {
+                new SqlParameter("@idvuelo", idVuelo),
+                new SqlParameter("@nuevo_estado_id", nuevoEstado),
+                new SqlParameter("@puerta", (object)puerta ?? DBNull.Value),
+                new SqlParameter("@confirmados", confirmados),
+                new SqlParameter("@embarcados", embarcados)
+            };
+            await _context.Database.ExecuteSqlRawAsync(sqlVuelo, paramVuelo);
+
+            // 2. Gestionar Tripulación (Solo si estamos en los primeros estados)
+            // Nota: En una app real, aquí borraríamos asignaciones previas antes de re-insertar
+            if (idCapitan > 0 || idCopiloto > 0 || (idsTcp != null && idsTcp.Length > 0))
+            {
+                var sqlTrip = "EXEC SP_ASIGNAR_TRIPULACION @vuelo_id, @tripulante_id";
+
+                if (idCapitan > 0)
+                    await _context.Database.ExecuteSqlRawAsync(sqlTrip, new SqlParameter("@vuelo_id", idVuelo),
+                        new SqlParameter("@tripulante_id", idCapitan));
+
+                if (idCopiloto > 0)
+                    await _context.Database.ExecuteSqlRawAsync(sqlTrip, new SqlParameter("@vuelo_id", idVuelo),
+                        new SqlParameter("@tripulante_id", idCopiloto));
+
+                if (idsTcp != null)
+                    foreach (var tcpId in idsTcp)
+                        await _context.Database.ExecuteSqlRawAsync(sqlTrip, new SqlParameter("@vuelo_id", idVuelo),
+                            new SqlParameter("@tripulante_id", tcpId));
+            }
+
+            return (true, "Actualización exitosa");
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
+    public async Task<(bool Success, string Message)> RegistrarRetrasoAsync(int idVuelo, int minutos, int? idCodRetraso = null)
+    {
+        if (idVuelo <= 0) return (false, "Vuelo inválido");
+        if (minutos <= 0) return (false, "Los minutos deben ser mayor que 0");
+
+        try
+        {
+            // Validar que el vuelo exista
+            bool existe = await _context.Vuelos.AnyAsync(v => v.IdVuelo == idVuelo);
+            if (!existe) return (false, "El vuelo no existe");
+
+            var retraso = new RetrasoVuelo
+            {
+                IdVuelo = idVuelo,
+                Minutos = minutos,
+                // Si no hay catálogo, mandamos 0 / 1 como valor por defecto
+                IdCodRetraso = idCodRetraso ?? 1
+            };
+
+            _context.RetrasosVuelos.Add(retraso);
+            await _context.SaveChangesAsync();
+
+            return (true, $"Retraso registrado: +{minutos} min");
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+

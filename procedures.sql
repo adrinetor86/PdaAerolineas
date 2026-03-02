@@ -1,4 +1,4 @@
-﻿CREATE    VIEW V_FLOTA_ESTADO AS
+﻿CREATE  or alter   VIEW V_FLOTA_ESTADO AS
 SELECT
     av.id               AS avion_id,
     av.matricula,
@@ -43,7 +43,7 @@ FROM avion av
          LEFT  JOIN aeropuerto aer  ON av.aeropuerto_actual_id = aer.id
 go
 
-CREATE     VIEW V_MANTENIMIENTOS AS
+CREATE  or alter    VIEW V_MANTENIMIENTOS AS
 select m.*,av.matricula,mod.nombre_modelo from mantenimiento as m
 
                                                    inner join avion as av on
@@ -52,7 +52,7 @@ select m.*,av.matricula,mod.nombre_modelo from mantenimiento as m
     av.modelo_id=mod.id
 go
 
-create    view V_PRUEBA_AVION
+create or alter    view V_PRUEBA_AVION
 AS
 SELECT a.ID,ae.nombre aerolinea,a.MATRICULA,m.nombre_modelo modelo,
        e.nombre estado, ap.nombre aeropuerto_actual,a.horas_vuelo_totales,a.ciclos_totales
@@ -67,7 +67,7 @@ FROM AVION as a
     a.aeropuerto_actual_id = ap.id
 go
 
-CREATE      VIEW V_RUTAS_AVION
+CREATE   or alter    VIEW V_RUTAS_AVION
 AS
 SELECT r.id AS ruta_id,
        r.distancia_km,
@@ -95,7 +95,7 @@ FROM ruta r
          INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
 go
 
-CREATE     VIEW V_TRIPULACION_ROLES AS
+CREATE  or alter    VIEW V_TRIPULACION_ROLES AS
 SELECT
     t.id                            AS tripulante_id,
     t.nombre + ' ' + t.apellido     AS nombre_completo,
@@ -104,7 +104,7 @@ SELECT
 FROM tripulante t
 go
 
-CREATE      VIEW V_TRIPULACION_VUELOS AS
+CREATE   or alter    VIEW V_TRIPULACION_VUELOS AS
 SELECT
     v.id                            AS vuelo_id,
     v.numero_vuelo,
@@ -122,7 +122,7 @@ FROM vuelo v
          INNER JOIN aeropuerto ad              ON r.aeropuerto_destino_id = ad.id
 go
 
-CREATE      VIEW V_VUELOS AS
+CREATE  or alter     VIEW V_VUELOS AS
 SELECT
     v.id AS vuelo_id,
     v.numero_vuelo,
@@ -174,7 +174,7 @@ FROM vuelo v
          INNER JOIN estado_vuelo ev ON v.estado_id = ev.id
 go
 
-CREATE    VIEW v_dashboard_operacional AS
+CREATE  or alter   VIEW v_dashboard_operacional AS
 SELECT
     (SELECT COUNT(*) FROM vuelo WHERE estado_id = 1 AND fecha_salida >= CAST(GETDATE() AS DATE)) AS vuelos_programados_hoy,
     (SELECT COUNT(*) FROM vuelo WHERE estado_id = 3) AS vuelos_en_curso,
@@ -189,7 +189,7 @@ SELECT
      WHERE fecha_salida >= CAST(GETDATE() AS DATE)) AS ocupacion_promedio_hoy
 go
 
-CREATE    VIEW v_vuelos_completos AS
+CREATE  or alter   VIEW v_vuelos_completos AS
 SELECT
     v.id AS vuelo_id,
     v.numero_vuelo,
@@ -233,7 +233,7 @@ FROM vuelo v
          INNER JOIN estado_vuelo ev ON v.estado_id = ev.id
 go
 
-CREATE     PROCEDURE SP_ASIGNAR_TRIPULACION
+CREATE or alter    PROCEDURE SP_ASIGNAR_TRIPULACION
     @vuelo_id      INT,
     @tripulante_id INT
 AS
@@ -280,7 +280,7 @@ BEGIN
 END;
 go
 
-CREATE    PROCEDURE SP_CREATE_AVION
+CREATE  or alter   PROCEDURE SP_CREATE_AVION
 (@matricula nvarchar(20),@modelo int,@aerolinea int,@estado int,@aeropuertoactual int,@horasvuelo int,@ciclos int)
 AS
 INSERT INTO AVION (matricula, modelo_id, aerolinea_id, estado_id, aeropuerto_actual_id, horas_vuelo_totales, ciclos_totales) VALUES
@@ -293,7 +293,7 @@ INSERT INTO AVION (matricula, modelo_id, aerolinea_id, estado_id, aeropuerto_act
      @ciclos)
 go
 
-CREATE   PROCEDURE SP_CREATE_VUELO
+CREATE  or alter  PROCEDURE SP_CREATE_VUELO
 (
     @numero_vuelo NVARCHAR(10),
     @aerolinea_id INT,
@@ -380,7 +380,7 @@ BEGIN
 END;
 go
 
-CREATE   PROCEDURE SP_GET_RUTAS_DISPONIBLES_POR_AVION_Y_FECHA
+CREATE or alter   PROCEDURE SP_GET_RUTAS_DISPONIBLES_POR_AVION_Y_FECHA
     @avion_id            INT,
     @fecha_salida_deseada DATETIME
 AS
@@ -459,7 +459,7 @@ BEGIN
 END;
 go
 
-CREATE     PROCEDURE SP_GET_RUTAS_POR_AVION
+CREATE or alter     PROCEDURE SP_GET_RUTAS_POR_AVION
 @avion_id INT
 AS
 BEGIN
@@ -502,7 +502,7 @@ BEGIN
 END;
 go
 
-CREATE     PROCEDURE SP_GET_TRIPULANTES_DISPONIBLES
+CREATE or alter     PROCEDURE SP_GET_TRIPULANTES_DISPONIBLES
     @vuelo_id INT,
     @rol      NVARCHAR(50) = NULL  -- 'Comandante' | 'Primer Oficial' | 'Tripulante de Cabina' | NULL = todos
 AS
@@ -558,7 +558,7 @@ BEGIN
 END;
 go
 
-CREATE PROCEDURE SP_GET_TRIPULANTES_VUELO
+CREATE or alter  PROCEDURE SP_GET_TRIPULANTES_VUELO
 @vuelo_id INT
 AS
 BEGIN
@@ -589,14 +589,14 @@ BEGIN
 END;
 go
 
-CREATE PROCEDURE SP_UPDATE_ESTADOVUELO
+CREATE or alter  PROCEDURE SP_UPDATE_ESTADOVUELO
 (@idvuelo int, @idestado int)
 AS
 UPDATE VUELO SET estado_id=@idestado
 WHERE id=@idvuelo
 go
 
-CREATE    PROCEDURE SP_UPDATE_ESTADO_VUELO
+CREATE  or alter   PROCEDURE SP_UPDATE_ESTADO_VUELO
 (
     @vuelo_id INT,
     @nuevo_estado_id INT,
@@ -626,12 +626,12 @@ BEGIN
         FROM vuelo
         WHERE id = @vuelo_id;
 
--- Actualizar estado del vuelo
+        -- Actualizar estado del vuelo
         UPDATE vuelo
         SET estado_id = @nuevo_estado_id
         WHERE id = @vuelo_id;
 
--- Si el vuelo despega (estado 3 - En Vuelo)
+        -- Si el vuelo despega (estado 3 - En Vuelo)
         IF @nuevo_estado_id = 3 AND @estado_actual != 3
             BEGIN
                 UPDATE avion
@@ -644,15 +644,15 @@ BEGIN
                 WHERE id = @avion_id;
             END
 
-        IF @nuevo_estado_id = 5 AND @estado_actual != 5
+        IF @nuevo_estado_id = 1 AND @estado_actual != 1
             BEGIN
-
                 UPDATE avion
-                SET estado_id = 5
+                SET estado_id = 1
                 WHERE id = @avion_id;
             END
-        -- Si el vuelo aterriza (estado 4 - Aterrizado)
-        IF @nuevo_estado_id = 4 AND @estado_actual = 3
+
+        -- Si el vuelo aterriza o se completa (estado 4 - Aterrizado / 7 - Completado)
+        IF (@nuevo_estado_id IN (4, 7)) AND @estado_actual = 3
             BEGIN
                 DECLARE @aeropuerto_destino_id INT;
                 DECLARE @duracion_vuelo_horas DECIMAL(10,2);
@@ -669,19 +669,19 @@ BEGIN
                 FROM vuelo
                 WHERE id = @vuelo_id;
 
--- Obtener coordenadas del aeropuerto
+                -- Obtener coordenadas del aeropuerto
                 SELECT @latitud = latitud, @longitud = longitud
                 FROM aeropuerto
                 WHERE id = @aeropuerto_destino_id;
 
--- Actualizar avión
+                -- Actualizar avión
                 UPDATE avion
-                SET estado_id = 5,
+                SET estado_id = 1,
                     aeropuerto_actual_id = @aeropuerto_destino_id,
                     horas_vuelo_totales = horas_vuelo_totales + CEILING(@duracion_vuelo_horas)
                 WHERE id = @avion_id;
 
--- Registrar posición
+                -- Registrar posición
                 INSERT INTO registro_estado_avion (avion_id, aeropuerto_id, latitud, longitud, fecha_hora)
                 VALUES (@avion_id, @aeropuerto_destino_id, @latitud, @longitud, @fecha_actualizacion);
             END
@@ -694,9 +694,9 @@ BEGIN
             ROLLBACK TRANSACTION;
     END CATCH
 END;
-go
+GO
 
-CREATE     PROCEDURE SP_UPDATE_VUELO
+CREATE  or alter    PROCEDURE SP_UPDATE_VUELO
 (@idvuelo int,@numerovuelo nvarchar(50), @idaerolinea int,
  @idruta int,@idavion int, @fechasalida datetime,
  @fechallegada datetime, @idestado int,@puerta nvarchar(10),
@@ -711,7 +711,7 @@ UPDATE VUELO SET numero_vuelo=@numerovuelo,aerolinea_id=@idaerolinea,
 WHERE id=@idvuelo;
 go
 
-CREATE   PROCEDURE SP_VALIDADICION_CREACION_VUELO
+CREATE or alter   PROCEDURE SP_VALIDADICION_CREACION_VUELO
     @avion_id      INT,
     @ruta_id       INT,
     @fecha_salida  DATETIME,
@@ -772,7 +772,7 @@ BEGIN
 END;
 go
 
-CREATE   PROCEDURE SP_VALIDAR_TRIPULACION_VUELO
+CREATE or alter   PROCEDURE SP_VALIDAR_TRIPULACION_VUELO
 @vuelo_id INT
 AS
 BEGIN
@@ -830,4 +830,6 @@ BEGIN
                    + CAST(@tcps AS VARCHAR) + ' TCPs.' AS mensaje;
 END;
 go
+
+
 

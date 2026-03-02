@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using PdaAerolineas.Extensions;
 using PdaAerolineas.Models;
 using PdaAerolineas.Repositories;
 
 namespace PdaAerolineas.Controllers;
+
+
 
 public class RutasController : Controller
 {

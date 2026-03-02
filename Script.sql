@@ -13,6 +13,7 @@ DROP TABLE IF EXISTS retraso_vuelo;
 DROP TABLE IF EXISTS mantenimiento;
 DROP TABLE IF EXISTS mantenimiento_programado;
 DROP TABLE IF EXISTS mantenimiento_evento;
+DROP TABLE IF EXISTS users_security;
 DROP TABLE IF EXISTS usuario;
 DROP TABLE IF EXISTS tripulante;
 DROP TABLE IF EXISTS vuelo;
@@ -120,6 +121,9 @@ CREATE TABLE vuelo
     capacidad_total       INT          NOT NULL,
     pasajeros_confirmados INT          NOT NULL DEFAULT 0,
     pasajeros_embarcados  INT          NOT NULL DEFAULT 0,
+    telemetria            NVARCHAR(max)
+        constraint CK_tracking_posiciones_json
+            check (isjson([telemetria]) = 1 OR [telemetria] IS NULL)
     FOREIGN KEY (aerolinea_id) REFERENCES aerolinea (id),
     FOREIGN KEY (ruta_id) REFERENCES ruta (id),
     FOREIGN KEY (avion_id) REFERENCES avion (id),
@@ -204,15 +208,38 @@ CREATE TABLE rol
     nombre NVARCHAR(50) UNIQUE NOT NULL
 );
 
-CREATE TABLE usuario
+-- CREATE TABLE usuario
+-- (
+--     id             INT IDENTITY PRIMARY KEY,
+--     nombre_usuario NVARCHAR(100) UNIQUE NOT NULL,
+--     password_hash  NVARCHAR(255)        NOT NULL,
+--     aerolinea_id   INT                  NOT NULL,
+--     activo         BIT                  NOT NULL DEFAULT 1,
+--     FOREIGN KEY (aerolinea_id) REFERENCES aerolinea (id)
+-- );
+
+create TABLE usuario
 (
     id             INT IDENTITY PRIMARY KEY,
-    nombre_usuario NVARCHAR(100) UNIQUE NOT NULL,
-    password_hash  NVARCHAR(255)        NOT NULL,
+    nombre         NVARCHAR(50)  NOT NULL,
+    apellidos       NVARCHAR(50)  NOT NULL,
+    email          NVARCHAR(100) UNIQUE NOT NULL,
+    password       NVARCHAR(100)  NOT NULL,
     aerolinea_id   INT                  NOT NULL,
     activo         BIT                  NOT NULL DEFAULT 1,
     FOREIGN KEY (aerolinea_id) REFERENCES aerolinea (id)
 );
+
+CREATE TABLE users_security
+(
+    id_usuario INT PRIMARY KEY,
+    salt      NVARCHAR(50)   NOT NULL,
+    pass      VARBINARY(MAX) NOT NULL,
+    CONSTRAINT FK_Security_Usuario FOREIGN KEY (id_usuario)
+        REFERENCES dbo.usuario (id) ON DELETE CASCADE
+);
+GO
+
 
 CREATE TABLE usuario_rol
 (
@@ -312,7 +339,8 @@ VALUES (1, 2, 505),
 -- AEROLÍNEA
 -- ============================================
 INSERT INTO aerolinea (nombre, logo, codigo_iata)
-VALUES ('Iberia', 'https://www.iberia.com/images/logo.svg', 'IB');
+VALUES ('Iberia', 'https://www.iberia.com/images/logo.svg', 'IB'),
+       ('Ryanair', 'https://1000marcas.net/wp-content/uploads/2020/01/Ryanair-Logotipo.jpg', 'FR');
 
 
 -- ============================================
@@ -322,8 +350,7 @@ INSERT INTO estado_avion (nombre)
 VALUES ('Operativo'),
        ('En Mantenimiento'),
        ('En Vuelo'),
-       ('Fuera de Servicio'),
-       ('En Tierra');
+       ('Fuera de Servicio');
 
 
 -- ============================================
@@ -346,23 +373,23 @@ INSERT INTO avion (matricula, modelo_id, aerolinea_id, estado_id, aeropuerto_act
                    ciclos_totales)
 VALUES ('EC-ILQ', 2, 1, 1, 1, 45230, 28450),
        ('EC-ILS', 2, 1, 1, 1, 42180, 26890),
-       ('EC-IZR', 2, 1, 5, 1, 38920, 24510),
+       ('EC-IZR', 2, 1, 4, 1, 38920, 24510),
        ('EC-JFN', 3, 1, 1, 1, 12450, 7820),
        ('EC-MXV', 3, 1, 1, 2, 14230, 8950),
        ('EC-NGR', 3, 1, 1, 1, 11680, 7340),
        ('EC-LVT', 4, 1, 1, 1, 52340, 31200),
-       ('EC-JRE', 4, 1, 5, 1, 48920, 29450),
+       ('EC-JRE', 4, 1, 4, 1, 48920, 29450),
        ('EC-NIA', 5, 1, 1, 1, 8920, 5630),
        ('EC-NIB', 5, 1, 1, 1, 9450, 5980),
        ('EC-LUK', 6, 1, 1, 1, 68450, 15230),
        ('EC-LUX', 6, 1, 2, 1, 71230, 16450),
        ('EC-LZJ', 7, 1, 1, 1, 75680, 17890),
        ('EC-MHL', 7, 1, 1, 1, 72340, 16920),
-       ('EC-MIG', 7, 1, 5, 1, 69870, 16120),
+       ('EC-MIG', 7, 1, 4, 1, 69870, 16120),
        ('EC-MYX', 8, 1, 1, 1, 18450, 4230),
        ('EC-NBE', 8, 1, 1, 1, 16780, 3890),
        ('EC-NDR', 8, 1, 1, 1, 15230, 3540),
-       ('EC-NOM', 8, 1, 5, 1, 14680, 3420),
+       ('EC-NOM', 8, 1, 4, 1, 14680, 3420),
        ('EC-NSI', 8, 1, 1, 1, 13920, 3250),
        ('EC-JFH', 1, 1, 1, 2, 56780, 35420),
        ('EC-KHN', 1, 1, 1, 1, 62340, 38920),
@@ -380,8 +407,13 @@ VALUES ('Programado'),
        ('En Vuelo'),
        ('Aterrizado'),
        ('Cancelado'),
-       ('Retrasado');
+       ('Retrasado'),
+       ('Completado');
 
+INSERT INTO ROL(nombre)
+VALUES('Administrador'),
+      ('Gestor'),
+      ('Mecanico')
 -- VUELOS
 INSERT INTO vuelo (numero_vuelo, aerolinea_id, ruta_id, avion_id, fecha_salida, fecha_llegada, estado_id, puerta,
                    capacidad_total, pasajeros_confirmados, pasajeros_embarcados)

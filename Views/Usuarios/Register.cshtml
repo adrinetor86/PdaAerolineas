@@ -1,0 +1,88 @@
+﻿@model List<Aerolinea>
+
+<h1>Registrar Usuarios</h1>
+
+<a asp-controller="Usuarios"
+   asp-action="LogIn">Iniciar Sesion</a>
+   
+
+
+<div class="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+    <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                Crear nueva cuenta
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                Registro de personal de aerolínea
+            </p>
+        </div>
+
+        <form asp-action="Register" method="post" class="mt-8 space-y-6">
+            @Html.AntiForgeryToken()
+            
+            <div class="rounded-md shadow-sm space-y-4">
+                <div>
+                    <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre</label>
+                    <input type="text" name="nombre" id="nombre" required 
+                           class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" 
+                           placeholder="Ej: Adrian">
+                </div>       
+                <div>
+                    <label for="apellidos" class="block text-sm font-medium text-gray-700">Apellidos</label>
+                    <input type="text" name="apellidos" id="apellidos" required 
+                           class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" 
+                           placeholder="Ej: Jacek">
+                </div>   
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Correo</label>
+                    <input type="text" name="email" id="email" required 
+                           class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" 
+                           placeholder="Ej: epst@@gmail.com">
+                </div>
+
+                <div>
+                    <label for="idAerolinea" class="block text-sm font-medium text-gray-700">Aerolínea</label>
+                    <select name="idAerolinea" id="idAerolinea" required
+                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <option value="" selected disabled>Selecciona una opción...</option>
+                        @foreach (Aerolinea aero in Model)
+                        {
+                            <option value="@aero.IdAerolinea">@aero.Nombre</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label for="idRol" class="block text-sm font-medium text-gray-700">Aerolínea</label>
+                    <select name="idRol" id="idRol" 
+                            class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <option value="2" selected disabled>Selecciona una opción...</option>
+                        @foreach (Aerolinea aero in Model)
+                        {
+                            <option value="@aero.IdAerolinea">@aero.Nombre</option>
+                        }
+                    </select>
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
+                    <input type="password" name="password" id="password" required 
+                           class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" 
+                           placeholder="••••••••">
+                </div>
+            </div>
+
+            <div>
+                <button
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <svg class="h-5 w-5 text-indigo-500 group-hover:text-indigo-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                        </svg>
+                    </span>
+                    Registrar Usuario
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

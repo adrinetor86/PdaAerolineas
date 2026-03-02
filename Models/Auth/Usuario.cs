@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace PdaAerolineas.Models;
+namespace PdaAerolineas.Models.Auth;
 
 [Table("USUARIO")]
 public class Usuario
@@ -10,10 +10,16 @@ public class Usuario
     [Column("ID")]
     public int  IdUsusario { get; set; }
     
-    [Column("NOMBRE_USUARIO")]
+    [Column("NOMBRE")]
     public string Nombre { get; set; }
     
-    [Column("PASSWORD_HASH")]
+    [Column("APELLIDOS")]
+    public string Apellidos { get; set; }
+    
+    [Column("EMAIL")]
+    public string  Email { get; set; }    
+    
+    [Column("PASSWORD")]
     public string  Password { get; set; }
     
     [Column("AEROLINEA_ID")]

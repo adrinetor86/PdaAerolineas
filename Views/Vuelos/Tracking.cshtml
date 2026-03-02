@@ -1,0 +1,53 @@
+﻿@model VistaVuelo
+
+@{
+    ViewData["Title"] = "Tracking en directo";
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+    <div class="flex items-center justify-between gap-4 mb-4">
+        <div>
+            <h2 class="text-2xl font-extrabold tracking-tight text-gray-900">Tracking en directo</h2>
+            <p class="text-xs font-mono text-gray-400">Vuelo @Model.NumVuelo · @Model.CodOrigen → @Model.CodDestino</p>
+        </div>
+        <a asp-controller="Vuelos" asp-action="GestionarVuelo" asp-route-idVuelo="@Model.IdVuelo"
+           class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:border-gray-400">
+            Volver
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div class="lg:col-span-3">
+            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div id="map" style="height: 520px;"></div>
+            </div>
+        </div>
+        <div class="lg:col-span-1">
+            <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4">
+                <div class="text-xs font-mono text-gray-500">Estado conexión</div>
+                <div id="trackingStatus" class="mt-1 text-sm font-semibold text-gray-900">—</div>
+
+                <div class="mt-4 text-xs font-mono text-gray-500">Info</div>
+                <div id="trackingInfo" class="mt-1 text-sm text-gray-800 space-y-1"></div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- SignalR: este proyecto no tiene el asset en wwwroot/lib, así que lo cargamos desde CDN -->
+    @* <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js" integrity="sha512-0Y0D+mGvHL6D7dkqQ1hwR6TxYl5Pgc0wCj6gUHSf7kShhIHZsQQYeV8fClmA6uazDqR0lLqHhbVBR2Yx7Q0X0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> *@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <script>
+        window.VUELO_TRACKING = {
+            idVuelo: @Model.IdVuelo,
+            hubUrl: "/hubs/vuelos",
+            bootstrapUrl: '@Url.Action("TrackingBootstrap", "Telemetria", new { idVuelo = Model.IdVuelo })'
+        };
+    </script>
+    <script src="~/js/vuelo-tracking.js"></script>
+}

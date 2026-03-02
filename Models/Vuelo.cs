@@ -42,6 +42,11 @@ public class Vuelo
     
     [Column("PASAJEROS_EMBARCADOS")]
     public int PasajerosEmbarcados { get; set; }
+        
+    [Column("TELEMETRIA")]
+    public string?  Telemetria { get; set; }
+    
+    
     
     // Navegación
     [ForeignKey("IdAerolinea")]
@@ -55,4 +60,6 @@ public class Vuelo
     
     [ForeignKey("IdEstado")]
     public EstadoVuelo Estado { get; set; }
+    
+    
 }

@@ -1,201 +1,308 @@
 ﻿@model List<VistaMantenimientos>
 
-<div class="container mx-auto px-4 py-6">
+@{
+    ViewData["Title"] = "Gestor de Mantenimientos";
 
-    <div class="flex items-center justify-between mb-6">
+    var currentBusqueda = Context.Request.Query["busqueda"].ToString();
+    var currentEstado = Context.Request.Query["estado"].ToString();
+    var currentFecha = Context.Request.Query["fechaProgramada"].ToString();
+    var currentNumFilas = Context.Request.Query["numFilas"].ToString();
+    if (string.IsNullOrEmpty(currentNumFilas)) currentNumFilas = "10";
+
+    var currentPage = 1;
+    int.TryParse(Context.Request.Query["numPag"], out currentPage);
+    if (currentPage < 1) currentPage = 1;
+
+    var totalRegistros = ViewData["TOTAL_REGISTROS"] != null ? (int)ViewData["TOTAL_REGISTROS"] : Model.Count;
+    var pageSize = int.Parse(currentNumFilas);
+    var totalPaginas = (int)Math.Ceiling((double)totalRegistros / pageSize);
+    if (totalPaginas < 1) totalPaginas = 1;
+    var inicioRegistro = (currentPage - 1) * pageSize + (Model.Count > 0 ? 1 : 0);
+    var finRegistro = inicioRegistro + Model.Count - 1;
+
+    string BadgeClass(string? estado)
+    {
+        return (estado) switch
+        {
+            "Programado" => "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200",
+            "En Curso" => "bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-200",
+            "Completado" => "bg-green-50 text-green-700 ring-1 ring-inset ring-green-200",
+            "Cancelado" => "bg-red-50 text-red-700 ring-1 ring-inset ring-red-200",
+            _ => "bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-200",
+        };
+    }
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+
+    <div class="flex items-end justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Mantenimientos</h1>
-            <p class="text-sm text-gray-500 mt-0.5">Registro de mantenimientos programados y en curso</p>
+            <h2 class="text-3xl font-extrabold tracking-tight text-gray-900">Gestor de Mantenimientos</h2>
+            <p class="mt-0.5 text-xs font-mono text-gray-400">
+                @totalRegistros mantenimientos &nbsp;·&nbsp; página @currentPage de @totalPaginas
+            </p>
         </div>
-        <a href="/Mantenimientos/Create"
-           class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
-                  text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-            <i class="bi bi-plus-lg"></i> Nuevo
+        <a asp-action="Programar"
+           class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:bg-blue-800 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="3">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Programar Mantenimiento
         </a>
     </div>
 
-    <div class="flex flex-wrap gap-2 mb-4">
-        <button onclick="filtrar('todos')"
-            class="filtro-btn activo text-xs font-semibold px-3 py-1.5 rounded-full border transition-all"
-            data-estado="todos">
-            Todos
-        </button>
-        <button onclick="filtrar('Programado')"
-            class="filtro-btn text-xs font-semibold px-3 py-1.5 rounded-full border transition-all"
-            data-estado="Programado">
-            Programado
-        </button>
-        <button onclick="filtrar('En Curso')"
-            class="filtro-btn text-xs font-semibold px-3 py-1.5 rounded-full border transition-all"
-            data-estado="En Curso">
-            En Curso
-        </button>
-        <button onclick="filtrar('Completado')"
-            class="filtro-btn text-xs font-semibold px-3 py-1.5 rounded-full border transition-all"
-            data-estado="Completado">
-            Completado
-        </button>
-        <button onclick="filtrar('Cancelado')"
-            class="filtro-btn text-xs font-semibold px-3 py-1.5 rounded-full border transition-all"
-            data-estado="Cancelado">
-            Cancelado
-        </button>
-    </div>
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
 
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-100" id="tablaMantenimientos">
-                <thead>
-                    <tr class="bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        <th class="px-4 py-3 text-left">Avión</th>
-                        <th class="px-4 py-3 text-left">Estado</th>
-                        <th class="px-4 py-3 text-left">F. Programada</th>
-                        <th class="px-4 py-3 text-left">F. Inicio</th>
-                        <th class="px-4 py-3 text-left">F. Fin</th>
-                        <th class="px-4 py-3 text-left">Descripción</th>
-                        <th class="px-4 py-3 text-center">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-50">
-                    @if (Model != null && Model.Any())
+        <form method="get" asp-action="Index" id="formFiltros">
+            <input type="hidden" name="numPag" id="inputNumPag" value="@currentPage"/>
+
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50/70 px-5 py-3">
+
+                <div class="flex flex-wrap items-center gap-2">
+
+                    <a href="@Url.Action("Index")"
+                       class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:border-red-400 hover:text-red-500 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2.5">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                        </svg>
+                        Clear
+                    </a>
+
+                    <div class="relative">
+                        <select name="estado" onchange="resetPage(); this.form.submit()"
+                                class="appearance-none cursor-pointer rounded-lg border py-1.5 pl-3 pr-7 text-xs font-semibold outline-none transition-all
+                                       @(!string.IsNullOrEmpty(currentEstado)
+                                           ? "border-blue-400 bg-blue-50 text-blue-700 ring-1 ring-blue-200"
+                                           : "border-gray-300 bg-white text-gray-700 hover:border-gray-400 focus:border-blue-400")">
+                            <option value="">Todos los estados</option>
+                            <option value="Programado" selected="@(currentEstado == "Programado" ? "selected" : null)">Programado</option>
+                            <option value="En Proceso" selected="@(currentEstado == "En Proceso" ? "selected" : null)">En Proceso</option>
+                            <option value="Finalizado" selected="@(currentEstado == "Finalizado" ? "selected" : null)">Finalizado</option>
+                            <option value="Cancelado" selected="@(currentEstado == "Cancelado" ? "selected" : null)">Cancelado</option>
+                        </select>
+                        <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400"
+                             xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2.5">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </div>
+
+                    <input type="date" name="fechaProgramada" value="@currentFecha"
+                           onchange="resetPage(); this.form.submit()"
+                           class="cursor-pointer rounded-lg border py-1.5 px-3 text-xs font-semibold outline-none transition-all
+                                  @(!string.IsNullOrEmpty(currentFecha)
+                                      ? "border-blue-400 bg-blue-50 text-blue-700 ring-1 ring-blue-200"
+                                      : "border-gray-300 bg-white text-gray-700 hover:border-gray-400 focus:border-blue-400")"/>
+
+                    @if (!string.IsNullOrEmpty(currentBusqueda))
                     {
-                        @foreach (var m in Model)
-                        {
-                            <tr class="fila-mantenimiento hover:bg-gray-50 transition-colors"
-                                data-estado="@m.Estado">
-
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
-                                            <i class="bi bi-airplane text-blue-500 text-xs"></i>
-                                        </div>
-                                        <div>
-                                            <div class="text-sm font-semibold text-gray-800">@m.Matricula</div>
-                                            <div class="text-xs text-gray-400">@m.Modelo</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                
-                                <td class="px-4 py-3">
-                                    @{
-                                        var (bg, text, dot) = m.Estado switch {
-                                            "Programado" => ("bg-blue-50",   "text-blue-700",  "bg-blue-400"),
-                                            "En Curso"   => ("bg-amber-50",  "text-amber-700", "bg-amber-400"),
-                                            "Completado" => ("bg-green-50",  "text-green-700", "bg-green-400"),
-                                            "Cancelado"  => ("bg-red-50",    "text-red-700",   "bg-red-400"),
-                                            _            => ("bg-gray-50",   "text-gray-700",  "bg-gray-400")
-                                        };
-                                    }
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold @bg @text">
-                                        <span class="w-1.5 h-1.5 rounded-full @dot
-                                            @(m.Estado == "En Curso" ? "animate-pulse" : "")"></span>
-                                        @m.Estado
-                                    </span>
-                                </td>
-
-                                <td class="px-4 py-3 text-sm text-gray-600">
-                                    @m.FechaProgramada.ToString("dd/MM/yyyy")
-                                </td>
-
-                                <td class="px-4 py-3 text-sm text-gray-600">
-                                    @(m.FechaInicio.HasValue
-                                        ? m.FechaInicio.Value.ToString("dd/MM/yyyy HH:mm")
-                                        : "Por Iniciar")
-                                </td>
-
-                                <td class="px-4 py-3 text-sm text-gray-600">
-                                    @(m.FechaFin.HasValue
-                                        ? m.FechaFin.Value.ToString("dd/MM/yyyy HH:mm")
-                                        : "En Curso")
-                                </td>
-
-                                <td class="px-4 py-3 max-w-xs">
-                                    @if (!string.IsNullOrEmpty(m.Descripcion))
-                                    {
-                                        <span class="text-sm text-gray-600 line-clamp-1"
-                                              title="@m.Descripcion">
-                                            @m.Descripcion
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-gray-300 italic text-xs">Sin descripción</span>
-                                    }
-                                </td>
-
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center justify-center gap-1">
-                                        <a href="/Mantenimientos/Detail/@m.Id"
-                                           class="p-1.5 rounded-lg text-gray-400 hover:text-blue-600
-                                                  hover:bg-blue-50 transition-all"
-                                           title="Ver detalle">
-                                            <i class="bi bi-eye text-sm"></i>
-                                        </a>
-                                        <a href="/Mantenimientos/Update/@m.Id"
-                                           class="p-1.5 rounded-lg text-gray-400 hover:text-amber-600
-                                                  hover:bg-amber-50 transition-all"
-                                           title="Editar">
-                                            <i class="bi bi-pencil text-sm"></i>
-                                        </a>
-                                    </div>
-                                </td>
-
-                            </tr>
-                        }
+                        <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 ring-1 ring-blue-200">
+                             &ldquo;@currentBusqueda&rdquo;
+                            <button type="button" onclick="clearField('busqueda')" class="ml-0.5 opacity-60 hover:opacity-100">✕</button>
+                        </span>
                     }
-                    else
+                    @if (!string.IsNullOrEmpty(currentEstado))
+                    {
+                        <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 ring-1 ring-blue-200">
+                            Estado: @currentEstado
+                            <button type="button" onclick="clearField('estado')" class="ml-0.5 opacity-60 hover:opacity-100">✕</button>
+                        </span>
+                    }
+                    @if (!string.IsNullOrEmpty(currentFecha))
+                    {
+                        <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700 ring-1 ring-blue-200">
+                             @currentFecha
+                            <button type="button" onclick="clearField('fechaProgramada')" class="ml-0.5 opacity-60 hover:opacity-100">✕</button>
+                        </span>
+                    }
+                </div>
+
+                <div class="relative">
+                    <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                         xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text" name="busqueda" value="@currentBusqueda"
+                           placeholder="Matrícula, modelo o tipo..."
+                           onkeydown="if(event.key==='Enter'){ resetPage(); this.form.submit(); }"
+                           class="w-64 rounded-lg border py-1.5 pl-9 pr-4 text-xs font-mono outline-none transition-all focus:w-80
+                                  @(!string.IsNullOrEmpty(currentBusqueda)
+                                      ? "border-blue-400 bg-blue-50 text-blue-700 ring-1 ring-blue-200"
+                                      : "border-gray-300 bg-white text-gray-700 focus:border-blue-400 focus:ring-1 focus:ring-blue-100")"/>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="border-b border-gray-200 bg-gray-50/40">
+                    <tr>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Avión</th>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Modelo</th>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Tipo</th>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Estado</th>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Fecha Programada</th>
+                        <th class="px-5 py-3 text-right text-xs font-bold uppercase tracking-wider text-gray-500">Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                    @if (!Model.Any())
                     {
                         <tr>
-                            <td colspan="8" class="px-4 py-12 text-center">
-                                <div class="flex flex-col items-center gap-2 text-gray-400">
-                                    <i class="bi bi-tools text-3xl"></i>
-                                    <p class="text-sm font-medium">No hay mantenimientos registrados</p>
+                            <td colspan="6" class="px-5 py-16 text-center">
+                                <div class="text-4xl opacity-20">🔧</div>
+                                <p class="mt-2 text-sm text-gray-400">No se encontraron mantenimientos con los filtros aplicados.</p>
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var m in Model)
+                    {
+                        <tr class="group transition-colors hover:bg-gray-50/70">
+                            <td class="px-5 py-3.5">
+                                <span class="font-mono text-sm font-semibold text-gray-900">@m.Matricula</span>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <span class="font-mono text-xs text-gray-500">@m.Modelo</span>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <span class="font-mono text-xs text-gray-500">@m.Tipo</span>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <span class="inline-block rounded-md px-2.5 py-0.5 text-xs font-bold tracking-wide @BadgeClass(m.Estado)">
+                                    @m.Estado
+                                </span>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <span class="font-mono text-xs text-gray-500">@m.FechaProgramada.ToString("dd/MM/yyyy")</span>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <div class="flex items-center justify-end opacity-60 transition-opacity group-hover:opacity-100">
+                                    <a asp-action="Update" asp-route-idMantenimiento="@m.Id"
+                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-xs font-bold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md active:scale-95"
+                                       title="Editar Mantenimiento">
+                                        Editar
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                             stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12 20h9"/>
+                                            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                                        </svg>
+                                    </a>
                                 </div>
                             </td>
                         </tr>
                     }
-                </tbody>
-            </table>
-        </div>
+                    </tbody>
+                </table>
+            </div>
 
-        <div class="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
-            <span class="text-xs text-gray-400">
-                <span id="contadorFilas">@(Model?.Count ?? 0)</span> registros
-            </span>
-        </div>
+            <div class="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 bg-gray-50/70 px-5 py-3">
+
+                <p class="font-mono text-xs text-gray-500">
+                    Showing <strong class="text-gray-800">@inicioRegistro</strong>
+                    to <strong class="text-gray-800">@finRegistro</strong>
+                    of <strong class="text-gray-800">@totalRegistros</strong> entries
+                </p>
+
+                <div class="flex items-center gap-3">
+
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="cambiarPagina(1)" @(currentPage <= 1 ? "disabled" : "")
+                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30">«</button>
+                        <button type="button" onclick="cambiarPagina(@(currentPage - 1))" @(currentPage <= 1 ? "disabled" : "")
+                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30">‹</button>
+
+                        @{
+                            var rng = 2;
+                            var start = Math.Max(1, currentPage - rng);
+                            var end = Math.Min(totalPaginas, currentPage + rng);
+                        }
+
+                        @if (start > 1)
+                        {
+                            <button type="button" onclick="cambiarPagina(1)" class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-600 transition-all hover:border-blue-400 hover:text-blue-600">1</button>
+                            if (start > 2)
+                            {
+                                <span class="px-1 font-mono text-xs text-gray-400">…</span>
+                            }
+                        }
+
+                        @for (var p = start; p <= end; p++)
+                        {
+                            if (p == currentPage)
+                            {
+                                <button type="button" onclick="cambiarPagina(@p)" class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-900 bg-gray-900 font-mono text-xs font-bold text-white">@p</button>
+                            }
+                            else
+                            {
+                                <button type="button" onclick="cambiarPagina(@p)" class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-600 transition-all hover:border-blue-400 hover:text-blue-600">@p</button>
+                            }
+                        }
+
+                        @if (end < totalPaginas)
+                        {
+                            if (end < totalPaginas - 1)
+                            {
+                                <span class="px-1 font-mono text-xs text-gray-400">…</span>
+                            }
+                            <button type="button" onclick="cambiarPagina(@totalPaginas)" class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-600 transition-all hover:border-blue-400 hover:text-blue-600">@totalPaginas</button>
+                        }
+
+                        <button type="button" onclick="cambiarPagina(@(currentPage + 1))"
+                                @(currentPage >= totalPaginas ? "disabled" : "")
+                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30">
+                            ›
+                        </button>
+                        <button type="button" onclick="cambiarPagina(@totalPaginas)"
+                                @(currentPage >= totalPaginas ? "disabled" : "")
+                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30">
+                            »
+                        </button>
+                    </div>
+
+                    <div class="relative">
+                        <select name="numFilas" onchange="resetPage(); this.form.submit()"
+                                class="appearance-none cursor-pointer rounded-lg border border-gray-300 bg-white py-1.5 pl-3 pr-7 font-mono text-xs text-gray-700 outline-none transition-all hover:border-gray-400 focus:border-blue-400 focus:ring-1 focus:ring-blue-100">
+                            <option value="5" selected="@(currentNumFilas == "5" ? "selected" : null)">5</option>
+                            <option value="10" selected="@(currentNumFilas == "10" ? "selected" : null)">10</option>
+                            <option value="20" selected="@(currentNumFilas == "20" ? "selected" : null)">20</option>
+                            <option value="50" selected="@(currentNumFilas == "50" ? "selected" : null)">50</option>
+                        </select>
+                        <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400"
+                             xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2.5">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+        </form>
     </div>
 </div>
 
 @section Scripts {
 <script>
-    // Estado activo del filtro
-    const btnActivo   = 'bg-blue-600 text-white border-blue-600';
-    const btnInactivo = 'bg-white text-gray-600 border-gray-200 hover:border-gray-400';
+    function cambiarPagina(p) {
+        document.getElementById('inputNumPag').value = p;
+        document.getElementById('formFiltros').submit();
+    }
 
-    // Aplicar estilo inicial
-    document.querySelectorAll('.filtro-btn').forEach(b => {
-        b.classList.add(...btnInactivo.split(' '));
-    });
-    document.querySelector('[data-estado="todos"]')
-        .classList.replace('bg-white', 'bg-blue-600');
+    function resetPage() {
+        document.getElementById('inputNumPag').value = 1;
+    }
 
-    function filtrar(estado) {
-        // Actualizar botones
-        document.querySelectorAll('.filtro-btn').forEach(b => {
-            b.className = 'filtro-btn text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ' + btnInactivo;
-        });
-        const btnSeleccionado = document.querySelector(`[data-estado="${estado}"]`);
-        btnSeleccionado.className = 'filtro-btn text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ' + btnActivo;
-
-        // Filtrar filas
-        let visibles = 0;
-        document.querySelectorAll('.fila-mantenimiento').forEach(fila => {
-            const mostrar = estado === 'todos' || fila.dataset.estado === estado;
-            fila.style.display = mostrar ? '' : 'none';
-            if (mostrar) visibles++;
-        });
-
-        document.getElementById('contadorFilas').textContent = visibles;
+    function clearField(name) {
+        const el = document.querySelector(`[name="${name}"]`);
+        if (el) el.value = '';
+        resetPage();
+        document.getElementById('formFiltros').submit();
     }
 </script>
 }

@@ -23,6 +23,15 @@ public class RepositoryTripulantes
             select datos;
 
         return await consulta.ToListAsync();
+    }   
+    
+    public async Task<Tripulante> FindTripulanteAsync(int idTripulante)
+    {
+        var consulta = from datos in _context.Tripulantes
+            where datos.IdTripulante==idTripulante
+            select datos;
+
+        return await consulta.FirstOrDefaultAsync();
     }
 
 

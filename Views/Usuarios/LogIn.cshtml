@@ -1,0 +1,85 @@
+﻿@using System.Security.Cryptography
+@model PdaAerolineas.Models.Auth.Usuario;
+
+
+<h1>Log In</h1>
+    @* *@
+    @* <form method="post"> *@
+    @*     @Html.AntiForgeryToken() *@
+    @*     <label for="">Email</label> *@
+    @*     <input type="text" name="email"> *@
+    @* *@
+    @*     <label for="">Contraseña</label> *@
+    @*     <input type="text" name="password"> *@
+    @* *@
+    @*     <button class="bg-blue-300 rounded-lg">Iniciar Sesión</button> *@
+    @* *@
+    @*     <a asp-controller="Usuarios" *@
+    @*        asp-action="Register">Registar Usuario</a> *@
+    @* </form> *@
+
+
+<div class="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Iniciar Sesión</h2>
+            <p class="mt-2 text-center text-sm text-gray-600">Accede al sistema de aerolíneas</p>
+        </div>
+
+        <form method="post" class="mt-8 space-y-6">
+            @Html.AntiForgeryToken()
+            
+            <div class="rounded-md shadow-sm space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
+                    <input type="email" name="email" required 
+                           class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" 
+                           placeholder="usuario@aerolinea.com">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Contraseña</label>
+                    <input type="password" name="password" required 
+                           class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" 
+                           placeholder="••••••••">
+                </div>
+            </div>
+
+            <button type="submit" 
+                    class="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150">
+                Entrar
+            </button>
+
+            <div class="text-center mt-4">
+                <a asp-controller="Usuarios" asp-action="Register" class="text-sm text-blue-600 hover:text-blue-500 font-medium">
+                    ¿No tienes cuenta? Regístrate aquí
+                </a>
+            </div>
+        </form>
+
+        @if (Model != null)
+        {
+            <div class="mt-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700">
+                <p class="font-bold">Bienvenido, @Model.Nombre @Model.Apellidos</p>
+                <p class="text-sm">Email: @Model.Email</p>
+            </div>
+        }
+        else if (ViewBag.Error != null)
+        {
+            <div class="mt-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
+                <p class="text-sm">@ViewBag.Error</p>
+            </div>
+        }
+    </div>
+</div>
+
+
+@if (Model != null){
+    <h1>Logueado</h1>
+    <h2>@Model.Nombre @Model.Apellidos</h2>
+    <h2>@Model.Email</h2>
+}
+else
+{
+    <h1>Credenciales incorrectas</h1>
+}

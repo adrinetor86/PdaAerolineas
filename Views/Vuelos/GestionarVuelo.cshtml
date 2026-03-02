@@ -1,0 +1,985 @@
+﻿    @using PdaAerolineas.Models.FormViews
+    @model VistaVuelo
+
+    @{
+        var cache = ViewData["TRIPULACION_CACHE"] as VueloCache;
+        var comandantes = ViewData["COMANDANTES"] as List<Tripulante> ?? new();
+        var copilotos = ViewData["COPILOTOS"] as List<Tripulante> ?? new();
+        var tcps = ViewData["TCPS"] as List<Tripulante> ?? new();
+        List<CodigoRetrasoIata> codigosRetrasos = ViewData["CODRETRASOS"] as List<CodigoRetrasoIata> ?? new();
+
+        var pasos = new[] { "Programado", "Embarcando", "En Vuelo", "Completado" };
+        int estadoActual = cache?.IdEstado ?? 1;
+
+        VistaRetraso retrasoData = ViewData["RETRASO_ACTUAL"] as VistaRetraso ?? new();
+        // Si el estado es 6 (Retrasado) o el texto de la base de datos lo indica
+        bool estaRetrasado = estadoActual == 6 || (Model.Estado != null && Model.Estado.Contains("Retrasado", StringComparison.OrdinalIgnoreCase));
+
+        // Estados reales (7 estados): 5=Cancelado, 7=Completado
+        bool cancelado = estadoActual == 5;
+        bool completado = estadoActual == 7;
+
+        // Wizard solo tiene 4 pasos. Mapeo:
+        // 1->1 Programado, 2->2 Embarcando, 3->3 En vuelo,
+        // 4 (Aterrizado) -> 4 Completado (visual), 7 (Completado) -> 4 Completado (visual)
+        int estadoActualParaWizard = (estadoActual == 4 || estadoActual == 7) ? pasos.Length : estadoActual;
+        int estadoVisual = Math.Min(estadoActualParaWizard, pasos.Length);
+
+        var percentAvance = (int)Math.Round((double)(estadoVisual - 1) / (pasos.Length - 1) * 100);
+
+        // Serializar tripulantes para uso en JS de forma segura
+        var tripulantesPorRolObj = new
+        {
+            capitan = comandantes.Select(t => new { id = t.IdTripulante, nombre = (t.Nombre + " " + t.Apellido).Trim(), rol = t.Rol }).ToList(),
+            copiloto = copilotos.Select(t => new { id = t.IdTripulante, nombre = (t.Nombre + " " + t.Apellido).Trim(), rol = t.Rol }).ToList(),
+            tcp = tcps.Select(t => new { id = t.IdTripulante, nombre = (t.Nombre + " " + t.Apellido).Trim(), rol = t.Rol }).ToList()
+        };
+        var tripulantesJson = System.Text.Json.JsonSerializer.Serialize(tripulantesPorRolObj);
+
+        string rutaTexto = $"{Model.CiudadOrigen} ({Model.CodOrigen}) → {Model.CiudadDestino} ({Model.CodDestino})";
+        string salidaTexto = Model.Salida.ToString("dd/MM/yyyy HH:mm");
+        string llegadaTexto = Model.Llegada.ToString("dd/MM/yyyy HH:mm");
+        string? puertaActual = cache?.Puerta ?? Model.Puerta;
+        var ocupacionPct = (Model.Ocupacion.HasValue ? (int)Math.Round(Model.Ocupacion.Value) : (Model.Capacidad > 0 ? (int)Math.Round((Model.PasajerosConfirmados * 100.0) / Model.Capacidad) : 0));
+        int plazasAvion = Model.Capacidad;
+    }
+
+    <div id="gestionVueloContainer" data-idvuelo="@Model.IdVuelo"
+         class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden my-8">
+
+        <!-- RESUMEN VUELO -->
+        <div class="px-8 pt-6 pb-4 bg-white border-b border-slate-50">
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900">Vuelo @Model.NumVuelo</h2>
+                    <p class="text-blue-600 font-bold text-[10px] uppercase tracking-[0.2em]">Gestión de Operaciones
+                        Aeronáuticas</p>
+                </div>
+                <div class="px-4 py-2 bg-slate-900 rounded-lg text-center self-start">
+                    <span class="text-[9px] font-black text-slate-400 uppercase block leading-none">Paso Actual</span>
+                    <span id="labelPasoActual"
+                          class="text-white text-xs font-bold uppercase">@(cancelado ? "Cancelado" : pasos[estadoVisual - 1])</span>
+                </div>
+            </div>
+
+            <div class="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="rounded-xl border border-slate-100 bg-slate-50/40 p-4">
+                    <div class="text-[10px] font-black text-slate-400 uppercase">Ruta</div>
+                    <div class="text-sm font-extrabold text-slate-800">@rutaTexto</div>
+                    <div class="mt-1 text-[11px] text-slate-500">@Model.Distancia km</div>
+                </div>
+
+                <div id="tarjetaFechas"
+                     class="rounded-xl border transition-colors duration-500 @(estaRetrasado ? "border-amber-300 bg-amber-50" : "border-slate-100 bg-slate-50/40") p-4">
+                    <div class="flex justify-between items-start mb-1">
+                        <div class="text-[10px] font-black text-slate-400 uppercase">Fechas</div>
+
+                        <span id="badgeRetraso"
+                              class="@(estaRetrasado ? "" : "hidden") bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border border-amber-200 shadow-sm animate-pulse">
+                Retrasado
+            </span>
+                    </div>
+
+                    <div id="salidaContainer"
+                         class="text-sm font-extrabold transition-colors @(estaRetrasado ? "text-amber-800 line-through opacity-60" : "text-slate-800")">
+                        Salida: @salidaTexto
+                    </div>
+                    <div id="llegadaContainer"
+                         class="text-sm font-extrabold mt-1 transition-colors @(estaRetrasado ? "text-amber-800 line-through opacity-60" : "text-slate-800")">
+                        Llegada: @llegadaTexto
+                    </div>
+
+                    @if (estaRetrasado)
+                    {
+                        // Calculamos sumando los minutos a ambas fechas (usamos formato completo por si el retraso hace que cambie de día)
+                        string nuevaSalida = Model.Salida.AddMinutes(retrasoData.MinRetraso).ToString("dd/MM/yyyy HH:mm");
+                        string nuevaLlegada = Model.Llegada.AddMinutes(retrasoData.MinRetraso).ToString("dd/MM/yyyy HH:mm");
+
+                        <div class="mt-3 p-2 bg-red-50/80 border border-red-200 rounded-lg">
+                            <div class="text-[11px] font-black text-red-700 uppercase tracking-widest mb-1">Nuevos Tiempos
+                                Estimados
+                            </div>
+                            <div class="text-sm font-black text-red-600">@nuevaSalida</div>
+                            <div class="text-sm font-black text-red-600">@nuevaLlegada</div>
+                        </div>
+                    }
+
+                    <div id="infoRetrasoText"
+                         class="@(estaRetrasado ? "" : "hidden") mt-3 text-[10px] font-bold text-amber-800 bg-amber-200/50 px-3 py-2 rounded-lg border border-amber-300/50">
+                        <ul class="list-disc pl-5 space-y-0.5 text-amber-900">
+                            <li>Retraso Total: <span id="lblMinutosRetraso"
+                                                     class="font-black">@(retrasoData.MinRetraso)</span> min.
+                            </li>
+                            <li>Categoría: <span
+                                    class="uppercase bg-amber-100 px-1 rounded border border-amber-200">@(retrasoData?.CategoriaRetraso ?? "")</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-slate-100 bg-slate-50/40 p-4">
+                    <div class="text-[10px] font-black text-slate-400 uppercase">Avión / Pax</div>
+                    <div class="text-sm font-extrabold text-slate-800">@Model.Matricula • @Model.Modelo</div>
+                    <div class="mt-1 text-[11px] text-slate-500">
+                        Plazas: <span class="font-black text-slate-700">@plazasAvion</span>
+                        • @Model.PasajerosConfirmados/@Model.Capacidad confirmados • @ocupacionPct% ocupación
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BARRA DE PROGRESO -->
+        <div class="px-12 py-6 bg-slate-50/50">
+            <div class="mb-4">
+                <div class="relative h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                    <div id="barraProgreso" class="absolute top-0 left-0 h-2 bg-blue-600 rounded-full"
+                         style="width:@percentAvance%"></div>
+                </div>
+                <div class="flex items-center justify-between mt-3">
+                    @for (int i = 0; i < pasos.Length; i++)
+                    {
+                        var n = i + 1;
+                        var esActivo = n == estadoVisual;
+                        var esPasado = n < estadoVisual;
+                        var esCancelado = cancelado && n == pasos.Length;
+
+                        // Regla: Es verde si ya pasó, O si es el último paso y estamos en él (Vuelo Completado)
+                        var esVerde = esPasado || (esActivo && n == 4);
+
+                        <div class="flex flex-col items-center relative z-10 flex-1 text-center">
+                            <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-black transition-all mx-auto
+                                @(esCancelado ? "bg-red-600 border-red-600 text-white shadow-lg shadow-red-200"
+                                                                    : (esActivo && !esVerde) ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200"
+                                                                    : esVerde ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white text-slate-300 border-slate-200")">
+
+                                @if (esCancelado)
+                                {
+                                    <span>✕</span>
+                                }
+                                else if (esVerde)
+                                {
+                                    <span>✓</span>
+                                }
+                                else
+                                {
+                                    @n
+                                }
+                            </div>
+
+                            <span class="text-[9px] mt-2 font-black uppercase tracking-tighter 
+                    @(esCancelado ? "text-red-600" : (esActivo && !esVerde) ? "text-blue-600" : esVerde ? "text-emerald-500" : "text-slate-400")">
+                                @(esCancelado ? "Cancelado" : pasos[i])
+                            </span>
+                        </div>
+                    }
+                </div>
+
+            </div>
+        </div>
+
+        <form id="formGestionarVuelo" class="p-8 space-y-8" onsubmit="return false;">
+            <input type="hidden" id="inputEstado" value="@estadoActual"/>
+
+            <!-- PANEL ERRORES (VISIBLE) -->
+            <div id="panelErrores" class="hidden rounded-2xl border-2 border-red-200 bg-red-50 px-5 py-4">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <div class="text-xs font-black text-red-700 uppercase tracking-widest">Revisa el formulario</div>
+                        <ul id="listaErrores" class="mt-2 list-disc pl-5 text-sm text-red-700 space-y-1"></ul>
+                    </div>
+                    <button type="button" class="text-red-700 font-black" onclick="limpiarErrores()">✕</button>
+                </div>
+            </div>
+
+            <!-- PASO 1: TRIPULACIÓN -->
+            <div id="seccion-paso1"
+                 class="p-6 rounded-2xl border-2 transition-all @(estadoVisual == 1 ? "border-blue-100 bg-white shadow-sm" : "border-slate-100 bg-slate-50/50 pointer-events-none opacity-60")">
+                <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2 mb-6">
+                    <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
+                    1. Tripulación Asignada
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Comandante</label>
+                        <input type="hidden" id="capitan-input" value="@cache?.IdCapitan"/>
+                        <input type="text" id="capitan-display" readonly
+                               onclick="abrirSelector('capitan')"
+                               class="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none cursor-pointer hover:border-blue-400"
+                               value="@(comandantes.FirstOrDefault(c => c.IdTripulante == cache?.IdCapitan)?.Nombre ?? "") @(comandantes.FirstOrDefault(c => c.IdTripulante == cache?.IdCapitan)?.Apellido ?? "")"/>
+                        <p id="error-IdCapitan" class="mt-1 hidden text-xs font-bold text-red-600"></p>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Primer Oficial</label>
+                        <input type="hidden" id="copiloto-input" value="@cache?.IdCopiloto"/>
+                        <input type="text" id="copiloto-display" readonly
+                               onclick="abrirSelector('copiloto')"
+                               class="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none cursor-pointer hover:border-blue-400"
+                               value="@(copilotos.FirstOrDefault(c => c.IdTripulante == cache?.IdCopiloto)?.Nombre ?? "") @(copilotos.FirstOrDefault(c => c.IdTripulante == cache?.IdCopiloto)?.Apellido ?? "")"/>
+                        <p id="error-IdCopiloto" class="mt-1 hidden text-xs font-bold text-red-600"></p>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Tripulantes de Cabina</label>
+                    <div id="tcp-display"
+                         class="min-h-[50px] bg-white border-2 border-slate-100 rounded-xl p-3 flex flex-wrap gap-2 mt-2">
+                        @if (cache?.IdsTcp == null || cache.IdsTcp.Count == 0)
+                        {
+                            <span id="tcp-empty" class="text-xs text-gray-400 italic">No hay TCPs asignados</span>
+                        }
+
+                        @foreach (var id in cache?.IdsTcp ?? Enumerable.Empty<int>())
+                        {
+                            var t = tcps.FirstOrDefault(x => x.IdTripulante == id);
+                            if (t != null)
+                            {
+                                <div
+                                    class="tag-tcp inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-[11px] font-bold"
+                                    data-id="@id">
+                                    @t.Nombre @t.Apellido
+                                    @if (estadoActual == 1)
+                                    {
+                                        <button type="button" onclick="eliminarTcp(@id)"
+                                                class="text-slate-400 hover:text-red-500 ml-2">✕
+                                        </button>
+                                    }
+                                    <input type="hidden" name="idsTcp" value="@id"/>
+                                </div>
+                            }
+                        }
+                        @if (estadoActual == 1)
+                        {
+                            <button type="button" onclick="abrirSelector('tcp')"
+                                    class="text-[10px] font-black text-blue-600 uppercase underline ml-2">Añadir TCP
+                            </button>
+                        }
+                    </div>
+                    <p id="error-IdsTcp" class="mt-1 hidden text-xs font-bold text-red-600"></p>
+                </div>
+            </div>
+
+            <!-- PASO 2: EMBARQUE (visible si >= 2) -->
+            @if (estadoVisual >= 2)
+            {
+                <div id="seccion-paso2"
+                     class="p-6 rounded-2xl border-2 transition-all @(estadoVisual == 2 ? "border-emerald-100 bg-white shadow-sm" : "border-slate-100 bg-slate-50/50 pointer-events-none opacity-60")">
+                    <h3 class="text-xs font-black text-slate-800 mb-6 flex items-center gap-2 uppercase tracking-widest">
+                        <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                        2. Logística de Embarque
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Puerta de Embarque</label>
+                            <input type="text" id="inputPuerta"
+                                   class="cache-input w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-400"
+                                   value="@puertaActual" @(estadoVisual != 2 ? "readonly disabled" : "")/>
+                            <p id="error-Puerta" class="mt-1 hidden text-xs font-bold text-red-600"></p>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Pax Confirmados</label>
+                            <input type="number" id="inputConfirmados"
+                                   class="cache-input w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-400"
+                                   value="@(cache?.PasajerosConfirmados ?? Model.PasajerosConfirmados)"
+                                   @(estadoVisual != 2 ? "readonly disabled" : "")/>
+                            <p id="error-PasajerosConfirmados" class="mt-1 hidden text-xs font-bold text-red-600"></p>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Pax Embarcados</label>
+                            <input type="number" id="inputEmbarcados"
+                                   class="cache-input w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-400"
+                                   value="@(cache?.PasajerosEmbarcados ?? Model.PasajerosEmbarcados)"
+                                   @(estadoVisual != 2 ? "readonly disabled" : "")/>
+                            <p id="error-PasajerosEmbarcados" class="mt-1 hidden text-xs font-bold text-red-600"></p>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="flex items-center justify-between pt-6 border-t border-slate-100">
+                <div id="statusCache"
+                     class="text-[9px] font-black text-emerald-500 uppercase italic tracking-widest animate-pulse">
+                    Sincronización Activa
+                </div>
+                <div class="flex gap-4 items-center">
+                    <a asp-controller="Vuelos" asp-action="Index"
+                       class="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Salir</a>
+                    <button id="btnRetraso" type="button" onclick="abrirRetraso()"
+                            class="bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-xl text-xs font-black shadow-lg transition-all uppercase tracking-widest">
+                        Indicar retraso
+                    </button>
+                    <button id="btnCancelar" type="button" onclick="cancelarVuelo()"
+                            class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl text-xs font-black shadow-lg transition-all uppercase tracking-widest">
+                        Cancelar vuelo
+                    </button>
+
+                    @* El botón de avanzar solo tiene sentido mientras el vuelo no esté completado/cancelado *@
+                    @if (!cancelado && !completado && estadoActualParaWizard < pasos.Length)
+                    {
+                        <button id="btnSiguiente" type="button" onclick="confirmarCambioEstado()"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl text-xs font-black shadow-lg transition-all uppercase tracking-widest">
+                            @((estadoVisual == 1) ? "Iniciar Embarque →" : (estadoVisual == 2) ? "Autorizar Despegue" : "Completar vuelo")
+                        </button>
+                    }
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- MODAL SELECTOR -->
+    <div id="selectorModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/30 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b">
+                <h3 class="font-bold text-gray-800">Seleccionar <span id="selectorLabel" class="text-blue-600"></span></h3>
+                <button onclick="cerrarSelector()" class="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div class="p-4">
+                <input type="search" id="selectorBusqueda" placeholder="Buscar por nombre..."
+                       oninput="filtrarSelector(this.value)"
+                       class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none mb-3"/>
+                <div id="selectorLista" class="max-h-60 overflow-y-auto space-y-1"></div>
+            </div>
+            <div class="px-5 py-3 border-t bg-gray-50 flex justify-end gap-2">
+                <button onclick="cerrarSelector()" class="text-sm font-bold text-gray-500 px-4 py-2">Cancelar</button>
+                <button onclick="aplicarSelector()" class="bg-blue-600 text-white text-sm font-bold px-5 py-2 rounded-lg">
+                    Aceptar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL RETRASO -->
+    <div id="retrasoModal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/30 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b">
+                <h3 class="font-bold text-gray-800">Indicar retraso</h3>
+                <button onclick="cerrarRetraso()" class="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+
+
+            <div class="p-5 space-y-3">
+                <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Motivo de retraso</label>
+
+                <select id="selectMotivoRetraso"
+                        class="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-amber-400">
+
+                    @foreach (CodigoRetrasoIata codigo in codigosRetrasos)
+                    {
+                        <option value="@codigo.Id">@codigo.Codigo (@codigo.Descripcion)</option>
+                    }
+
+                </select>
+            </div>
+
+            <div class="p-5 space-y-3">
+                <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Minutos de retraso</label>
+                <input id="inputMinutosRetraso" type="number" min="1"
+                       class="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-amber-400"
+                       placeholder="Ej: 15"/>
+                <p id="error-retraso" class="hidden text-xs font-bold text-red-600"></p>
+            </div>
+
+
+            <div class="px-5 py-3 border-t bg-gray-50 flex justify-end gap-2">
+                <button onclick="cerrarRetraso()" class="text-sm font-bold text-gray-500 px-4 py-2">Cancelar</button>
+                <button onclick="registrarRetraso()"
+                        class="bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-5 py-2 rounded-lg">Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script>
+            // Inyectamos los tripulantes serializados desde el servidor
+            window.tripulantesPorRol = @Html.Raw(tripulantesJson);
+            window.estadoActual = @estadoActual;
+            window.estadoCancelado = @cancelado.ToString().ToLower();
+            const PASOS = ['Programado', 'Embarcando', 'En Vuelo', 'Completado'];
+            const ESTADO_COMPLETADO = 7;
+            const ESTADO_CANCELADO = 5;
+            const ESTADO_ATERRIZADO = 4;
+
+            // Debounce para evitar múltiples peticiones seguidas
+            let debounceTimer;
+
+            function debounce(fn, delay = 500) {
+                return function () {
+                    const args = arguments;
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => fn.apply(this, args), delay);
+                }
+            }
+
+            // 2. VALIDACIÓN (Centralizada)
+            function validarDatos(datos) {
+                if (!datos) return ["Error interno: No se pudieron capturar los datos."];
+                const errores = [];
+
+                if (datos.IdEstado === 1) {
+                    if (datos.IdCapitan <= 0) errores.push({field: 'IdCapitan', message: 'Debe asignar un Comandante.'});
+                    if (datos.IdCopiloto <= 0) errores.push({
+                        field: 'IdCopiloto',
+                        message: 'Debe asignar un Primer Oficial.'
+                    });
+                    if (!datos.IdsTcp || datos.IdsTcp.length < 4) errores.push({
+                        field: 'IdsTcp',
+                        message: 'Se requiere un mínimo de 4 tripulantes de cabina (TCP).'
+                    });
+                }
+
+                if (datos.IdEstado === 2) {
+                    if (!datos.Puerta || datos.Puerta.trim() === '') errores.push({
+                        field: 'Puerta',
+                        message: 'Debe asignar una puerta de embarque.'
+                    });
+                    if (datos.PasajerosConfirmados <= 0) errores.push({
+                        field: 'PasajerosConfirmados',
+                        message: 'Los pasajeros confirmados deben ser mayor a 0.'
+                    });
+                    if (datos.PasajerosEmbarcados > datos.PasajerosConfirmados) errores.push({
+                        field: 'PasajerosEmbarcados',
+                        message: 'Los pasajeros embarcados no pueden superar a los confirmados.'
+                    });
+                }
+
+                return errores;
+            }
+
+            // Estado objetivo al avanzar: se valida el paso que se está cerrando (el estado actual), no el nuevo.
+            function validarPasoActualParaAvanzar(estadoActual, datos) {
+                if (!datos) return [{field: 'Global', message: 'Error interno: No se pudieron capturar los datos.'}];
+
+                const errores = [];
+
+                // Si voy de 1 -> 2, valido paso 1 (tripulación)
+                if (estadoActual === 1) {
+                    if (datos.IdCapitan <= 0) errores.push({field: 'IdCapitan', message: 'Debe asignar un Comandante.'});
+                    if (datos.IdCopiloto <= 0) errores.push({
+                        field: 'IdCopiloto',
+                        message: 'Debe asignar un Primer Oficial.'
+                    });
+                    if (!datos.IdsTcp || datos.IdsTcp.length < 4) errores.push({
+                        field: 'IdsTcp',
+                        message: 'Se requiere un mínimo de 4 tripulantes de cabina (TCP).'
+                    });
+                }
+
+                // Si voy de 2 -> 3, valido paso 2 (embarque)
+                if (estadoActual === 2) {
+                    if (!datos.Puerta || datos.Puerta.trim() === '') errores.push({
+                        field: 'Puerta',
+                        message: 'Debe asignar una puerta de embarque.'
+                    });
+                    if (datos.PasajerosConfirmados <= 0) errores.push({
+                        field: 'PasajerosConfirmados',
+                        message: 'Los pasajeros confirmados deben ser mayor a 0.'
+                    });
+                    if (datos.PasajerosEmbarcados > datos.PasajerosConfirmados) errores.push({
+                        field: 'PasajerosEmbarcados',
+                        message: 'Los pasajeros embarcados no pueden superar a los confirmados.'
+                    });
+                }
+
+                return errores;
+            }
+
+            function mostrarInfo(mensaje) {
+                // Reutilizamos el panel, pero sin marcar campos; lo mostramos como mensaje general.
+                limpiarErrores();
+                const panel = document.getElementById('panelErrores');
+                const lista = document.getElementById('listaErrores');
+                if (lista) lista.innerHTML = `<li>${mensaje}</li>`;
+                if (panel) panel.classList.remove('hidden');
+            }
+
+            // 3. CAPTURA DE DATOS (Defensiva)
+            function obtenerDatosUI() {
+                const container = document.getElementById('gestionVueloContainer');
+                if (!container) return null;
+
+                const getVal = (id, isInt = false, fallback = null) => {
+                    const el = document.getElementById(id);
+                    if (!el) return fallback !== null ? fallback : (isInt ? 0 : "");
+
+                    // 🚨 HEMOS BORRADO LA LÍNEA QUE DESTRUÍA LOS DATOS DESHABILITADOS
+                    // Ahora siempre lee el valor real del input, aunque esté en readonly/disabled
+
+                    return isInt ? (parseInt(el.value) || 0) : el.value;
+                };
+
+                return {
+                    IdVuelo: parseInt(container.dataset.idvuelo),
+                    IdEstado: getVal('inputEstado', true, 1),
+                    Puerta: getVal('inputPuerta', false, ""),
+                    PasajerosConfirmados: getVal('inputConfirmados', true, 0),
+                    PasajerosEmbarcados: getVal('inputEmbarcados', true, 0),
+                    IdCapitan: getVal('capitan-input', true, 0),
+                    IdCopiloto: getVal('copiloto-input', true, 0),
+                    IdsTcp: Array.from(document.querySelectorAll('input[name="idsTcp"]')).map(i => parseInt(i.value))
+                };
+            }
+
+            // 4. SINCRONIZACIÓN (Autosave) con debounce
+            async function sincronizarConCache() {
+                const status = document.getElementById('statusCache');
+                const datos = obtenerDatosUI();
+                if (!datos) return;
+
+                // Protección anti-sobrescritura
+                const sinTripulacion = (datos.IdCapitan <= 0) && (datos.IdCopiloto <= 0) && (!datos.IdsTcp || datos.IdsTcp.length === 0);
+                if (datos.IdEstado === 1 && sinTripulacion) {
+                    console.log("Sync bloqueado: evitar sobrescribir tripulación con vacío.");
+                    return;
+                }
+
+                if (status) status.innerText = "Sincronizando...";
+
+                try {
+                    const response = await fetch("/Vuelos/ActualizarBorrador", {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(datos)
+                    });
+
+                    if (response.status === 404) {
+                        alert("La sesión ha caducado. Recargando...");
+                        window.location.reload();
+                        return;
+                    }
+
+                    if (status) status.innerText = "Sincronizado";
+                } catch (e) {
+                    if (status) status.innerText = "Error de conexión";
+                    console.error("Error en sync:", e);
+                }
+            }
+
+            const sincronizarConCacheDebounced = debounce(sincronizarConCache, 600);
+
+            // 5. CONFIRMACIÓN FINAL (Commit)
+            async function confirmarCambioEstado() {
+                const datos = obtenerDatosUI();
+                if (!datos) {
+                    mostrarErrores([{field: 'Global', message: 'Error interno: No se pudieron capturar los datos.'}]);
+                    return;
+                }
+
+                const estadoActualValor = parseInt(document.getElementById('inputEstado')?.value || '1');
+
+                // Solo 5 es cancelado. 7 es completado (terminal).
+                if (estadoActualValor === ESTADO_CANCELADO) {
+                    mostrarErrores([{field: 'Global', message: 'El vuelo está cancelado.'}]);
+                    return;
+                }
+                if (estadoActualValor === ESTADO_COMPLETADO) {
+                    mostrarInfo('El vuelo ya está completado.');
+                    return;
+                }
+
+                // Validamos el paso actual
+                const errores = validarPasoActualParaAvanzar(estadoActualValor, datos);
+                if (errores.length > 0) {
+                    mostrarErrores(errores);
+                    return;
+                }
+
+                if (!confirm('¿Deseas confirmar los datos y pasar al siguiente estado?')) return;
+
+                try {
+                    await fetch('/Vuelos/ActualizarBorrador', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(datos)
+                    });
+
+                    const response = await fetch(`/Vuelos/ConfirmarVueloFinal?idVuelo=${datos.IdVuelo}`, {method: 'POST'});
+                    const result = await response.json();
+
+                    if (result.success) {
+                        window.location.reload();
+                    } else {
+                        if (result.errors && result.errors.length) mostrarErrores(result.errors);
+                        else mostrarErrores([{
+                            field: 'Global',
+                            message: result.message || 'Error desconocido al confirmar en BD'
+                        }]);
+                    }
+                } catch (err) {
+                    mostrarErrores([{field: 'Global', message: 'Error crítico de red.'}]);
+                    console.error(err);
+                }
+            }
+
+            async function cancelarVuelo() {
+                const datos = obtenerDatosUI();
+                if (!datos) return;
+
+                limpiarErrores();
+                if (!confirm('¿Deseas cancelar este vuelo?')) return;
+
+                // Cancelar NO debe pasar por validaciones de pasos.
+                datos.IdEstado = ESTADO_CANCELADO;
+                document.getElementById('inputEstado').value = datos.IdEstado;
+                actualizarUIEstado();
+
+                try {
+                    await fetch('/Vuelos/ActualizarBorrador', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(datos)
+                    });
+
+                    const response = await fetch(`/Vuelos/ConfirmarVueloFinal?idVuelo=${datos.IdVuelo}`, {method: 'POST'});
+                    const result = await response.json();
+
+                    if (result.success) {
+                        window.location.reload();
+                    } else {
+                        // Si el servidor manda errores, los mostramos, pero el cancelado debería siempre poder ejecutarse.
+                        if (result.errors && result.errors.length) mostrarErrores(result.errors);
+                        else mostrarErrores([{field: 'Global', message: result.message || 'No se pudo cancelar el vuelo'}]);
+                    }
+                } catch (err) {
+                    mostrarErrores([{field: 'Global', message: 'Error crítico de red.'}]);
+                    console.error(err);
+                }
+            }
+
+            function actualizarUIEstado() {
+                const estado = parseInt(document.getElementById('inputEstado').value || '1');
+                const cancelado = estado === ESTADO_CANCELADO;
+                const completado = estado === ESTADO_COMPLETADO;
+
+                // Wizard de 4 pasos: 4 (Aterrizado) y 7 (Completado) se ven como paso 4
+                const estadoVisual = (estado === ESTADO_ATERRIZADO || estado === ESTADO_COMPLETADO)
+                    ? PASOS.length
+                    : Math.min(estado, PASOS.length);
+
+                const labelPaso = document.getElementById('labelPasoActual');
+                if (labelPaso) labelPaso.innerText = cancelado ? 'Cancelado' : PASOS[estadoVisual - 1];
+
+                const barra = document.getElementById('barraProgreso');
+                const percent = Math.round((estadoVisual - 1) / (PASOS.length - 1) * 100);
+                if (barra) barra.style.width = percent + '%';
+
+                // Si el botón existe (en pasos no terminales), ajustamos su texto según el paso.
+                const btn = document.getElementById('btnSiguiente');
+                if (btn) {
+                    if (cancelado || completado) {
+                        btn.disabled = true;
+                        btn.classList.add('opacity-60', 'cursor-not-allowed');
+                    } else {
+                        if (estadoVisual === 1) {
+                            btn.textContent = 'Iniciar Embarque';
+                        } else if (estadoVisual === 2) {
+                            btn.textContent = 'Autorizar Despegue';
+                        } else if (estadoVisual === 3) {
+                            // Nuevo flujo: desde En Vuelo se completa directamente
+                            btn.textContent = 'Completar vuelo';
+                        }
+
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-60', 'cursor-not-allowed');
+                    }
+                }
+
+                const btnCancelar = document.getElementById('btnCancelar');
+                if (btnCancelar) {
+                    const bloquear = cancelado || completado;
+                    btnCancelar.disabled = bloquear;
+                    btnCancelar.classList.toggle('opacity-60', bloquear);
+                    btnCancelar.classList.toggle('cursor-not-allowed', bloquear);
+                }
+
+                const btnRetraso = document.getElementById('btnRetraso');
+                if (btnRetraso) {
+                    const bloquear = cancelado || completado;
+                    btnRetraso.disabled = bloquear;
+                    btnRetraso.classList.toggle('opacity-60', bloquear);
+                    btnRetraso.classList.toggle('cursor-not-allowed', bloquear);
+                }
+            }
+
+            // 6. FUNCIONES DEL SELECTOR (Modal)
+            let rolActual = null;
+            let listaFiltrada = [];
+
+            function abrirSelector(rol) {
+                rolActual = rol;
+                const labels = {capitan: 'Capitán', copiloto: 'Primer Oficial', tcp: 'TCP'};
+                const labelEl = document.getElementById('selectorLabel');
+                if (labelEl) labelEl.innerText = labels[rol] || '';
+                listaFiltrada = (window.tripulantesPorRol && window.tripulantesPorRol[rol]) ? window.tripulantesPorRol[rol].slice() : [];
+                renderizarLista(listaFiltrada);
+                const modal = document.getElementById('selectorModal');
+                if (modal) modal.classList.replace('hidden', 'flex');
+            }
+
+            function cerrarSelector() {
+                const modal = document.getElementById('selectorModal');
+                if (modal) modal.classList.replace('flex', 'hidden');
+            }
+
+            function renderizarLista(lista) {
+                const contenedor = document.getElementById('selectorLista');
+                if (!contenedor) return;
+                const esTcp = rolActual === 'tcp';
+                contenedor.innerHTML = lista.map(t => `
+                <label class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-blue-50 cursor-pointer">
+                    <input type="${esTcp ? 'checkbox' : 'radio'}" name="selectorOpc" value="${t.id}" data-nombre="${t.nombre}" class="w-4 h-4 text-blue-600" />
+                    <div class="text-sm">
+                        <p class="font-bold text-gray-800">${t.nombre}</p>
+                        <p class="text-[10px] text-gray-500 uppercase">${t.rol}</p>
+                    </div>
+                </label>
+            `).join('');
+            }
+
+            function filtrarSelector(q) {
+                const query = (q || '').toLowerCase().trim();
+                const listaOriginal = window.tripulantesPorRol && window.tripulantesPorRol[rolActual] ? window.tripulantesPorRol[rolActual] : [];
+                if (!query) listaFiltrada = listaOriginal.slice();
+                else listaFiltrada = listaOriginal.filter(t => t.nombre.toLowerCase().includes(query));
+                renderizarLista(listaFiltrada);
+            }
+
+            function aplicarSelector() {
+                const seleccionados = [...document.querySelectorAll('input[name="selectorOpc"]:checked')];
+                if (seleccionados.length === 0) {
+                    cerrarSelector();
+                    return;
+                }
+
+                if (rolActual === 'tcp') {
+                    const display = document.getElementById('tcp-display');
+                    if (!display) return;
+                    const emptyHint = document.getElementById('tcp-empty');
+                    if (emptyHint) emptyHint.remove();
+
+                    seleccionados.forEach(s => {
+                        if (document.querySelector(`.tag-tcp[data-id="${s.value}"]`)) return;
+                        const div = document.createElement('div');
+                        div.className = "tag-tcp inline-flex items-center gap-1.5 bg-blue-600 text-white px-2.5 py-1 rounded-full text-xs font-bold";
+                        div.setAttribute('data-id', s.value);
+                        div.innerHTML = `${s.dataset.nombre} <button type="button" onclick="eliminarTcp(${s.value})" class="ml-1 hover:text-red-200">✕</button><input type="hidden" name="idsTcp" value="${s.value}" />`;
+                        display.appendChild(div);
+                    });
+                } else {
+                    const inputId = document.getElementById(`${rolActual}-input`);
+                    const inputDisplay = document.getElementById(`${rolActual}-display`);
+                    if (inputId) inputId.value = seleccionados[0].value;
+                    if (inputDisplay) inputDisplay.value = seleccionados[0].dataset.nombre;
+                }
+                sincronizarConCacheDebounced();
+                cerrarSelector();
+            }
+
+            function eliminarTcp(id) {
+                const tag = document.querySelector(`.tag-tcp[data-id="${id}"]`);
+                if (tag) tag.remove();
+
+                const display = document.getElementById('tcp-display');
+                if (display && display.querySelectorAll('.tag-tcp').length === 0) {
+                    display.innerHTML = '<span id="tcp-empty" class="text-xs text-gray-400 italic">No hay TCPs asignados</span>';
+                }
+                sincronizarConCacheDebounced();
+            }
+
+            // --- Cache expiry watchdog ---
+            async function verificarCacheAlive() {
+                const datos = obtenerDatosUI();
+                if (!datos) return;
+
+                try {
+                    const resp = await fetch(`/Vuelos/CacheAlive?idVuelo=${datos.IdVuelo}`);
+                    const json = await resp.json();
+                    if (!json.alive) {
+                        // Reset completo: recargar para repoblar tripulantes/estado desde DB
+                        window.location.reload();
+                    }
+                } catch (e) {
+                    // si la red falla no reseteamos
+                    console.warn('No se pudo verificar la caché', e);
+                }
+            }
+
+            function abrirRetraso() {
+                document.getElementById('error-retraso')?.classList.add('hidden');
+                const modal = document.getElementById('retrasoModal');
+                modal?.classList.replace('hidden', 'flex');
+                setTimeout(() => document.getElementById('inputMinutosRetraso')?.focus(), 0);
+            }
+
+            function cerrarRetraso() {
+                const modal = document.getElementById('retrasoModal');
+                modal?.classList.replace('flex', 'hidden');
+            }
+
+            async function registrarRetraso() {
+                const datos = obtenerDatosUI();
+                if (!datos) return;
+
+                const motivo = parseInt(document.getElementById('selectMotivoRetraso')?.value || '1');
+                const minutos = parseInt(document.getElementById('inputMinutosRetraso')?.value || '0');
+                const err = document.getElementById('error-retraso');
+
+                if (err) {
+                    err.classList.add('hidden');
+                    err.textContent = '';
+                }
+
+                if (!minutos || minutos <= 0) {
+                    if (err) {
+                        err.textContent = 'Debes indicar minutos mayor que 0.';
+                        err.classList.remove('hidden');
+                    }
+                    return;
+                }
+
+                try {
+                    const resp = await fetch(`/Vuelos/RegistrarRetraso`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            idVuelo: datos.IdVuelo,
+                            minutos: minutos,
+                            idCodRetraso: motivo
+                        })
+                    });
+                    const result = await resp.json();
+
+                    if (result.success) {
+                        window.location.reload();
+                        cerrarRetraso();
+                        mostrarInfo(result.message); // Notificación superior
+
+                        // --- MAGIA VISUAL: ACTUALIZAMOS LA TARJETA DE FECHAS ---
+                        document.getElementById('tarjetaFechas')?.classList.replace('bg-slate-50/40', 'bg-amber-50');
+                        document.getElementById('tarjetaFechas')?.classList.replace('border-slate-100', 'border-amber-300');
+                        document.getElementById('badgeRetraso')?.classList.remove('hidden');
+
+                        document.getElementById('salidaContainer')?.classList.replace('text-slate-800', 'text-amber-800');
+                        document.getElementById('llegadaContainer')?.classList.replace('text-slate-800', 'text-amber-800');
+
+                        const infoBox = document.getElementById('infoRetrasoText');
+                        const lblMin = document.getElementById('lblMinutosRetraso');
+                        if (infoBox && lblMin) {
+                            infoBox.classList.remove('hidden');
+                            lblMin.innerText = minutos;
+                        }
+                        // -------------------------------------------------------
+
+                    } else {
+                        const msg = (result.errors && result.errors.length) ? result.errors.join(', ') : (result.message || 'No se pudo registrar el retraso');
+                        if (err) {
+                            err.textContent = msg;
+                            err.classList.remove('hidden');
+                        }
+                    }
+                } catch (e) {
+                    if (err) {
+                        err.textContent = 'Error de red intentando registrar el retraso.';
+                        err.classList.remove('hidden');
+                    }
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                // Inputs que disparan autosave (debounced)
+                document.querySelectorAll('.cache-input').forEach(el => el.addEventListener('blur', sincronizarConCacheDebounced));
+                document.querySelectorAll('.cache-input').forEach(el => el.addEventListener('input', sincronizarConCacheDebounced));
+
+                // limpiar errores al editar
+                document.querySelectorAll('.cache-input').forEach(el => el.addEventListener('input', function () {
+                    // quitamos error del campo concreto al empezar a escribir
+                    const map = {
+                        inputPuerta: 'Puerta',
+                        inputConfirmados: 'PasajerosConfirmados',
+                        inputEmbarcados: 'PasajerosEmbarcados'
+                    };
+                    const field = map[el.id];
+                    if (field) {
+                        const msg = document.getElementById(`error-${field}`);
+                        if (msg) {
+                            msg.classList.add('hidden');
+                            msg.textContent = '';
+                        }
+                        el.classList.remove('border-red-400', 'field-error');
+                    }
+                }));
+
+
+                actualizarUIEstado();
+
+                // watchdog periódico para caducidad de caché (resetea si expira)
+                setInterval(verificarCacheAlive, 15000);
+
+                // cerrar modales con Escape
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') {
+                        cerrarSelector();
+                        cerrarRetraso();
+                    }
+                });
+            });
+
+            function limpiarErrores() {
+                const panel = document.getElementById('panelErrores');
+                const lista = document.getElementById('listaErrores');
+                if (lista) lista.innerHTML = '';
+                if (panel) panel.classList.add('hidden');
+                // limpiar errores por campo
+                document.querySelectorAll('[id^="error-"]').forEach(el => {
+                    el.classList.add('hidden');
+                    el.textContent = '';
+                });
+                document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error', 'border-red-400'));
+            }
+
+            function mostrarErrores(errores) {
+                limpiarErrores();
+                if (!errores || errores.length === 0) return;
+
+                const panel = document.getElementById('panelErrores');
+                const lista = document.getElementById('listaErrores');
+
+                const normalizados = errores.map(e => {
+                    if (typeof e === 'string') return {field: 'Global', message: e};
+                    return {field: e.Field || e.field || 'Global', message: e.Message || e.message || 'Error'};
+                });
+
+                if (lista) {
+                    lista.innerHTML = normalizados.map(e => `<li>${e.message}</li>`).join('');
+                }
+                if (panel) panel.classList.remove('hidden');
+
+                // por-campo
+                normalizados.forEach(e => {
+                    const msg = document.getElementById(`error-${e.field}`);
+                    if (msg) {
+                        msg.textContent = e.message;
+                        msg.classList.remove('hidden');
+                    }
+                    // resaltar inputs relacionados
+                    const map = {
+                        IdCapitan: ['capitan-display'],
+                        IdCopiloto: ['copiloto-display'],
+                        IdsTcp: ['tcp-display'],
+                        Puerta: ['inputPuerta'],
+                        PasajerosConfirmados: ['inputConfirmados'],
+                        PasajerosEmbarcados: ['inputEmbarcados']
+                    };
+                    (map[e.field] || []).forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.classList.add('border-red-400');
+                            el.classList.add('field-error');
+                        }
+                    });
+                });
+
+                panel?.scrollIntoView({behavior: 'smooth', block: 'start'});
+            }
+        </script>
+    }

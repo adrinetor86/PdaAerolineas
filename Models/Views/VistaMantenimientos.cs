@@ -11,7 +11,10 @@ public class VistaMantenimientos
     public int Id { get; set; }
     
     [Column("AVION_ID")]
-    public int IdAvion { get; set; }
+    public int IdAvion { get; set; } 
+    
+    [Column("AEROLINEA_ID")]
+    public int IdAerolina { get; set; }
      
     [Column("MANTENIMIENTO_TIPO_ID")]
     public int IdMantenimientoTipo { get; set; }
@@ -29,7 +32,10 @@ public class VistaMantenimientos
     public DateTime? FechaFin { get; set; }
     
     [Column("DESCRIPCION")]
-    public string? Descripcion { get; set; }
+    public string? Descripcion { get; set; }   
+    
+    [Column("TIPO")]
+    public string Tipo { get; set; }
     
     [Column("MATRICULA")]
     public string Matricula { get; set; } 
