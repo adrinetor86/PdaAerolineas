@@ -8,7 +8,7 @@ public class OnlyAdminAttribute :ActionFilterAttribute
 
         public override void OnActionExecuting(ActionExecutingContext context)
         {
-            var roleId = context.HttpContext.Session.GetInt32("RoleId");
+            var roleId = context.HttpContext.Session.GetInt32("ROL");
 
             // Si no hay RoleId o no es el ID de administrador (ej: 1)
             if (roleId == null || roleId != 1) 

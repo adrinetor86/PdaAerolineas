@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using PdaAerolineas.Extensions;
 using PdaAerolineas.Models;
 using PdaAerolineas.Models.Auth;
 using PdaAerolineas.Models.Views;
@@ -12,13 +13,18 @@ public class UsuariosController : Controller
     private RepositoryUsuarios _repoUsuarios;
     private RepositoryAerolineas _repoAerolineas;
 
-
+    
     public UsuariosController(RepositoryUsuarios repositoryUsuarios,RepositoryAerolineas repoAerolineas)
     {
         _repoUsuarios = repositoryUsuarios;
         _repoAerolineas = repoAerolineas;
     }
 
+
+    public async Task<IActionResult> Index()
+    {
+        return View();
+    }
     
     public async Task<IActionResult> LogIn()
     {
@@ -64,16 +70,14 @@ public class UsuariosController : Controller
         return RedirectToAction("LogIn");
     }
 
-
+    
+    [SessionCheck]
     public async Task<IActionResult> LogOut()
     {
-        if (HttpContext.Session.GetString("LOGGED") == null)
-        {
-            return RedirectToAction("Index","Dashboard"); 
-        }
 
             HttpContext.Session.Remove("LOGGED");
-            return RedirectToAction("Index","Dashboard");             
+            HttpContext.Session.Remove("ROL");
+            return RedirectToAction("LogIn","Usuarios");             
         
 
     }

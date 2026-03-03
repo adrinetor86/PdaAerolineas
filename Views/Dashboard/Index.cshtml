@@ -161,7 +161,9 @@
                                     <td class="px-4 py-3 whitespace-nowrap text-sm">
                                         @if (avion.ProximoMantenimiento != null)
                                         {
-                                            <span class="text-gray-900">@avion.ProximoMantenimiento</span>
+                                            <span class="text-gray-900">
+                                                @avion.ProximoMantenimiento.Value.ToString("dd/MM/yyyy")
+                                            </span>
                                         }
                                         else
                                         {

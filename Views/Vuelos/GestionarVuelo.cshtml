@@ -2,6 +2,7 @@
     @model VistaVuelo
 
     @{
+        @RenderSection("Scripts", required: false)
         var cache = ViewData["TRIPULACION_CACHE"] as VueloCache;
         var comandantes = ViewData["COMANDANTES"] as List<Tripulante> ?? new();
         var copilotos = ViewData["COPILOTOS"] as List<Tripulante> ?? new();
