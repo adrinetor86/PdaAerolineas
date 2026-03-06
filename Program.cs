@@ -25,12 +25,15 @@ builder.Services.AddTransient<RepositoryRetrasos>();
 builder.Services.AddTransient<RepositoryAviones>();
 builder.Services.AddTransient<RepositoryUsuarios>();
 builder.Services.AddTransient<RepositoryAerolineas>();
+builder.Services.AddTransient<RepositoryAeropuertos>();
 
 builder.Services.AddDbContext<DataContext>
     (options => options.UseSqlServer(connectionString));
 
-builder.Services.AddSignalR();
 
+builder.Services.AddHttpClient<ServiceMetar>();
+
+builder.Services.AddSignalR();
 builder.Services.AddHostedService<RepositorySimulador>();
 
 var app = builder.Build();

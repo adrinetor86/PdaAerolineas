@@ -2,7 +2,8 @@
 module.exports = {
   content: [
     "./Views/**/*.cshtml",
-    "./wwwroot/**/*.js"
+    "./wwwroot/**/*.js",
+    './node_modules/preline/**/*.js'
   ],
   theme: {
     extend: {},

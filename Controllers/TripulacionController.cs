@@ -1,22 +1,127 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PdaAerolineas.Models;
 using PdaAerolineas.Repositories;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using PdaAerolineas.Extensions;
 
 namespace PdaAerolineas.Controllers;
 
+
+[HighRoles]
 public class TripulacionController : Controller
 {
     private RepositoryTripulantes _repoTripulantes;
+    private RepositoryAerolineas _repoAerolineas;
 
-    public TripulacionController(RepositoryTripulantes repositoryTripulantes)
+    public TripulacionController(RepositoryTripulantes repositoryTripulantes,RepositoryAerolineas repoAerolineas)
     {
         _repoTripulantes = repositoryTripulantes;
+        _repoAerolineas = repoAerolineas;
     }
     
-    public async Task<IActionResult> Index()
+    [HttpGet]
+    public async Task<IActionResult> Index(
+        [FromQuery] int numPag = 1,
+        [FromQuery] int numFilas = 10,
+        [FromQuery] string? rol = null,
+        [FromQuery] bool? activo = null,
+        [FromQuery] string? busqueda = null)
     {
-      List<VistaTripulante> tripulantes= await _repoTripulantes.GetTripulantesAsync();
-        return View(tripulantes);
+        int idAerolinea = HttpContext.Session.GetObject<int>("AEROLINEA");
+        var resultado = await _repoTripulantes.GetTripulantesPaginadosAsync(numPag, numFilas, rol, idAerolinea, activo, busqueda);
+
+        ViewBag.Roles = await _repoTripulantes.GetRolesAsync();
+        
+        var aerolineas = await _repoAerolineas.GetAerolineasAsync();
+        ViewBag.Aerolineas = aerolineas;
+
+        // 3. Pasamos los datos del total de registros a la vista
+        ViewData["TOTAL_REGISTROS"] = resultado.TotalRegistros;
+
+        return View(resultado.Tripulantes);
+    }
+    
+    
+    public async Task<IActionResult> Update(int idTripulante)
+    {
+      Tripulante tripulante = await _repoTripulantes.FindTripulanteAsync(idTripulante);
+      
+      if (tripulante == null)
+      {
+          return NotFound();
+      }
+
+      var aerolineas = await _repoAerolineas.GetAerolineasAsync(); 
+      
+      ViewBag.Roles = await _repoTripulantes.GetRolesAsync();
+
+      ViewBag.Aerolineas = aerolineas.Select(a => new SelectListItem
+      {
+          Value = a.IdAerolinea.ToString(), 
+          Text = a.Nombre,                  
+          Selected = (a.IdAerolinea == tripulante.IdAerolinea)
+      }).ToList();
+
+        return View(tripulante);
+    }   
+    
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Update(Tripulante tripulante)
+    {
+        
+        if (!ModelState.IsValid)
+        {
+            return View(tripulante);
+        }
+        
+        await _repoTripulantes.UpdateTripulantesAsync
+            (tripulante.IdTripulante,tripulante.IdAerolinea,tripulante.Nombre,
+             tripulante.Apellido,tripulante.Rol,tripulante.Activo);
+        
+        return RedirectToAction("Index");
+    }
+
+
+
+    public async Task<IActionResult> Create()
+    {
+        ViewBag.Roles = await _repoTripulantes.GetRolesAsync();
+
+        var aerolineas = await _repoAerolineas.GetAerolineasAsync(); 
+        ViewBag.Aerolineas = aerolineas.Select(a => new SelectListItem
+        {
+            Value = a.IdAerolinea.ToString(), 
+            Text = a.Nombre 
+        }).ToList();
+        
+        return View();
+    }   
+    
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(int idAerolinea,string nombre,string apellido,string rol,bool activo)
+    {
+        
+        if (!ModelState.IsValid)
+        {
+             //Si hay errores, volvemos a cargar las aerolíneas para no explotar
+            var aerolineas = await _repoAerolineas.GetAerolineasAsync(); 
+            ViewBag.Aerolineas = aerolineas.Select(a => new SelectListItem
+            {
+                Value = a.IdAerolinea.ToString(), 
+                Text = a.Nombre,
+                Selected = (a.IdAerolinea == idAerolinea)
+            }).ToList();
+        
+            return View();
+        }
+
+        // Usas tu repositorio para crear/insertar el nuevo tripulante
+        await _repoTripulantes.CreateTripulantesAsync(idAerolinea, nombre, apellido, rol, activo);
+    
+        return RedirectToAction("Index");
+        
     }
     
  

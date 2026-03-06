@@ -1,0 +1,209 @@
+﻿@model PdaAerolineas.Models.MetarData
+
+@{
+    ViewData["Title"] = "METAR - " + (Model?.Icao ?? "Desconocido");
+
+    string flightCat = Model?.FlightCategory ?? "N/A";
+
+    string categoria = flightCat switch
+    {
+        "VFR" => "VFR",
+        "MVFR" => "MVFR",
+        "IFR" => "IFR",
+        "LIFR" => "LIFR",
+        _ => "N/A"
+    };
+
+    string colorCategoria = flightCat switch
+    {
+        "VFR" => "text-green-600",
+        "MVFR" => "text-blue-600",
+        "IFR" => "text-red-600",
+        "LIFR" => "text-purple-600",
+        _ => "text-gray-600"
+    };
+}
+
+<div class="min-h-screen bg-gray-50 font-mono">
+
+    <div class="max-w-7xl mx-auto px-6 py-10">
+
+        <a asp-action="Index"
+           class="text-sm text-gray-500 hover:text-gray-800 mb-8 inline-block">
+            ← Volver
+        </a>
+
+
+        <div class="bg-white border border-gray-300 rounded-xl overflow-hidden shadow-sm">
+
+
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-100">
+
+                <div>
+
+                    <h1 class="text-2xl tracking-widest font-bold text-gray-800">
+                        REPORTE METAR
+                    </h1>
+
+                    <p class="text-xs text-gray-500 mt-1">
+                        ESTACIÓN: @(Model?.Station?.Name ?? "DESCONOCIDA") / ICAO @(Model?.Icao ?? "---")
+                    </p>
+
+                    <p class="text-xs text-gray-500">
+                        @(Model?.Station?.Location ?? "Ubicación desconocida")
+                    </p>
+
+                </div>
+
+                <div class="text-right">
+
+                    <p class="text-xs text-gray-400">OBSERVACIÓN</p>
+
+                    <p class="text-lg text-gray-800">
+                        @(Model?.Observed.ToString("dd MMM HH:mm") ?? "--")Z
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="grid md:grid-cols-5 border-b border-gray-200 text-center">
+
+                <div class="p-4 border-r border-gray-200">
+                    <p class="text-xs text-gray-400">CATEGORÍA</p>
+                    <p class="text-xl font-bold @colorCategoria">@categoria</p>
+                </div>
+
+                <div class="p-4 border-r border-gray-200">
+                    <p class="text-xs text-gray-400">TEMPERATURA</p>
+                    <p class="text-xl font-semibold text-gray-800">
+                        @(Model?.Temperature?.Celsius ?? 0)°C
+                    </p>
+                </div>
+
+                <div class="p-4 border-r border-gray-200">
+                    <p class="text-xs text-gray-400">PUNTO DE ROCÍO</p>
+                    <p class="text-xl font-semibold text-gray-800">
+                        @(Model?.Dewpoint?.Celsius ?? 0)°C
+                    </p>
+                </div>
+
+                <div class="p-4 border-r border-gray-200">
+                    <p class="text-xs text-gray-400">VIENTO</p>
+                    <p class="text-xl font-semibold text-gray-800">
+                        @(Model?.Wind?.Degrees ?? 0)° @(Model?.Wind?.Speed?.Kts ?? 0)KT
+                    </p>
+                </div>
+
+                <div class="p-4">
+                    <p class="text-xs text-gray-400">VISIBILIDAD</p>
+                    <p class="text-xl font-semibold text-gray-800">
+                        @(Model?.Visibility?.Miles ?? 0)SM
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div class="grid md:grid-cols-2 border-b border-gray-200">
+
+
+                <div class="p-6 border-r border-gray-200">
+
+                    <h2 class="text-xs font-bold text-gray-500 tracking-wider mb-4">
+                        CAPAS DE NUBES
+                    </h2>
+
+                    @if (Model?.Clouds != null && Model.Clouds.Any())
+                    {
+                        <table class="w-full text-sm">
+
+                            <thead class="text-gray-400 border-b">
+                            <tr>
+                                <th class="text-left pb-2">TIPO</th>
+                                <th class="text-left pb-2">CÓDIGO</th>
+                                <th class="text-left pb-2">BASE</th>
+                            </tr>
+                            </thead>
+
+                            <tbody class="text-gray-700">
+
+                            @foreach (var cloud in Model.Clouds)
+                            {
+                                <tr class="border-t">
+                                    <td class="py-2">@(cloud.Text ?? "-")</td>
+                                    <td>@(cloud.Code ?? "-")</td>
+                                    <td>@(cloud.Feet) ft</td>
+                                </tr>
+                            }
+
+                            </tbody>
+
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-gray-500">Cielo despejado (CAVOK)</p>
+                    }
+
+                </div>
+
+
+                <div class="p-6">
+
+                    <h2 class="text-xs font-bold text-gray-500 tracking-wider mb-4">
+                        PRESIÓN / OBSERVACIONES
+                    </h2>
+
+                    <div class="mb-6">
+
+                        <p class="text-xs text-gray-400">PRESIÓN (QNH)</p>
+
+                        <p class="text-2xl font-semibold text-gray-800">
+                            @(Model?.Pressure?.Mb ?? 0) hPa
+                        </p>
+
+                        <p class="text-xs text-gray-400 mt-1">
+                            @(Model?.Pressure?.Hg ?? 0) inHg
+                        </p>
+
+                    </div>
+
+
+                    @if (Model?.Remarks != null && Model.Remarks.Any())
+                    {
+                        <ul class="text-sm text-gray-700 space-y-1">
+                            @foreach (var rmk in Model.Remarks)
+                            {
+                                <li>- @rmk</li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-gray-500">Sin observaciones adicionales</p>
+                    }
+
+                </div>
+
+            </div>
+
+
+            <div class="px-6 py-6 bg-gray-100">
+
+                <p class="text-xs font-bold text-gray-500 mb-2">
+                    METAR ORIGINAL
+                </p>
+
+                <p class="text-gray-800 break-words text-lg">
+                    @(Model?.RawText ?? "SIN DATOS")
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

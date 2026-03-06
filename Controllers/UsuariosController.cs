@@ -26,6 +26,8 @@ public class UsuariosController : Controller
         return View();
     }
     
+    
+    
     public async Task<IActionResult> LogIn()
     {
 
@@ -47,9 +49,9 @@ public class UsuariosController : Controller
       {
           VistaLogedUser loggedUser= await _repoUsuarios.GetLoggedUserData(user.IdUsusario);
           
-              HttpContext.Session.SetInt32("LOGGED",user.IdUsusario);
-              HttpContext.Session.SetInt32("ROL",loggedUser.IdRol);
-              
+              HttpContext.Session.SetObject("LOGGED",user.IdUsusario);
+              HttpContext.Session.SetObject("ROL",loggedUser.IdRol);
+              HttpContext.Session.SetObject("AEROLINEA",loggedUser.IdAerolinea);
               return RedirectToAction("Index","Dashboard"); 
       }
       
@@ -60,13 +62,16 @@ public class UsuariosController : Controller
     public async Task<IActionResult> Register()
     {
         List<Aerolinea> aerolineas = await _repoAerolineas.GetAerolineasAsync();
+        List<RolUsuario> roles = await _repoUsuarios.GetRolesUsuariosAsync();
+
+        ViewData["ROLES"] = roles;
         return View(aerolineas);
     }   
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(string nombre,string apellidos,string email,int idAerolinea,string password,int idRol)
     {
-        await _repoUsuarios.RegisterUserAsync(nombre,apellidos,email, idAerolinea, password);
+        await _repoUsuarios.RegisterUserAsync(nombre,apellidos,email, idAerolinea, password,idRol);
         return RedirectToAction("LogIn");
     }
 
@@ -77,8 +82,24 @@ public class UsuariosController : Controller
 
             HttpContext.Session.Remove("LOGGED");
             HttpContext.Session.Remove("ROL");
+            HttpContext.Session.Remove("AEROLINEA");
             return RedirectToAction("LogIn","Usuarios");             
-        
-
     }
+
+    [HttpGet]
+    public async Task<IActionResult> Update(int idUsuario)
+    {
+
+        VistaAdministracionUsuarios usario = await _repoUsuarios.FindUsuarioAsync(idUsuario);
+        return View(usario);
+    }   
+    [HttpPost]
+    public async Task<IActionResult> Update(int idUsuario,string nombre,string apellidos,string rol, bool activo)
+    {
+
+        await _repoUsuarios.UpdateUsuarioAsync(idUsuario, nombre, apellidos, rol, activo);
+        return RedirectToAction("Usuarios","PanelAdmin");
+    }
+    
+  
 }

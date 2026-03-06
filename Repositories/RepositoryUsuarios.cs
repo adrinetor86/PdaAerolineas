@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using PdaAerolineas.Data;
 using PdaAerolineas.Helpers;
+using PdaAerolineas.Models;
 using PdaAerolineas.Models.Auth;
 using PdaAerolineas.Models.Views;
 
@@ -51,12 +52,12 @@ public class RepositoryUsuarios
         
     }
     
-    public async Task RegisterUserAsync(string nombre,string apellidos,string email,int idAerolinea,string password)
+    public async Task RegisterUserAsync(string nombre,string apellidos,string email,int idAerolinea,string password,int idRol)
     {
         string salt = HelperTools.GenerateSalt();
         byte[] pass=HelperTools.EncryptPassword(password, salt);
         
-        string sql = "SP_Registrar_Usuario @Nombre,@Apellidos,@Email,@Password,@IdAerolinea,@Salt,@Pass";
+        string sql = "SP_Registrar_Usuario @Nombre,@Apellidos,@Email,@Password,@IdAerolinea,@Salt,@Pass,@IdRol";
 
         SqlParameter PamNombre = new SqlParameter("@Nombre", nombre);
         SqlParameter PamApellidos = new SqlParameter("@Apellidos", apellidos);
@@ -65,9 +66,10 @@ public class RepositoryUsuarios
         SqlParameter PamAerolinea = new SqlParameter("@IdAerolinea", idAerolinea);
         SqlParameter PamSalt = new SqlParameter("@Salt", salt);
         SqlParameter PamPass = new SqlParameter("@Pass", pass);
+        SqlParameter PamRol = new SqlParameter("@IdRol", idRol);
 
     //TODO RECOGER ERRORES
-       await _context.Database.ExecuteSqlRawAsync(sql, PamNombre, PamApellidos, PamEmail, PamPassword, PamAerolinea, PamSalt, PamPass);
+       await _context.Database.ExecuteSqlRawAsync(sql, PamNombre, PamApellidos, PamEmail, PamPassword, PamAerolinea, PamSalt, PamPass,PamRol);
 
     }
 
@@ -80,6 +82,47 @@ public class RepositoryUsuarios
 
         return await consulta.FirstOrDefaultAsync();
     }
+
+
+    public async Task<List<RolUsuario>> GetRolesUsuariosAsync()
+    {
+        var consulta= from datos in _context.RolesUsuario
+            select datos;
+
+        return await consulta.ToListAsync();
+    }
+       public async Task<List<VistaAdministracionUsuarios>> GetUsuariosAsync()
+    {
+        var consulta= from datos in _context.VistaAdministracionUsuarios
+            select datos;
+
+        return await consulta.ToListAsync();
+    }
+      public async Task<VistaAdministracionUsuarios> FindUsuarioAsync(int idUsuario)
+    {
+        var consulta= from datos in _context.VistaAdministracionUsuarios
+            where datos.Id ==idUsuario
+            select datos;
+
+        return await consulta.FirstOrDefaultAsync();
+    }
+
+    public async Task UpdateUsuarioAsync(int idUsuario, string nombre, string apellidos, string rol, bool activo)
+    {
+        string sql = "SP_UPDATE_USUARIOS @idUsuario,@nombre,@apellidos,@rol,@activo";
+
+        SqlParameter pamUsuario = new SqlParameter("@idUsuario", idUsuario);
+        SqlParameter pamNombre = new SqlParameter("@nombre", nombre);
+        SqlParameter pamApellidos = new SqlParameter("@apellidos", apellidos);
+        SqlParameter pamRol = new SqlParameter("@rol", rol);
+        SqlParameter pamActivo = new SqlParameter("@activo", activo);
+
+        await _context.Database.ExecuteSqlRawAsync(sql, pamUsuario, pamNombre, pamApellidos, pamRol, pamActivo);
+
+    }
+    
+    
+    
 
 
 }

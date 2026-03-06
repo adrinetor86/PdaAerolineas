@@ -39,11 +39,33 @@ public class TelemetriaController : Controller
         return Ok(vuelo);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetLiveVuelos()
+    {
+        // Supongamos que traes los vuelos que están "En Aire"
+        var vuelosActivos = await _context.VuelosTracking
+            .Where(v => v.EstadoId == 3) // 3 = En Vuelo
+            .Select(v => new {
+                v.NumeroVuelo,
+                v.LatitudActual,  // Asegúrate de tener estas columnas en tu DB
+                v.LongitudActual,
+                v.CodigoOrigen,
+                v.CodigoDestino,
+                v.Matricula
+            }).ToListAsync();
+
+        return Json(vuelosActivos);
+    }
+    
     [HttpGet("TrackingBootstrap")]
     public async Task<IActionResult> TrackingBootstrap(int idVuelo)
     {
         try
         {
+            // var t = await _context.VuelosTracking
+            //     .AsNoTracking()
+            //     .FirstOrDefaultAsync(x => x.VueloId == idVuelo);  
+            
             var t = await _context.VuelosTracking
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.VueloId == idVuelo);
@@ -87,5 +109,43 @@ public class TelemetriaController : Controller
                 detail = _env.IsDevelopment() ? ex.ToString() : null
             });
         }
+    }
+    
+    
+    
+    [HttpGet]
+    public async Task<IActionResult> GetAllTracking()
+    {
+        // 1. Traemos todos los vuelos que están "En Aire" (Estado 3)
+        // Usamos AsNoTracking para que sea mucho más rápido (solo lectura)
+        var lista = await _context.VuelosTracking
+            .AsNoTracking()
+            .Where(v => v.EstadoId == 3) 
+            .ToListAsync();
+
+        // 2. Si no hay vuelos, devolvemos éxito pero con lista vacía
+        if (lista == null)
+        {
+            return Ok(new { success = true, data = new List<object>() });
+        }
+
+        // 3. Proyectamos a un JSON limpio, controlando los nulos de lat/lng
+        var data = lista.Select(t => new
+        {
+            vueloId = t.VueloId,
+            numeroVuelo = t.NumeroVuelo,
+            // Convertimos decimal a double para compatibilidad con Leaflet
+            lat = (double?)t.LatitudActual, 
+            lng = (double?)t.LongitudActual,
+            info = new
+            {
+                origen = t.CodigoOrigen,
+                destino = t.CodigoDestino,
+                altitud = t.AltitudPies,
+                progreso = t.Progreso ?? 0
+            }
+        });
+
+        return Ok(new { success = true, data = data });
     }
 }

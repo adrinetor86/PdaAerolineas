@@ -3,23 +3,26 @@ using Microsoft.Extensions.Caching.Memory;
 using PdaAerolineas.Extensions;
 using PdaAerolineas.Models;
 using PdaAerolineas.Models.FormViews;
+using PdaAerolineas.Models.Views;
 using PdaAerolineas.Repositories;
 
 namespace PdaAerolineas.Controllers;
-
+[HighRoles]
 public class VuelosController : Controller
 {
     private RepositoryVuelos _repoVuelos;
     private RepositoryTripulantes _repoTripulantes;
     private RepositoryRetrasos _repoRetrasos;
+    private RepositoryAviones _repoAviones;
     private IMemoryCache _memoryCache;
 
     public VuelosController(RepositoryVuelos repoVuelos, RepositoryTripulantes repoTripulantes,
-        RepositoryRetrasos repoRetrasos,IMemoryCache memoryCache)
+        RepositoryRetrasos repoRetrasos,IMemoryCache memoryCache,RepositoryAviones repoAviones)
     {
         _repoVuelos = repoVuelos;
         _repoTripulantes = repoTripulantes;
         _repoRetrasos = repoRetrasos;
+        _repoAviones = repoAviones;
         _memoryCache = memoryCache;
     }
 
@@ -35,14 +38,19 @@ public class VuelosController : Controller
     {
         if (numPag < 1) numPag = 1;
         if (numFilas < 1) numFilas = 10;
-
-        var (vuelos, total) = await _repoVuelos.GetVuelosPaginadosConTotalAsync(numPag, numFilas, idEstado, idAerolinea, fechaSalida, busqueda);
+        
+        
+        int idAero=HttpContext.Session.GetObject<int>("AEROLINEA");
+        
+        
+        var (vuelos, total) = await _repoVuelos.GetVuelosPaginadosConTotalAsync(numPag, numFilas, idEstado, idAero, fechaSalida, busqueda);
         ViewData["TOTAL_REGISTROS"] = total;
 
         ViewData["ESTADOS"] = await _repoVuelos.GetEstadosVuelosAync();
-
+        
+        
         // HARDCODEADO PARA SIMULAR LA AEROLINEA 1
-        ViewData["AVIONES"] = await _repoVuelos.GetAvionesByAerolineaAsync(1);
+        ViewData["AVIONES"] = await _repoVuelos.GetAvionesByDisponiblesAsync(1);
         ViewData["NUMEROVUELOS"] = await _repoVuelos.GetNumeroVueloByAerolineaAsync(1);
 
         return View(vuelos);
@@ -52,7 +60,6 @@ public class VuelosController : Controller
     [ActionName("Index")]
     public IActionResult IndexPost(int numPag, int numFilas, int? idEstado, int? idAerolinea, DateTime? fechaSalida, string? busqueda)
     {
-        // Compatibilidad: si alguien aún postea, redirigimos al GET con querystring
         return RedirectToAction("Index", new { numPag, numFilas, idEstado, idAerolinea, fechaSalida, busqueda });
     }
 
@@ -68,7 +75,7 @@ public class VuelosController : Controller
     }
 
 
-    // [ValidateAntiForgeryToken]
+    //[ValidateAntiForgeryToken]
     [HttpPost]
     public async Task<IActionResult> Create(string numeroVuelo, int idRuta, int avion, DateTime fechaSalida,
         string puerta)
@@ -86,109 +93,74 @@ public class VuelosController : Controller
         return RedirectToAction("Index");
     }
 
-
-    public async Task<IActionResult> Update(int idVuelo)
-    {
-        VistaVuelo vuelo = await _repoVuelos.GetDatosVueloByIdAsync(idVuelo);
-
-        var comandantes = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, "Comandante");
-        var copilotos = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, "Primer Oficial");
-        var tcps = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, "Tripulante de Cabina");
-
-        // List<Tripulante> tripulantesAsignados = await _repoTripulantes.GetTripulantesVueloAsync(idVuelo);
-        ViewData["COMANDANTES"] = comandantes;
-        ViewData["COPILOTOS"] = copilotos;
-        ViewData["TCPS"] = tcps;
-        // ViewData["TRIPULANTES"] = tripulantesAsignados;
-
-        return View(vuelo);
-    }
-
-
-
-    [HttpPost]
-    public async Task<IActionResult> Update
-    (int idVuelo, string numerovuelo, int aerolinea, int ruta, int avion,
-        DateTime salida, DateTime llegada, int estado, string puerta, int capacidad,
-        int confirmados, int embarcados,
-        int idCapitan, int idCopiloto, int[] idsTcp)
-    {
-        Console.WriteLine("=============================");
-        Console.WriteLine($"idVuelo    = {idVuelo}");
-        Console.WriteLine($"numerovuelo= {numerovuelo}");
-        Console.WriteLine($"aerolinea  = {aerolinea}");
-        Console.WriteLine($"ruta       = {ruta}");
-        Console.WriteLine($"avion      = {avion}");
-        Console.WriteLine($"salida     = {salida}");
-        Console.WriteLine($"llegada    = {llegada}");
-        Console.WriteLine($"estado     = {estado}");
-        Console.WriteLine($"puerta     = {puerta}");
-        Console.WriteLine($"capacidad  = {capacidad}");
-        Console.WriteLine($"confirmados= {confirmados}");
-        Console.WriteLine($"embarcados = {embarcados}");
-        Console.WriteLine($"capitan = {idCapitan}");
-        Console.WriteLine($"copi = {idCopiloto}");
-        Console.WriteLine($"tcps = {idsTcp}");
-        Console.WriteLine("=============================");
-
-        int[] idsTripulantes = new[] { idCapitan, idCopiloto }
-            .Where(id => id > 0) // filtrar los que no se asignaron
-            .Concat(idsTcp ?? Array.Empty<int>()) // añadir los TCPs
-            .ToArray();
-
-        await _repoVuelos.UpdateDatosVuelo
-        (idVuelo, numerovuelo, 1, ruta, avion, salida, llegada, estado, puerta,
-            capacidad, embarcados, embarcados, idsTripulantes);
-
-        return RedirectToAction("Index");
-    }
-
-
-    public async Task<IActionResult> GestionVuelo(int idVuelo)
-    {
-        var comandantes = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, "Comandante");
-        var copilotos = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, "Primer Oficial");
-        var tcps = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, "Tripulante de Cabina");
-
-        var (valido, errores) = await _repoTripulantes.ValidarTripulacionAsync(idVuelo);
-
-        if (!valido)
-        {
-            ViewData["ErroresTripulacion"] = errores; // List<string>
-        }
-
-
-        ViewData["COMANDANTES"] = comandantes;
-        ViewData["COPILOTOS"] = copilotos;
-        ViewData["TCPS"] = tcps;
-        TripulanteAsignado tripulanteAsignado = await _repoTripulantes.GetTripulantesVueloAsync(idVuelo);
-        ViewData["TRIPULACION"] = tripulanteAsignado;
-
-        VistaVuelo vuelo = await _repoVuelos.GetDatosVueloByIdAsync(idVuelo);
-        return View(vuelo);
-    }
     
-    [HttpPost]
-    public async Task<IActionResult> GestionVuelo(int idVuelo, int estado, string puerta,
-        int confirmados, int embarcados, int idCapitan, int idCopiloto, int[] idsTcp)
-    {
-        var result = await _repoVuelos.UpdateGestionVueloAsync(idVuelo, estado, puerta, confirmados, embarcados, idCapitan, idCopiloto, idsTcp);
+    // public async Task<IActionResult> Update(int idVuelo)
+    // {
+    //     VistaVuelo vuelo = await _repoVuelos.GetDatosVueloByIdAsync(idVuelo);
+    //
+    //     int idAerolinea = HttpContext.Session.GetObject<int>("AEROLINEA");
+    //     
+    //     var comandantes = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, idAerolinea,"Comandante");
+    //     var copilotos = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, idAerolinea,"Primer Oficial");
+    //     var tcps = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, idAerolinea,"Tripulante de Cabina");
+    //
+    //     // List<Tripulante> tripulantesAsignados = await _repoTripulantes.GetTripulantesVueloAsync(idVuelo);
+    //     ViewData["COMANDANTES"] = comandantes;
+    //     ViewData["COPILOTOS"] = copilotos;
+    //     ViewData["TCPS"] = tcps;
+    //     // ViewData["TRIPULANTES"] = tripulantesAsignados;
+    //
+    //     return View(vuelo);
+    // }
+    //
+    //
+    //
+    // [HttpPost]
+    // public async Task<IActionResult> Update
+    // (int idVuelo, string numerovuelo, int aerolinea, int ruta, int avion,
+    //     DateTime salida, DateTime llegada, int estado, string puerta, int capacidad,
+    //     int confirmados, int embarcados,
+    //     int idCapitan, int idCopiloto, int[] idsTcp)
+    // {
+    //     Console.WriteLine("=============================");
+    //     Console.WriteLine($"idVuelo    = {idVuelo}");
+    //     Console.WriteLine($"numerovuelo= {numerovuelo}");
+    //     Console.WriteLine($"aerolinea  = {aerolinea}");
+    //     Console.WriteLine($"ruta       = {ruta}");
+    //     Console.WriteLine($"avion      = {avion}");
+    //     Console.WriteLine($"salida     = {salida}");
+    //     Console.WriteLine($"llegada    = {llegada}");
+    //     Console.WriteLine($"estado     = {estado}");
+    //     Console.WriteLine($"puerta     = {puerta}");
+    //     Console.WriteLine($"capacidad  = {capacidad}");
+    //     Console.WriteLine($"confirmados= {confirmados}");
+    //     Console.WriteLine($"embarcados = {embarcados}");
+    //     Console.WriteLine($"capitan = {idCapitan}");
+    //     Console.WriteLine($"copi = {idCopiloto}");
+    //     Console.WriteLine($"tcps = {idsTcp}");
+    //     Console.WriteLine("=============================");
+    //
+    //     int[] idsTripulantes = new[] { idCapitan, idCopiloto }
+    //         .Where(id => id > 0) // filtrar los que no se asignaron
+    //         .Concat(idsTcp ?? Array.Empty<int>()) // añadir los TCPs
+    //         .ToArray();
+    //
+    //     await _repoVuelos.UpdateDatosVuelo
+    //     (idVuelo, numerovuelo, 1, ruta, avion, salida, llegada, estado, puerta,
+    //         capacidad, embarcados, embarcados, idsTripulantes);
+    //
+    //     return RedirectToAction("Index");
+    // }
 
-        if (result.Success)
-        {
-            return Json(new { success = true, nuevoEstado = estado, message = result.Message });
-        }
-    
-        return Json(new { success = false, message = result.Message });
-    }
-    
+
 
     public IActionResult GestionCache(int idVuelo)
     {
         string cacheKey = $"VUELO_{idVuelo}";
-        
-        // Intentamos obtener el vuelo de la cache
-        if (!_memoryCache.TryGetValue(cacheKey, out VueloCache vuelo))
+
+       
+    // Intentamos obtener el vuelo de la cache
+    if (!_memoryCache.TryGetValue(cacheKey, out VueloCache vuelo))
         {
              vuelo = new VueloCache
             {
@@ -206,15 +178,20 @@ public class VuelosController : Controller
     }
     
 
-    
+    [HighRoles]
     public async Task<IActionResult> GestionarVuelo(int idVuelo)
     {
         // Obtener el vuelo original
         VistaVuelo vuelo = await _repoVuelos.GetDatosVueloByIdAsync(idVuelo);
+        
+        if (vuelo.IdEstado == 7)
+        {
+            return RedirectToAction("Index");
+        }
 
         // Obtener cache
         VueloCache cache = _repoVuelos.GetVueloCache(idVuelo);
-
+     
         if (cache == null)
         {
             // Si no hay cache, inicializarlo desde la DB
@@ -234,9 +211,12 @@ public class VuelosController : Controller
         }
 
         // Listas base (solo disponibles)
-        var comandantes = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, "Comandante");
-        var copilotos = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, "Primer Oficial");
-        var tcps = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, "Tripulante de Cabina");
+        int idAerolinea = HttpContext.Session.GetObject<int>("AEROLINEA") ;
+        
+        var comandantes = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, idAerolinea,"Comandante");
+        var copilotos = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, idAerolinea,"Primer Oficial");
+        var tcps = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, idAerolinea,"Tripulante de Cabina");
+ 
         List<CodigoRetrasoIata> codigosRetrasos = await _repoRetrasos.GetCodigosRetrasoAsync();
         
         var retrasoDetalle = await _repoRetrasos.GetDetalleRetrasoAsync(idVuelo);
@@ -365,6 +345,21 @@ public class VuelosController : Controller
     public async Task<IActionResult> Tracking(int idVuelo)
     {
         VistaVuelo vuelo = await _repoVuelos.GetDatosVueloByIdAsync(idVuelo);
+        if (vuelo.IdEstado != 3)
+        {
+            return RedirectToAction("Index");
+        }
+        return View(vuelo);
+    }
+    
+    
+    public async Task<IActionResult> DatosVuelo(int idVuelo)
+    {
+        VistaHistorialVuelo vuelo = await _repoAviones.GetHistorialVueloByVueloIdAsync(idVuelo);
+            
+        if (vuelo == null)
+            return NotFound();
+            
         return View(vuelo);
     }
 }

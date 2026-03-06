@@ -15,7 +15,7 @@ public class RepositoryRutas
 
     
 
-    public async Task<List<VistaRuta>> GetRutasAerolinea(int idBase)
+    public async Task<List<VistaRuta>> GetRutasAerolinea(int idBase,int idAerolinea)
     {
         
         var consulta= from datos in _context.VistaRutas

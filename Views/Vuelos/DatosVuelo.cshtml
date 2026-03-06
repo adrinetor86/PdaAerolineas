@@ -1,0 +1,468 @@
+﻿@* Views/Aviones/DatosVuelo.cshtml *@
+@model PdaAerolineas.Models.Views.VistaHistorialVuelo
+
+@{
+    ViewData["Title"] = "Vuelo " + Model.NumeroVuelo;
+
+    string colorEstado = Model.EstadoVuelo switch
+    {
+        "Completado" => "bg-emerald-600",
+        "En Vuelo" => "bg-blue-600",
+        "Programado" => "bg-amber-600",
+        "Cancelado" => "bg-red-600",
+        _ => "bg-gray-600"
+    };
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<div class="min-h-screen bg-gray-50">
+
+    <!-- HEADER -->
+    <div class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-6 py-6">
+
+            <a asp-action="Historial" asp-route-id="@Model.AvionId"
+               class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Volver al historial
+            </a>
+
+            <div class="flex items-center justify-between">
+
+                <div>
+                    <div class="flex items-center gap-3 mb-2">
+                        <h1 class="text-3xl font-bold text-gray-900">Vuelo @Model.NumeroVuelo</h1>
+                        <span class="@colorEstado text-white text-xs font-semibold px-3 py-1 rounded">
+                            @Model.EstadoVuelo
+                        </span>
+                    </div>
+                    <p class="text-gray-600">
+                        @Model.Matricula · @Model.ModeloCompleto · @Model.Aerolinea
+                    </p>
+                </div>
+
+                <div class="text-right">
+                    <p class="text-sm text-gray-500 uppercase tracking-wider mb-1">Fecha</p>
+                    <p class="text-lg font-semibold text-gray-900">@Model.FechaSalida.ToString("dd MMM yyyy")</p>
+                    <p class="text-sm text-gray-600">@Model.FechaSalida.ToString("HH:mm") - @Model.FechaLlegada.ToString("HH:mm")</p>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-6 py-8">
+
+        <!-- RUTA -->
+        <div class="bg-white border border-gray-200 rounded-lg p-8 mb-6">
+
+            <div class="grid grid-cols-3 gap-8 items-center">
+
+                <!-- Origen -->
+                <div class="text-center">
+                    <div class="inline-flex items-center justify-center w-12 h-12 bg-gray-900 text-white rounded mb-3">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                        </svg>
+                    </div>
+                    <p class="text-2xl font-bold text-gray-900 mb-1">@Model.CodigoOrigen</p>
+                    <p class="text-sm font-medium text-gray-700">@Model.CiudadOrigen</p>
+                    <p class="text-xs text-gray-500 mt-1">@Model.AeropuertoOrigen</p>
+                </div>
+
+                <!-- Línea central -->
+                <div class="border-t-2 border-gray-300 relative">
+                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white px-4">
+                        <div class="text-center">
+                            <p class="text-sm font-semibold text-gray-900">@Model.DistanciaKm km</p>
+                            <p class="text-xs text-gray-500">@Model.DuracionFormateada</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Destino -->
+                <div class="text-center">
+                    <div class="inline-flex items-center justify-center w-12 h-12 bg-gray-900 text-white rounded mb-3">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                        </svg>
+                    </div>
+                    <p class="text-2xl font-bold text-gray-900 mb-1">@Model.CodigoDestino</p>
+                    <p class="text-sm font-medium text-gray-700">@Model.CiudadDestino</p>
+                    <p class="text-xs text-gray-500 mt-1">@Model.AeropuertoDestino</p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ESTADÍSTICAS -->
+        <div class="grid grid-cols-4 gap-6 mb-6">
+
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <p class="text-xs uppercase text-gray-500 font-semibold tracking-wider mb-2">Pasajeros</p>
+                <p class="text-3xl font-bold text-gray-900 mb-1">@Model.PasajerosEmbarcados</p>
+                <p class="text-sm text-gray-600">de @Model.CapacidadTotal plazas</p>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <p class="text-xs uppercase text-gray-500 font-semibold tracking-wider mb-2">Ocupación</p>
+                <p class="text-3xl font-bold text-gray-900 mb-1">@(Model.PorcentajeOcupacion?.ToString("F1") ?? "0")%</p>
+                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div class="bg-blue-600 h-2 rounded-full" style="width: @(Model.PorcentajeOcupacion ?? 0)%"></div>
+                </div>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <p class="text-xs uppercase text-gray-500 font-semibold tracking-wider mb-2">Duración</p>
+                <p class="text-3xl font-bold text-gray-900 mb-1">@(Model.DuracionMinutos / 60)h @(Model.DuracionMinutos % 60)m</p>
+                <p class="text-sm text-gray-600">@Model.DuracionMinutos minutos</p>
+            </div>
+
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <p class="text-xs uppercase text-gray-500 font-semibold tracking-wider mb-2">Retraso</p>
+                <p class="text-3xl font-bold text-gray-900 mb-1">@Model.MinutosRetraso</p>
+                <p class="text-sm text-gray-600">minutos</p>
+            </div>
+
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.Telemetria))
+        {
+            <!-- GRÁFICO DE ALTITUD -->
+            <div class="bg-white border border-gray-200 rounded-lg mb-6">
+
+                <div class="border-b border-gray-200 px-6 py-4">
+                    <h2 class="text-lg font-bold text-gray-900">Perfil de Altitud</h2>
+                </div>
+
+                <div class="p-6">
+                    <div id="altitudChart"></div>
+                </div>
+
+            </div>
+
+            <!-- GRID: MAPA + PROGRESO -->
+            <div class="grid lg:grid-cols-2 gap-6 mb-6">
+
+                <!-- Mapa -->
+                <div class="bg-white border border-gray-200 rounded-lg">
+
+                    <div class="border-b border-gray-200 px-6 py-4">
+                        <h2 class="text-lg font-bold text-gray-900">Ruta del Vuelo</h2>
+                    </div>
+
+                    <div id="map" class="w-full h-96"></div>
+
+                </div>
+
+                <!-- Progreso -->
+                <div class="bg-white border border-gray-200 rounded-lg">
+
+                    <div class="border-b border-gray-200 px-6 py-4">
+                        <h2 class="text-lg font-bold text-gray-900">Progreso del Vuelo</h2>
+                    </div>
+
+                    <div class="p-6">
+                        <div id="progresoChart"></div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- ESTADÍSTICAS DE TELEMETRÍA -->
+            <div class="bg-white border border-gray-200 rounded-lg">
+
+                <div class="border-b border-gray-200 px-6 py-4">
+                    <h2 class="text-lg font-bold text-gray-900">Datos de Telemetría</h2>
+                </div>
+
+                <div class="p-6">
+                    <div id="stats" class="grid grid-cols-4 gap-6">
+                        <!-- Se llenará con JavaScript -->
+                    </div>
+                </div>
+
+            </div>
+        }
+        else
+        {
+            <!-- Sin telemetría -->
+            <div class="bg-white border border-gray-200 rounded-lg p-12 text-center">
+                <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Sin datos de telemetría</h3>
+                <p class="text-gray-600">Este vuelo no tiene datos de telemetría registrados.</p>
+            </div>
+        }
+
+    </div>
+
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Telemetria))
+{
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <script>
+        const telemetria = @Html.Raw(Model.Telemetria);
+
+        // ============================================
+        // MAPA CON LEAFLET
+        // ============================================
+        const map = L.map('map').setView([40.4168, -3.7038], 6);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap, © CARTO'
+        }).addTo(map);
+
+        if (telemetria.length > 0) {
+            const coordenadas = telemetria.map(p => [p.lat, p.lng]);
+
+            const polyline = L.polyline(coordenadas, {
+                color: '#1e40af',
+                weight: 3,
+                opacity: 0.7
+            }).addTo(map);
+
+            // Marcador de inicio
+            L.circleMarker(coordenadas[0], {
+                radius: 8,
+                fillColor: '#1e40af',
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 1
+            }).addTo(map).bindPopup('<b>Origen</b><br>' + telemetria[0].timestamp);
+
+            // Marcador de fin
+            L.circleMarker(coordenadas[coordenadas.length - 1], {
+                radius: 8,
+                fillColor: '#059669',
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 1
+            }).addTo(map).bindPopup('<b>Destino</b><br>' + telemetria[telemetria.length - 1].timestamp);
+
+            map.fitBounds(polyline.getBounds(), {padding: [50, 50]});
+        }
+
+        // ============================================
+        // GRÁFICO DE ALTITUD
+        // ============================================
+        const altitudesData = telemetria.map(p => ({
+            x: new Date(p.timestamp).getTime(),
+            y: p.altitud
+        }));
+
+        const altitudOptions = {
+            series: [{
+                name: 'Altitud (ft)',
+                data: altitudesData
+            }],
+            chart: {
+                type: 'area',
+                height: 350,
+                fontFamily: 'Inter, system-ui, sans-serif',
+                zoom: {
+                    enabled: true
+                },
+                toolbar: {
+                    show: true,
+                    tools: {
+                        download: '<svg class="w-5 h-5">...</svg>',
+                        zoom: true,
+                        zoomin: true,
+                        zoomout: true,
+                        pan: true,
+                        reset: true
+                    }
+                }
+            },
+            dataLabels: {
+                enabled: false
+            },
+            stroke: {
+                curve: 'smooth',
+                width: 2
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.4,
+                    opacityTo: 0.1,
+                    stops: [0, 100]
+                }
+            },
+            colors: ['#1e40af'],
+            xaxis: {
+                type: 'datetime',
+                labels: {
+                    format: 'HH:mm',
+                    style: {
+                        colors: '#6b7280',
+                        fontSize: '12px'
+                    }
+                },
+                axisBorder: {
+                    color: '#e5e7eb'
+                },
+                axisTicks: {
+                    color: '#e5e7eb'
+                }
+            },
+            yaxis: {
+                title: {
+                    text: 'Altitud (pies)',
+                    style: {
+                        color: '#374151',
+                        fontSize: '13px',
+                        fontWeight: 600
+                    }
+                },
+                labels: {
+                    formatter: function (val) {
+                        return val.toLocaleString();
+                    },
+                    style: {
+                        colors: '#6b7280',
+                        fontSize: '12px'
+                    }
+                }
+            },
+            tooltip: {
+                x: {
+                    format: 'HH:mm:ss'
+                },
+                y: {
+                    formatter: function (val) {
+                        return val.toLocaleString() + ' ft';
+                    }
+                }
+            },
+            grid: {
+                borderColor: '#e5e7eb',
+                strokeDashArray: 3
+            }
+        };
+
+        const altitudChart = new ApexCharts(document.querySelector("#altitudChart"), altitudOptions);
+        altitudChart.render();
+
+        // ============================================
+        // GRÁFICO DE PROGRESO
+        // ============================================
+        const progresoData = telemetria.map(p => ({
+            x: new Date(p.timestamp).getTime(),
+            y: parseFloat((p.progreso * 100).toFixed(1))
+        }));
+
+        const progresoOptions = {
+            series: [{
+                name: 'Progreso (%)',
+                data: progresoData
+            }],
+            chart: {
+                type: 'line',
+                height: 300,
+                fontFamily: 'Inter, system-ui, sans-serif',
+                toolbar: {
+                    show: false
+                }
+            },
+            stroke: {
+                curve: 'smooth',
+                width: 2
+            },
+            colors: ['#059669'],
+            xaxis: {
+                type: 'datetime',
+                labels: {
+                    format: 'HH:mm',
+                    style: {
+                        colors: '#6b7280',
+                        fontSize: '12px'
+                    }
+                }
+            },
+            yaxis: {
+                min: 0,
+                max: 100,
+                title: {
+                    text: 'Progreso (%)',
+                    style: {
+                        color: '#374151',
+                        fontSize: '13px',
+                        fontWeight: 600
+                    }
+                },
+                labels: {
+                    formatter: function (val) {
+                        return val.toFixed(0) + '%';
+                    },
+                    style: {
+                        colors: '#6b7280',
+                        fontSize: '12px'
+                    }
+                }
+            },
+            tooltip: {
+                x: {
+                    format: 'HH:mm:ss'
+                },
+                y: {
+                    formatter: function (val) {
+                        return val + '%';
+                    }
+                }
+            },
+            grid: {
+                borderColor: '#e5e7eb',
+                strokeDashArray: 3
+            }
+        };
+
+        const progresoChart = new ApexCharts(document.querySelector("#progresoChart"), progresoOptions);
+        progresoChart.render();
+
+        // ============================================
+        // ESTADÍSTICAS
+        // ============================================
+        const maxAlt = Math.max(...telemetria.map(p => p.altitud));
+        const minAlt = Math.min(...telemetria.map(p => p.altitud));
+        const avgAlt = telemetria.reduce((sum, p) => sum + p.altitud, 0) / telemetria.length;
+
+        const statsHTML = `
+        <div class="text-center">
+            <p class="text-xs uppercase text-gray-500 font-semibold tracking-wider mb-2">Puntos</p>
+            <p class="text-2xl font-bold text-gray-900">${telemetria.length}</p>
+        </div>
+        <div class="text-center">
+            <p class="text-xs uppercase text-gray-500 font-semibold tracking-wider mb-2">Alt. Máxima</p>
+            <p class="text-2xl font-bold text-gray-900">${maxAlt.toLocaleString()} ft</p>
+        </div>
+        <div class="text-center">
+            <p class="text-xs uppercase text-gray-500 font-semibold tracking-wider mb-2">Alt. Mínima</p>
+            <p class="text-2xl font-bold text-gray-900">${minAlt.toLocaleString()} ft</p>
+        </div>
+        <div class="text-center">
+            <p class="text-xs uppercase text-gray-500 font-semibold tracking-wider mb-2">Alt. Promedio</p>
+            <p class="text-2xl font-bold text-gray-900">${avgAlt.toFixed(0).toLocaleString()} ft</p>
+        </div>
+    `;
+
+        document.getElementById('stats').innerHTML = statsHTML;
+    </script>
+}

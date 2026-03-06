@@ -1,3 +1,9 @@
+@import "../node_modules/preline/variants.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Preline UI */
+@source "./node_modules/preline/dist/*.js";
+
+

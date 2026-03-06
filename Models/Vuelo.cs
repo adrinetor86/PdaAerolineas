@@ -46,8 +46,6 @@ public class Vuelo
     [Column("TELEMETRIA")]
     public string?  Telemetria { get; set; }
     
-    
-    
     // Navegación
     [ForeignKey("IdAerolinea")]
     public Aerolinea Aerolinea { get; set; }

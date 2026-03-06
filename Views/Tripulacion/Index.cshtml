@@ -1,53 +1,192 @@
-﻿@model List<VistaTripulante>
+﻿@model List<Tripulante>
 
-<h1 class="text-3xl font-bold text-gray-800 mb-6">
-    Tripulación
-</h1>
+@{
+    ViewData["Title"] = "Gestor de Tripulación";
+    var aerolineas = ViewBag.Aerolineas as List<Aerolinea> ?? new List<Aerolinea>();
+    var roles = ViewBag.Roles as List<string> ?? new List<string>();
+    // Leer los parámetros actuales de la URL
+    var currentBusqueda = Context.Request.Query["busqueda"].ToString();
+    var currentRol = Context.Request.Query["rol"].ToString();
+    var currentActivo = Context.Request.Query["activo"].ToString();
+    var currentNumFilas = Context.Request.Query["numFilas"].ToString();
+    if (string.IsNullOrEmpty(currentNumFilas)) currentNumFilas = "10";
 
-@if (Model != null)
-{
-    <div class="overflow-x-auto bg-white shadow-lg rounded-2xl">
-        <table class="min-w-full text-sm text-left text-gray-600">
-            
-            <thead class="bg-gray-900 text-white uppercase text-xs tracking-wider">
-            <tr>
-                <th class="px-6 py-4">Nombre Completo</th>
-                <th class="px-6 py-4">Rol</th>
-                <th class="px-6 py-4 text-center">Acciones</th>
-            </tr>
-            </thead>
+    var currentPage = 1;
+    int.TryParse(Context.Request.Query["numPag"], out currentPage);
+    if (currentPage < 1) currentPage = 1;
 
-            <tbody class="divide-y divide-gray-200">
-            @foreach (VistaTripulante tripulante in Model)
-            {
-                <tr class="hover:bg-gray-50 transition duration-200">
-                        
-                    <td class="px-6 py-4 font-medium text-gray-900">
-                        @tripulante.Nombre
-                    </td>
+    var totalRegistros = ViewData["TOTAL_REGISTROS"] != null ? (int)ViewData["TOTAL_REGISTROS"] : Model.Count;
+    var pageSize = int.Parse(currentNumFilas);
+    var totalPaginas = (int)Math.Ceiling((double)totalRegistros / pageSize);
+    if (totalPaginas < 1) totalPaginas = 1;
+    var inicioRegistro = (currentPage - 1) * pageSize + (Model.Count > 0 ? 1 : 0);
+    var finRegistro = inicioRegistro + Model.Count - 1;
+}
 
-                    <td class="px-6 py-4">
-                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-violet-100 text-violet-700">
-                            @tripulante.Rol
-                        </span>
-                    </td>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
-                    <td class="px-6 py-4 text-center">
-                        <button class="px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-xl shadow hover:bg-violet-700 transition duration-200">
-                            Ver
+    <div class="flex items-end justify-between mb-6">
+        <div>
+            <h2 class="text-3xl font-extrabold tracking-tight text-gray-900">Plantilla Tripulantes</h2>
+            <p class="mt-0.5 text-xs font-mono text-gray-400">
+                @totalRegistros miembros &nbsp;·&nbsp; página @currentPage de @totalPaginas
+            </p>
+        </div>
+        <a asp-action="Create"
+           class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="3">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Alta Tripulante
+        </a>
+    </div>
+
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+
+        <form method="get" asp-action="Index" id="formFiltros">
+            <input type="hidden" name="numPag" id="inputNumPag" value="@currentPage"/>
+
+     
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50/70 px-5 py-3">
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="@Url.Action("Index")" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:border-red-400 hover:text-red-500 transition-colors">
+                        Limpiar
+                    </a>
+
+                    <select name="rol" onchange="resetPage(); this.form.submit()"
+                            class="appearance-none cursor-pointer rounded-lg border border-gray-300 bg-white py-1.5 pl-3 pr-7 text-xs font-semibold text-gray-700 outline-none transition-all hover:border-gray-400 focus:border-blue-400">
+                        <option value="">Todos los Roles</option>
+    
+                        @foreach (var r in roles)
+                        {
+                            <option value="@r" selected="@(currentRol == r ? "selected" : null)">
+                                @r
+                            </option>
+                        }
+                    </select>
+
+                    <select name="activo" onchange="resetPage(); this.form.submit()"
+                            class="appearance-none cursor-pointer rounded-lg border border-gray-300 bg-white py-1.5 pl-3 pr-7 text-xs font-semibold text-gray-700 outline-none transition-all hover:border-gray-400 focus:border-blue-400">
+                        <option value="">Estado (Todos)</option>
+                        <option value="true" selected="@(currentActivo == "true" ? "selected" : null)">Activos</option>
+                        <option value="false" selected="@(currentActivo == "false" ? "selected" : null)">Inactivos</option>
+                    </select>
+                </div>
+
+                <div class="relative">
+                    <input type="text" name="busqueda" value="@currentBusqueda"
+                           placeholder="Buscar por nombre o apellido..."
+                           onkeydown="if(event.key==='Enter'){ resetPage(); this.form.submit(); }"
+                           class="w-64 rounded-lg border border-gray-300 py-1.5 pl-3 pr-4 text-xs outline-none transition-all focus:border-blue-400 focus:ring-1 focus:ring-blue-100 focus:w-80"/>
+                </div>
+            </div>
+
+            @* TABLA DE DATOS *@
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="border-b border-gray-200 bg-gray-50/40">
+                        <tr>
+                            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Nombre Completo</th>
+                            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Rol Operativo</th>
+                            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Estado</th>
+                            <th class="px-5 py-3 text-right text-xs font-bold uppercase tracking-wider text-gray-500">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="px-5 py-16 text-center">
+                                    <p class="mt-2 text-sm text-gray-400">No se encontraron tripulantes con los filtros aplicados.</p>
+                                </td>
+                            </tr>
+                        }
+                        @foreach (var trip in Model)
+                        {
+                            <tr class="group transition-colors hover:bg-gray-50/70">
+                                <td class="px-5 py-4 font-bold text-gray-900">
+                                    @trip.Nombre @trip.Apellido
+                                </td>
+                                <td class="px-5 py-4">
+                                    <span class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+                                        @trip.Rol
+                                    </span>
+                                </td>
+                         
+                                <td class="px-5 py-4">
+                                    @if (trip.Activo)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-green-500"></span> Activo
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-red-500"></span> Inactivo
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-5 py-4 text-right">
+                                    <a asp-action="Update" asp-route-idTripulante="@trip.IdTripulante"
+                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-xs font-bold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md active:scale-95">
+                                        Editar
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+
+            <div class="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 bg-gray-50/70 px-5 py-3">
+                <p class="font-mono text-xs text-gray-500">
+                    Mostrando <strong class="text-gray-800">@inicioRegistro</strong>
+                    to <strong class="text-gray-800">@finRegistro</strong>
+                    of <strong class="text-gray-800">@totalRegistros</strong> Registros
+                </p>
+
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="cambiarPagina(@(currentPage - 1))" @(currentPage <= 1 ? "disabled" : "")
+                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 disabled:opacity-30">
+                            ‹
                         </button>
-                    </td>
+                        
+                        <span class="flex h-8 px-3 items-center justify-center rounded-lg border border-gray-900 bg-gray-900 font-mono text-xs font-bold text-white">
+                            @currentPage / @totalPaginas
+                        </span>
 
-                </tr>
-            }
-            </tbody>
+                        <button type="button" onclick="cambiarPagina(@(currentPage + 1))" @(currentPage >= totalPaginas ? "disabled" : "")
+                                class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 disabled:opacity-30">
+                            ›
+                        </button>
+                    </div>
 
-        </table>
+                    <div class="relative">
+                        <select name="numFilas" onchange="resetPage(); this.form.submit()"
+                                class="appearance-none cursor-pointer rounded-lg border border-gray-300 bg-white py-1.5 pl-3 pr-7 font-mono text-xs text-gray-700 outline-none transition-all hover:border-gray-400 focus:border-blue-400">
+                            <option value="5" selected="@(currentNumFilas == "5" ? "selected" : null)">5</option>
+                            <option value="10" selected="@(currentNumFilas == "10" ? "selected" : null)">10</option>
+                            <option value="20" selected="@(currentNumFilas == "20" ? "selected" : null)">20</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </form>
     </div>
-}
-else
-{
-    <div class="bg-yellow-50 border border-yellow-200 text-yellow-700 p-4 rounded-xl">
-        No hay tripulantes disponibles.
-    </div>
-}
+</div>
+
+<script>
+    function cambiarPagina(p) {
+        document.getElementById('inputNumPag').value = p;
+        document.getElementById('formFiltros').submit();
+    }
+    function resetPage() {
+        document.getElementById('inputNumPag').value = 1;
+    }
+</script>

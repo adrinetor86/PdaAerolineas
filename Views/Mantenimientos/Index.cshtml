@@ -148,6 +148,8 @@
                         <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Tipo</th>
                         <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Estado</th>
                         <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Fecha Programada</th>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Fecha Inicio</th>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Fecha Fin</th>
                         <th class="px-5 py-3 text-right text-xs font-bold uppercase tracking-wider text-gray-500">Acciones</th>
                     </tr>
                     </thead>
@@ -156,7 +158,6 @@
                     {
                         <tr>
                             <td colspan="6" class="px-5 py-16 text-center">
-                                <div class="text-4xl opacity-20">🔧</div>
                                 <p class="mt-2 text-sm text-gray-400">No se encontraron mantenimientos con los filtros aplicados.</p>
                             </td>
                         </tr>
@@ -180,6 +181,25 @@
                             </td>
                             <td class="px-5 py-3.5">
                                 <span class="font-mono text-xs text-gray-500">@m.FechaProgramada.ToString("dd/MM/yyyy")</span>
+                            </td> 
+                            <td class="px-5 py-3.5">
+                                <span class="font-mono text-xs text-gray-500">
+                                    @if(m.FechaInicio != null){@m.FechaInicio}
+                                    else
+                                    {
+                                        <p>Pendiente</p>
+                                    }
+                                </span>
+                            </td> 
+                            <td class="px-5 py-3.5">
+                                <span class="font-mono text-xs text-gray-500">
+                                    @if(m.FechaFin != null){@m.FechaFin}
+                                    else
+                                    {
+                                        <p>Pendiente</p>
+                                    }
+                                    
+                                </span>
                             </td>
                             <td class="px-5 py-3.5">
                                 <div class="flex items-center justify-end opacity-60 transition-opacity group-hover:opacity-100">
@@ -205,11 +225,12 @@
             <div class="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 bg-gray-50/70 px-5 py-3">
 
                 <p class="font-mono text-xs text-gray-500">
-                    Showing <strong class="text-gray-800">@inicioRegistro</strong>
+                    Mostrando <strong class="text-gray-800">@inicioRegistro</strong>
                     to <strong class="text-gray-800">@finRegistro</strong>
-                    of <strong class="text-gray-800">@totalRegistros</strong> entries
+                    of <strong class="text-gray-800">@totalRegistros</strong> Mantenimientos
                 </p>
-
+                
+                @* PAGINCACION *@
                 <div class="flex items-center gap-3">
 
                     <div class="flex items-center gap-1">

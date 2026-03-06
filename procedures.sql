@@ -179,9 +179,10 @@ FROM ruta r
          INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
 go
 
-CREATE       VIEW V_TRIPULACION_ROLES AS
+CREATE    or alter   VIEW V_TRIPULACION_ROLES AS
 SELECT
     t.id                            AS tripulante_id,
+    t.id_aerolinea                            AS aerolinea_id,
     t.nombre + ' ' + t.apellido     AS nombre_completo,
     t.rol,
     t.activo
@@ -558,7 +559,7 @@ INSERT INTO AVION (matricula, modelo_id, aerolinea_id, estado_id, aeropuerto_act
      @ciclos)
 go
 
-CREATE     PROCEDURE SP_CREATE_VUELO
+CREATE or alter    PROCEDURE SP_CREATE_VUELO
 (
     @numero_vuelo NVARCHAR(10),
     @aerolinea_id INT,
@@ -592,7 +593,8 @@ BEGIN
         --------------------------------------------------
         -- Calcular fecha llegada automáticamente
         --------------------------------------------------
-        SET @fecha_llegada = DATEADD(MINUTE, @duracion_minutos, @fecha_salida);
+        --SET @fecha_llegada = DATEADD(MINUTE, @duracion_minutos, @fecha_salida);
+        SET @fecha_llegada = DATEADD(MINUTE, @duracion_minutos, CAST(@fecha_salida AS DATETIME));
         --Validar datos
         EXEC SP_VALIDADICION_CREACION_VUELO
              @avion_id,
@@ -767,8 +769,9 @@ BEGIN
 END;
 go
 
-CREATE       PROCEDURE SP_GET_TRIPULANTES_DISPONIBLES
+CREATE or alter      PROCEDURE SP_GET_TRIPULANTES_DISPONIBLES
     @vuelo_id INT,
+    @aerolinea_id INT,
     @rol      NVARCHAR(50) = NULL  -- 'Comandante' | 'Primer Oficial' | 'Tripulante de Cabina' | NULL = todos
 AS
 BEGIN
@@ -796,6 +799,7 @@ BEGIN
     FROM tripulante t
     WHERE
         t.activo = 1
+        AND t.id_aerolinea=@aerolinea_id
 
       -- Filtro por rol si se envía
       AND (@rol IS NULL OR t.rol = @rol)
@@ -805,6 +809,7 @@ BEGIN
         SELECT tripulante_id
         FROM asignacion_tripulacion
         WHERE vuelo_id = @vuelo_id
+          AND t.id_aerolinea=@aerolinea_id
     )
 
       -- Sin solapamiento horario
@@ -817,6 +822,7 @@ BEGIN
           AND v.estado_id NOT IN (4, 5)
           AND @fecha_salida  < v.fecha_llegada
           AND @fecha_llegada > v.fecha_salida
+          AND t.id_aerolinea=@aerolinea_id
     )
 
     ORDER BY t.rol, nombre_completo;
@@ -916,7 +922,7 @@ CREATE   PROCEDURE SP_MANTENIMIENTOS_PAGINADO
     @PageSize       INT            = 10,
     @AerolineaId    INT            =1,
     @Estado         NVARCHAR(50)   = NULL,   -- NULL = todos
-    @FechaProgramada DATE          = NULL,   -- NULL = cualquier fecha
+    @FechaProgramada DATETIME          = NULL,   -- NULL = cualquier fecha
     @Busqueda       NVARCHAR(100)  = NULL,   -- matrícula, tipo, modelo
     @TotalRegistros INT = 0            OUTPUT
 AS
@@ -1260,7 +1266,7 @@ CREATE   PROCEDURE SP_REGISTRAR_USUARIO
     @IdAerolinea  INT,
     @Salt       NVARCHAR(50),
     @Pass      VARBINARY(MAX),
-    @IdRol      INT =2
+    @IdRol      INT = 2
 AS
 BEGIN
     SET NOCOUNT ON;

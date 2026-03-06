@@ -1,0 +1,132 @@
+@using Microsoft.AspNetCore.Mvc.Rendering
+@model Tripulante
+
+@{
+    ViewData["Title"] = "Editar Tripulante";
+    var roles = ViewBag.Roles as List<string> ?? new List<string>();
+}
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+
+    <div asp-validation-summary="ModelOnly"
+         class="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm flex items-center gap-3"
+         role="alert">
+        <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>
+        <div>Revisa los errores antes de continuar.</div>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+        
+        <div class="bg-gradient-to-r from-blue-700 to-blue-500 px-8 py-8 sm:px-10">
+            <h2 class="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                <svg class="w-8 h-8 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                Editar Tripulante
+            </h2>
+            <p class="text-blue-100 text-sm mt-2 font-medium opacity-90">Actualiza la información operativa de este miembro. Los cambios son inmediatos.</p>
+        </div>
+
+        <form asp-action="Update" method="post" class="p-8 sm:p-10 space-y-10" novalidate>
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="IdTripulante"/>
+
+            <div>
+                <div class="flex items-center gap-2 border-b border-gray-100 pb-3 mb-6">
+                    <div class="p-2 bg-blue-50 rounded-lg">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    </div>
+                    <h3 class="text-base font-bold text-gray-900">Identidad del Tripulante</h3>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label asp-for="Nombre" class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Nombre</label>
+                        <input asp-for="Nombre" type="text" placeholder="Ej. Carlos"
+                               class="block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 focus:bg-white focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all sm:text-sm"/>
+                        <span asp-validation-for="Nombre" class="text-xs text-red-500 font-bold mt-2 inline-block"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="Apellido" class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Apellidos</label>
+                        <input asp-for="Apellido" type="text" placeholder="Ej. Martínez"
+                               class="block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 focus:bg-white focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all sm:text-sm"/>
+                        <span asp-validation-for="Apellido" class="text-xs text-red-500 font-bold mt-2 inline-block"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex items-center gap-2 border-b border-gray-100 pb-3 mb-6">
+                    <div class="p-2 bg-indigo-50 rounded-lg">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    </div>
+                    <h3 class="text-base font-bold text-gray-900">Perfil Operativo</h3>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label asp-for="Rol" class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Rol en Cabina</label>
+                        <select asp-for="Rol" required
+                                class="block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 focus:bg-white focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all sm:text-sm cursor-pointer appearance-none">
+                            <option value="">Seleccione un rol...</option>
+        
+                            @if (ViewBag.Roles != null)
+                            {
+                                @foreach (string rol in ViewBag.Roles)
+                                {
+                                    <option value="@rol" selected="@(Model.Rol == rol ? "selected" : null)">
+                                        @rol
+                                    </option>
+                                }
+                            }
+                        </select>
+                        <span asp-validation-for="Rol" class="text-xs text-red-500 font-bold mt-2 inline-block"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="IdAerolinea" class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Aerolínea Asignada</label>
+                        <select asp-for="IdAerolinea"
+                                asp-items="ViewBag.Aerolineas"
+                                required
+                                class="block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 focus:bg-white focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all sm:text-sm cursor-pointer appearance-none">
+                            <option value="">Seleccione aerolínea...</option>
+                        </select>
+                        <span asp-validation-for="IdAerolinea" class="text-xs text-red-500 font-bold mt-2 inline-block"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100 flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900">Estado Operativo</h3>
+                    <p class="text-xs text-gray-500 mt-1">Habilita o deshabilita a este tripulante para futuros vuelos.</p>
+                </div>
+
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <div class="relative">
+                        <input asp-for="Activo" type="checkbox" class="peer sr-only"/>
+                        <div class="block h-7 w-14 rounded-full bg-gray-300 peer-checked:bg-green-500 transition-colors shadow-inner"></div>
+                        <div class="dot absolute left-1 top-1 h-5 w-5 rounded-full bg-white transition-transform peer-checked:translate-x-7 shadow-sm"></div>
+                    </div>
+                    <span class="text-sm font-bold text-gray-700 w-12 peer-checked:text-green-600 transition-colors">Activo</span>
+                </label>
+            </div>
+
+            <div class="pt-6 mt-8 border-t border-gray-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-4">
+                <a asp-action="Index"
+                   class="w-full sm:w-auto inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all">
+                    Cancelar
+                </a>
+                <button type="submit"
+                        class="w-full sm:w-auto inline-flex items-center justify-center rounded-xl border border-transparent bg-blue-600 px-8 py-3 text-sm font-bold text-white shadow-md shadow-blue-500/30 hover:bg-blue-700 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all">
+                    <svg class="w-5 h-5 mr-2 -ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    Guardar Cambios
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

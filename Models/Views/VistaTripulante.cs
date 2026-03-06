@@ -8,7 +8,10 @@ public class VistaTripulante
 {
     [Key]
     [Column("TRIPULANTE_ID")]
-    public int  IdTripulante { get; set; }
+    public int  IdTripulante { get; set; }  
+    
+    [Column("AEROLINEA_ID")]
+    public int  IdAerolinea { get; set; }
     
     [Column("NOMBRE_COMPLETO")]
     public string Nombre { get; set; }

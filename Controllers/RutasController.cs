@@ -7,6 +7,7 @@ namespace PdaAerolineas.Controllers;
 
 
 
+[HighRoles]
 public class RutasController : Controller
 {
 
@@ -20,13 +21,14 @@ public class RutasController : Controller
         _repoVuelos = repoVuelos;
     }
     // GET
-
+    
     public async Task<IActionResult> Index()
-    {
-        
-        //TODO METER EN SESION EL ID 
-        //HARDCODEADO PARA QUE EL AEROPUERTO BASE SEA EL 1 (MADRID)
-         List<VistaRuta> rutas = await _repoRutas.GetRutasAerolinea(1);
+    {   
+         //Si no existe seteo a 0 
+         int idAerolinea = HttpContext.Session.GetInt32("AEROLINEA") ?? 0;
+         
+         //Seteamos la base en madrid
+         List<VistaRuta> rutas = await _repoRutas.GetRutasAerolinea(1,idAerolinea);
          
         return View(rutas);
     }

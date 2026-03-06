@@ -1,0 +1,61 @@
+﻿@{
+    ViewData["Title"] = "Radar de Flota Global";
+    // Si usas el layout de admin, recuerda: Layout = "_AdminLayout";
+}
+
+<div class="max-w-full mx-auto px-4 sm:px-6 py-6">
+    <div class="flex items-center justify-between gap-4 mb-4">
+        <div>
+            <h2 class="text-2xl font-extrabold tracking-tight text-gray-900">Radar de Flota en Directo</h2>
+            <p class="text-xs font-mono text-gray-400">Monitorizando <span id="count-aviones">0</span> aeronaves en tiempo real</p>
+        </div>
+        @* Filtros rápidos opcionales *@
+        <div class="flex gap-2">
+            <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Sincronizado</span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div class="lg:col-span-3">
+            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-900/5">
+                <div id="map" style="height: calc(100vh - 200px); min-height: 500px;"></div>
+            </div>
+        </div>
+        
+        @* Sidebar de telemetría rápida *@
+        <div class="lg:col-span-1 space-y-4">
+            <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4">
+                <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Conexión Hub</h3>
+                <div id="trackingStatus" class="flex items-center gap-2 text-sm font-bold text-gray-900">
+                    <span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span></span>
+                    Conectando a SignalR...
+                </div>
+            </div>
+
+            <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div class="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                    <h3 class="text-[10px] font-black text-gray-500 uppercase">Tráfico Activo</h3>
+                </div>
+                <div id="lista-vuelos" class="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
+                    @* Se llena dinámicamente con JS *@
+                    <div class="p-4 text-center text-xs text-gray-400 italic">Esperando datos de telemetría...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    
+    <script>
+        window.RADAR_CONFIG = {
+            hubUrl: "/hubs/vuelos",
+            // Este endpoint debe devolver la LISTA de los 30 vuelos
+            bootstrapUrl: '@Url.Action("GetAllTracking", "Telemetria")' 
+        };
+    </script>
+    <script src="~/js/radar-flota.js"></script>
+}

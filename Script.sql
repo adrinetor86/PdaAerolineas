@@ -45,6 +45,7 @@ CREATE TABLE aeropuerto
     id          INT IDENTITY PRIMARY KEY,
     nombre      NVARCHAR(150)      NOT NULL,
     codigo_iata NVARCHAR(3) UNIQUE NOT NULL,
+    codigo_icao NVARCHAR(4) UNIQUE NOT NULL,
     ciudad      NVARCHAR(100)      NOT NULL,
     pais_id     INT                NOT NULL,
     latitud     DECIMAL(9, 6)      NOT NULL,
@@ -181,6 +182,7 @@ CREATE TABLE mantenimiento
 CREATE TABLE tripulante
 (
     id       INT IDENTITY PRIMARY KEY,
+    id_aerolinea INT,
     nombre   NVARCHAR(100) NOT NULL,
     apellido NVARCHAR(100) NOT NULL,
     rol      NVARCHAR(50)  NOT NULL,
@@ -280,28 +282,34 @@ VALUES ('España', 'ESP'),
 -- ============================================
 -- AEROPUERTOS
 -- ============================================
-INSERT INTO aeropuerto (nombre, codigo_iata, ciudad, pais_id, latitud, longitud)
-VALUES ('Adolfo Suárez Madrid-Barajas', 'MAD', 'Madrid', 1, 40.471926, -3.568381),
-       ('Barcelona-El Prat', 'BCN', 'Barcelona', 1, 41.297078, 2.078464),
-       ('Málaga-Costa del Sol', 'AGP', 'Málaga', 1, 36.674919, -4.499106),
-       ('Palma de Mallorca', 'PMI', 'Palma de Mallorca', 1, 39.551694, 2.738806),
-       ('Alicante-Elche', 'ALC', 'Alicante', 1, 38.282169, -0.558156),
-       ('Sevilla', 'SVQ', 'Sevilla', 1, 37.418000, -5.893106),
-       ('Valencia', 'VLC', 'Valencia', 1, 39.489314, -0.481625),
-       ('Bilbao', 'BIO', 'Bilbao', 1, 43.301094, -2.910608),
-       ('London Heathrow', 'LHR', 'Londres', 2, 51.470022, -0.454296),
-       ('Paris Charles de Gaulle', 'CDG', 'París', 3, 49.009724, 2.547778),
-       ('Frankfurt', 'FRA', 'Frankfurt', 4, 50.026421, 8.543125),
-       ('Munich', 'MUC', 'Munich', 4, 48.353783, 11.786086),
-       ('Rome Fiumicino', 'FCO', 'Roma', 5, 41.800278, 12.238889),
-       ('Milan Malpensa', 'MXP', 'Milán', 5, 45.630606, 8.728111),
-       ('Lisbon Portela', 'LIS', 'Lisboa', 6, 38.781311, -9.135919),
-       ('John F. Kennedy', 'JFK', 'Nueva York', 7, 40.639722, -73.778889),
-       ('Miami International', 'MIA', 'Miami', 7, 25.795865, -80.287046),
-       ('Mexico City', 'MEX', 'Ciudad de México', 8, 19.436303, -99.072097),
-       ('Buenos Aires Ezeiza', 'EZE', 'Buenos Aires', 9, -34.822222, -58.535833),
-       ('São Paulo Guarulhos', 'GRU', 'São Paulo', 10, -23.432075, -46.469511);
+-- RECUERDA: La columna codigo_icao es obligatoria ahora
+INSERT INTO aeropuerto (nombre, codigo_iata, codigo_icao, ciudad, pais_id, latitud, longitud)
+VALUES
+    -- ESPAÑA (Prefijo LE)
+    ('Adolfo Suárez Madrid-Barajas', 'MAD', 'LEMD', 'Madrid', 1, 40.471926, -3.568381),
+    ('Barcelona-El Prat', 'BCN', 'LEBL', 'Barcelona', 1, 41.297078, 2.078464),
+    ('Málaga-Costa del Sol', 'AGP', 'LEMG', 'Málaga', 1, 36.674919, -4.499106),
+    ('Palma de Mallorca', 'PMI', 'LEPA', 'Palma de Mallorca', 1, 39.551694, 2.738806),
+    ('Alicante-Elche', 'ALC', 'LEAL', 'Alicante', 1, 38.282169, -0.558156),
+    ('Sevilla', 'SVQ', 'LEZL', 'Sevilla', 1, 37.418000, -5.893106),
+    ('Valencia', 'VLC', 'LEVC', 'Valencia', 1, 39.489314, -0.481625),
+    ('Bilbao', 'BIO', 'LEBB', 'Bilbao', 1, 43.301094, -2.910608),
 
+    -- EUROPA
+    ('London Heathrow', 'LHR', 'EGLL', 'Londres', 2, 51.470022, -0.454296),
+    ('Paris Charles de Gaulle', 'CDG', 'LFPG', 'París', 3, 49.009724, 2.547778),
+    ('Frankfurt', 'FRA', 'EDDF', 'Frankfurt', 4, 50.026421, 8.543125),
+    ('Munich', 'MUC', 'EDDM', 'Munich', 4, 48.353783, 11.786086),
+    ('Rome Fiumicino', 'FCO', 'LIRF', 'Roma', 5, 41.800278, 12.238889),
+    ('Milan Malpensa', 'MXP', 'LIMC', 'Milán', 5, 45.630606, 8.728111),
+    ('Lisbon Portela', 'LIS', 'LPPT', 'Lisboa', 6, 38.781311, -9.135919),
+
+    -- AMÉRICA
+    ('John F. Kennedy', 'JFK', 'KJFK', 'Nueva York', 7, 40.639722, -73.778889),
+    ('Miami International', 'MIA', 'KMIA', 'Miami', 7, 25.795865, -80.287046),
+    ('Mexico City', 'MEX', 'MMMX', 'Ciudad de México', 8, 19.436303, -99.072097),
+    ('Buenos Aires Ezeiza', 'EZE', 'SAEZ', 'Buenos Aires', 9, -34.822222, -58.535833),
+    ('São Paulo Guarulhos', 'GRU', 'SBGR', 'São Paulo', 10, -23.432075, -46.469511);
 -- ============================================
 -- RUTAS (igual que tu modelo original)
 -- ============================================
@@ -342,7 +350,11 @@ INSERT INTO aerolinea (nombre, logo, codigo_iata)
 VALUES ('Iberia', 'https://www.iberia.com/images/logo.svg', 'IB'),
        ('Ryanair', 'https://1000marcas.net/wp-content/uploads/2020/01/Ryanair-Logotipo.jpg', 'FR');
 
-
+INSERT INTO aerolinea (nombre, logo, codigo_iata)
+VALUES
+    ('Vueling', 'https://1000marcas.net/wp-content/uploads/2020/11/Vueling-Logo.png', 'VY'),
+    ('Air Europa', 'https://1000marcas.net/wp-content/uploads/2020/01/Air-Europa-Logo.png', 'UX'),
+    ('Lufthansa', 'https://1000marcas.net/wp-content/uploads/2020/03/Lufthansa-Logo.png', 'LH');
 -- ============================================
 -- ESTADOS AVIÓN
 -- ============================================
@@ -552,38 +564,67 @@ VALUES (12, 2, 'Completado', '10/02/2026', '10/02/2026 08:00', '14/02/2026 18:00
 -- ============================================
 -- TRIPULANTES
 -- ============================================
-INSERT INTO tripulante (nombre, apellido, rol, activo)
+INSERT INTO tripulante (nombre, apellido, rol, id_aerolinea, activo)
 VALUES
--- Comandantes (ATPL con mando)
-('Carlos', 'Martínez', 'Comandante', 1),
-('Ana', 'García', 'Comandante', 1),
-('Miguel', 'Rodríguez', 'Comandante', 1),
-('Laura', 'Fernández', 'Comandante', 1),
-('David', 'López', 'Comandante', 1),
-('Isabel', 'Sánchez', 'Comandante', 1),
-('Javier', 'Pérez', 'Comandante', 1),
-('Carmen', 'Ruiz', 'Comandante', 1),
-('Alberto', 'Jiménez', 'Comandante', 1),
-('María', 'Torres', 'Comandante', 1),
+-- ==========================================
+-- IBERIA (ID: 1)
+-- ==========================================
+('Carlos', 'Martínez', 'Comandante', 1, 1),
+('Ana', 'García', 'Comandante', 1, 1),
+('Pablo', 'Moreno', 'Primer Oficial', 1, 1),
+('Elena', 'Álvarez', 'Primer Oficial', 1, 1),
+('Marta', 'Gil', 'Tripulante de Cabina', 1, 1),
+('Jorge', 'Castro', 'Tripulante de Cabina', 1, 1),
+('Sandra', 'Ortiz', 'Tripulante de Cabina', 1, 1),
+('Daniel', 'Rubio', 'Tripulante de Cabina', 1, 1),
 
--- Primeros Oficiales (CPL)
-('Pablo', 'Moreno', 'Primer Oficial', 1),
-('Elena', 'Álvarez', 'Primer Oficial', 1),
-('Sergio', 'Romero', 'Primer Oficial', 1),
-('Lucía', 'Navarro', 'Primer Oficial', 1),
-('Raúl', 'Díaz', 'Primer Oficial', 1),
+-- ==========================================
+-- RYANAIR (ID: 2)
+-- ==========================================
+('Michael', 'O''Connor', 'Comandante', 2, 1),
+('Sarah', 'Kelly', 'Comandante', 2, 1),
+('John', 'Murphy', 'Primer Oficial', 2, 1),
+('Emma', 'Walsh', 'Primer Oficial', 2, 1),
+('Liam', 'O''Brien', 'Tripulante de Cabina', 2, 1),
+('Chloe', 'Byrne', 'Tripulante de Cabina', 2, 1),
+('Conor', 'Ryan', 'Tripulante de Cabina', 2, 1),
+('Aoife', 'Doyle', 'Tripulante de Cabina', 2, 1),
 
--- Tripulantes de Cabina (TCP)
-('Marta', 'Gil', 'Tripulante de Cabina', 1),
-('Jorge', 'Castro', 'Tripulante de Cabina', 1),
-('Sandra', 'Ortiz', 'Tripulante de Cabina', 1),
-('Daniel', 'Rubio', 'Tripulante de Cabina', 1),
-('Patricia', 'Molina', 'Tripulante de Cabina', 1),
-('Roberto', 'Delgado', 'Tripulante de Cabina', 1),
-('Silvia', 'Herrera', 'Tripulante de Cabina', 1),
-('Fernando', 'Medina', 'Tripulante de Cabina', 1),
-('Cristina', 'Iglesias', 'Tripulante de Cabina', 1),
-('Andrés', 'Campos', 'Tripulante de Cabina', 1);
+-- ==========================================
+-- VUELING (ID: 3)
+-- ==========================================
+('Marc', 'Vidal', 'Comandante', 3, 1),
+('Laia', 'Ferrer', 'Comandante', 3, 1),
+('Pol', 'Serra', 'Primer Oficial', 3, 1),
+('Nuria', 'Pujol', 'Primer Oficial', 3, 1),
+('Jordi', 'Vila', 'Tripulante de Cabina', 3, 1),
+('Mireia', 'Soler', 'Tripulante de Cabina', 3, 1),
+('Albert', 'Martí', 'Tripulante de Cabina', 3, 1),
+('Carla', 'Rovira', 'Tripulante de Cabina', 3, 1),
+
+-- ==========================================
+-- AIR EUROPA (ID: 4)
+-- ==========================================
+('Javier', 'Pérez', 'Comandante', 4, 1),
+('Carmen', 'Ruiz', 'Comandante', 4, 1),
+('Sergio', 'Romero', 'Primer Oficial', 4, 1),
+('Lucía', 'Navarro', 'Primer Oficial', 4, 1),
+('Roberto', 'Delgado', 'Tripulante de Cabina', 4, 1),
+('Silvia', 'Herrera', 'Tripulante de Cabina', 4, 1),
+('Fernando', 'Medina', 'Tripulante de Cabina', 4, 1),
+('Cristina', 'Iglesias', 'Tripulante de Cabina', 4, 1),
+
+-- ==========================================
+-- LUFTHANSA (ID: 5)
+-- ==========================================
+('Klaus', 'Müller', 'Comandante', 5, 1),
+('Hannah', 'Schmidt', 'Comandante', 5, 1),
+('Lukas', 'Weber', 'Primer Oficial', 5, 1),
+('Julia', 'Wagner', 'Primer Oficial', 5, 1),
+('Felix', 'Becker', 'Tripulante de Cabina', 5, 1),
+('Anna', 'Hoffmann', 'Tripulante de Cabina', 5, 1),
+('Maximilian', 'Koch', 'Tripulante de Cabina', 5, 1),
+('Sophie', 'Richter', 'Tripulante de Cabina', 5, 1);
 -- ============================================
 -- ASIGNACIÓN TRIPULACIÓN (NUEVO FORMATO)
 -- ============================================

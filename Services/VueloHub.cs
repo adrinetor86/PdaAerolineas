@@ -15,4 +15,5 @@ public class VueloHub : Hub
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, VueloGroupName(idVuelo));
     }
+    
 }

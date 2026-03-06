@@ -14,6 +14,9 @@ public class VistaFlota
     [Column("MATRICULA")]
     public string Matricula { get; set; }
     
+    [Column("ID_AEROLINEA")]
+    public int IdAerolinea { get; set; } 
+    
     [Column("AEROLINEA")]
     public string Aerolinea { get; set; }
     

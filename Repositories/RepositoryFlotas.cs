@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Data;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using PdaAerolineas.Data;
 using PdaAerolineas.Models;
 using PdaAerolineas.Models.Resumenes;
@@ -97,4 +99,43 @@ public class RepositoryFlotas
         return flota;
 
     }
+
+
+    
+    public async Task<(List<VistaFlota> Flotas, int TotalRegistros)> GetFlotasPaginadoAsync(
+        int numPag,
+        int numFilas,
+        int? idEstado,
+        int? idAerolinea,
+        string? busqueda)
+    {
+        string sql = "EXEC SP_FLOTAS_PAGINADO @PageNumber, @PageSize, @EstadoId, @AerolineaId, @Busqueda, @TotalRegistros OUTPUT";
+
+        var pamNumPagina = new SqlParameter("@PageNumber", numPag);
+        var pamNumFilas = new SqlParameter("@PageSize", numFilas);
+
+        var pamEstado = new SqlParameter("@EstadoId", idEstado.HasValue ? idEstado.Value : DBNull.Value);
+        var pamAerolinea = new SqlParameter("@AerolineaId", idAerolinea.HasValue ? idAerolinea.Value : DBNull.Value);
+        
+        var pamBusqueda = new SqlParameter("@Busqueda", string.IsNullOrWhiteSpace(busqueda) ? DBNull.Value : busqueda!.Trim());
+
+        var pamTotal = new SqlParameter("@TotalRegistros", SqlDbType.Int);
+
+        pamTotal.Direction = ParameterDirection.Output;
+        
+
+        var lista = await _context.Flotas
+            .FromSqlRaw(sql, pamNumPagina, pamNumFilas, pamEstado, pamAerolinea , pamBusqueda, pamTotal)
+            .ToListAsync();
+
+        int total = 0;
+        if (pamTotal.Value != DBNull.Value && pamTotal.Value != null)
+        {
+            total = (int)pamTotal.Value;
+        }
+
+        return (lista, total);
+    }
+    
+
 }

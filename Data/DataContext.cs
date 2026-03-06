@@ -10,18 +10,25 @@ public class DataContext:DbContext
 {
     public DataContext(DbContextOptions<DataContext> options):base(options){}
     
-    
+
+    public DbSet<Aeropuerto> Aeropuertos { get; set; }
     public DbSet<VistaFlota> Flotas { get; set; }
     public DbSet<VistaVuelo> VistaVuelos { get; set; }
     public DbSet<Vuelo> Vuelos { get; set; }
     public DbSet<VueloTracking> VuelosTracking { get; set; }
+    public DbSet<VistaHistorialVuelo> VistaHistorialVuelos { get; set; }
     public DbSet<EstadoVuelo> EstadoVuelos { get; set; }
     public DbSet<Aerolinea> Aerolineas { get; set; }
     
     public DbSet<Avion> Aviones { get; set; }
     public DbSet<VistaAvion> VistaAviones { get; set; }
+    public DbSet<EstadoAvion> EstadosAviones { get; set; }
+    
+    public DbSet<VistaDashboard> VistaDashboard { get; set; }
+    
     public DbSet<Ruta> Rutas { get; set; }
     public DbSet<VistaRuta> VistaRutas { get; set; }
+    public DbSet<RolUsuario> RolesUsuario { get; set; }
     
     public DbSet<Tripulante> Tripulantes { get; set; }
 
@@ -35,6 +42,7 @@ public class DataContext:DbContext
     public DbSet<Usuario> Usuarios { get; set; }
     public DbSet<UsersSecurity> UsersSecurity { get; set; }
     public DbSet<VistaUsuarios> VistaUsuarios { get; set; }
+    public DbSet<VistaAdministracionUsuarios> VistaAdministracionUsuarios { get; set; }
     
     public DbSet<VistaLogedUser> VistaLogedUser { get; set; }
     public DbSet<RetrasoVuelo> RetrasosVuelos { get; set; }

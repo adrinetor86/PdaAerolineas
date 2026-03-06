@@ -3,8 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PdaAerolineas.Models.Views;
 
-
-
 [Table("V_DATOS_USUARIO")]
 public class VistaUsuarios
 {

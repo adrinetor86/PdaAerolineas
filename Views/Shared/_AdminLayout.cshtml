@@ -1,0 +1,49 @@
+﻿
+@{
+    Layout = "_Layout";
+  
+}
+
+
+<div class="bg-white border-b border-gray-200 shadow-sm sticky top-[64px] z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="flex items-center justify-between h-14">
+            
+            <div class="flex items-center gap-8">
+                
+                
+                <nav class="flex items-center gap-1">
+                    <a asp-controller="Vuelos"
+                       asp-action="Index" 
+                       class="px-3 py-2 rounded-lg text-sm font-bold @(ViewContext.RouteData.Values["controller"]?.ToString() == "Vuelos" ? "text-blue-600 bg-blue-50" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50") transition-all flex items-center gap-2">
+                       Aerolineas
+                    </a>
+                    
+                    <a asp-controller="PanelAdmin"
+                       asp-action="Usuarios"
+                       class="px-3 py-2 rounded-lg text-sm font-bold @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tripulacion" ? "text-blue-600 bg-blue-50" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50") transition-all flex items-center gap-2">
+                        Usuarios
+                    </a>
+                    
+                    <a asp-controller="Aeropuertos" 
+                       asp-action="Index" 
+                       class="px-3 py-2 rounded-lg text-sm font-bold @(ViewContext.RouteData.Values["controller"]?.ToString() == "Aeropuertos" ? "text-blue-600 bg-blue-50" : "text-gray-500 hover:text-gray-900 hover:bg-gray-50") transition-all flex items-center gap-2">
+                        Aeropuertos
+                    </a>
+                </nav>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<main class="bg-gray-50 min-h-screen">
+    <div class="animate-in fade-in duration-500">
+        @RenderBody()
+    </div>
+</main>
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}

@@ -1,11 +1,8 @@
 ﻿@model List<Aerolinea>
 
-<h1>Registrar Usuarios</h1>
-
-<a asp-controller="Usuarios"
-   asp-action="LogIn">Iniciar Sesion</a>
-   
-
+@{
+    List<RolUsuario> roles = ViewData["ROLES"] as List<RolUsuario> ?? new List<RolUsuario>();
+ }
 
 <div class="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
     <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
@@ -53,13 +50,13 @@
                     </select>
                 </div>
                 <div>
-                    <label for="idRol" class="block text-sm font-medium text-gray-700">Aerolínea</label>
+                    <label for="idRol" class="block text-sm font-medium text-gray-700">Rol del Usuario</label>
                     <select name="idRol" id="idRol" 
                             class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                         <option value="2" selected disabled>Selecciona una opción...</option>
-                        @foreach (Aerolinea aero in Model)
+                        @foreach (RolUsuario rol in roles)
                         {
-                            <option value="@aero.IdAerolinea">@aero.Nombre</option>
+                            <option value="@rol.Id">@rol.Nombre</option>
                         }
                     </select>
                 </div>

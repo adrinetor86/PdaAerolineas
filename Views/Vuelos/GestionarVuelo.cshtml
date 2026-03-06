@@ -2,7 +2,6 @@
     @model VistaVuelo
 
     @{
-        @RenderSection("Scripts", required: false)
         var cache = ViewData["TRIPULACION_CACHE"] as VueloCache;
         var comandantes = ViewData["COMANDANTES"] as List<Tripulante> ?? new();
         var copilotos = ViewData["COPILOTOS"] as List<Tripulante> ?? new();
@@ -19,10 +18,7 @@
         // Estados reales (7 estados): 5=Cancelado, 7=Completado
         bool cancelado = estadoActual == 5;
         bool completado = estadoActual == 7;
-
-        // Wizard solo tiene 4 pasos. Mapeo:
-        // 1->1 Programado, 2->2 Embarcando, 3->3 En vuelo,
-        // 4 (Aterrizado) -> 4 Completado (visual), 7 (Completado) -> 4 Completado (visual)
+        
         int estadoActualParaWizard = (estadoActual == 4 || estadoActual == 7) ? pasos.Length : estadoActual;
         int estadoVisual = Math.Min(estadoActualParaWizard, pasos.Length);
 
@@ -42,9 +38,10 @@
         string llegadaTexto = Model.Llegada.ToString("dd/MM/yyyy HH:mm");
         string? puertaActual = cache?.Puerta ?? Model.Puerta;
         var ocupacionPct = (Model.Ocupacion.HasValue ? (int)Math.Round(Model.Ocupacion.Value) : (Model.Capacidad > 0 ? (int)Math.Round((Model.PasajerosConfirmados * 100.0) / Model.Capacidad) : 0));
-        int plazasAvion = Model.Capacidad;
+        var plazasAvion = Model.Capacidad;
     }
-
+    <p hidden="hidden" id="plazasAvion" value="@plazasAvion"></p>
+    
     <div id="gestionVueloContainer" data-idvuelo="@Model.IdVuelo"
          class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden my-8">
 
@@ -252,7 +249,8 @@
                         @if (estadoActual == 1)
                         {
                             <button type="button" onclick="abrirSelector('tcp')"
-                                    class="text-[10px] font-black text-blue-600 uppercase underline ml-2">Añadir TCP
+                                    class="text-[10px] font-black text-blue-600 uppercase underline ml-2">
+                                Añadir TCP
                             </button>
                         }
                     </div>
@@ -286,7 +284,7 @@
                             <p id="error-PasajerosConfirmados" class="mt-1 hidden text-xs font-bold text-red-600"></p>
                         </div>
                         <div class="space-y-2">
-                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Pax Embarcados</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Combustible</label>
                             <input type="number" id="inputEmbarcados"
                                    class="cache-input w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-400"
                                    value="@(cache?.PasajerosEmbarcados ?? Model.PasajerosEmbarcados)"
@@ -428,13 +426,18 @@
                         message: 'Se requiere un mínimo de 4 tripulantes de cabina (TCP).'
                     });
                 }
-
+                
                 if (datos.IdEstado === 2) {
                     if (!datos.Puerta || datos.Puerta.trim() === '') errores.push({
                         field: 'Puerta',
                         message: 'Debe asignar una puerta de embarque.'
                     });
                     if (datos.PasajerosConfirmados <= 0) errores.push({
+                        field: 'PasajerosConfirmados',
+                        message: 'Los pasajeros confirmados deben ser mayor a 0.'
+                    });
+                    
+                    if (datos.PasajerosConfirmados > Model.Capacidad ) errores.push({
                         field: 'PasajerosConfirmados',
                         message: 'Los pasajeros confirmados deben ser mayor a 0.'
                     });
@@ -584,7 +587,7 @@
                     mostrarErrores(errores);
                     return;
                 }
-
+                
                 if (!confirm('¿Deseas confirmar los datos y pasar al siguiente estado?')) return;
 
                 try {
@@ -782,7 +785,7 @@
 
                 const display = document.getElementById('tcp-display');
                 if (display && display.querySelectorAll('.tag-tcp').length === 0) {
-                    display.innerHTML = '<span id="tcp-empty" class="text-xs text-gray-400 italic">No hay TCPs asignados</span>';
+                    display.innerHTML += '<span id="tcp-empty" class="text-xs text-gray-400 italic">No hay TCPs asignados</span>';
                 }
                 sincronizarConCacheDebounced();
             }

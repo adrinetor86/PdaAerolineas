@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using PdaAerolineas.Extensions;
 using PdaAerolineas.Models;
 using PdaAerolineas.Repositories;
 
 namespace PdaAerolineas.Controllers;
 
+[SessionCheck]
 public class MantenimientosController : Controller
 {
 
@@ -20,21 +22,20 @@ public class MantenimientosController : Controller
     }
     
     
-    
-    
     //TODO CAMBIAR EL HARDCODE AEROLINEA
     public async Task<IActionResult> Index(
         int    numPag        = 1,
         int    numFilas      = 10,
-        int    idAerolinea   =1,
         string? estado       = null,
         DateTime? fechaProgramada = null,
         string? busqueda     = null
         )
     {
+
+       int idAero= HttpContext.Session.GetObject<int>("AEROLINEA");
         
         var (mantenimientos, total) =
-            await _repoMantenimientos.GetMantenimientosPaginadosAsync(numPag, numFilas, idAerolinea,estado, fechaProgramada, busqueda);
+            await _repoMantenimientos.GetMantenimientosPaginadosAsync(numPag, numFilas, idAero,estado, fechaProgramada, busqueda);
         ViewData["TOTAL_REGISTROS"] = total;
         
         return View(mantenimientos);
