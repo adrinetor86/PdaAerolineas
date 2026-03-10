@@ -107,17 +107,18 @@ public class RepositoryUsuarios
         return await consulta.FirstOrDefaultAsync();
     }
 
-    public async Task UpdateUsuarioAsync(int idUsuario, string nombre, string apellidos, string rol, bool activo)
+    public async Task UpdateUsuarioAsync(int idUsuario, string nombre, string apellidos, string rol,string aerolinea, bool activo)
     {
-        string sql = "SP_UPDATE_USUARIOS @idUsuario,@nombre,@apellidos,@rol,@activo";
+        string sql = "SP_UPDATE_USUARIOS @idUsuario,@nombre,@apellidos,@rol,@aerolinea,@activo";
 
         SqlParameter pamUsuario = new SqlParameter("@idUsuario", idUsuario);
         SqlParameter pamNombre = new SqlParameter("@nombre", nombre);
         SqlParameter pamApellidos = new SqlParameter("@apellidos", apellidos);
         SqlParameter pamRol = new SqlParameter("@rol", rol);
+        SqlParameter pamAerolinea = new SqlParameter("@aerolinea", aerolinea);
         SqlParameter pamActivo = new SqlParameter("@activo", activo);
 
-        await _context.Database.ExecuteSqlRawAsync(sql, pamUsuario, pamNombre, pamApellidos, pamRol, pamActivo);
+        await _context.Database.ExecuteSqlRawAsync(sql, pamUsuario, pamNombre, pamApellidos, pamRol,pamAerolinea, pamActivo);
 
     }
     

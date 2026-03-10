@@ -1,0 +1,105 @@
+﻿@model List<PdaAerolineas.Models.Aerolinea>
+
+@{
+    Layout = "_AdminLayout";
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Gestión de Aerolíneas</h1>
+            <p class="mt-2 text-sm text-gray-600">Listado completo de aerolíneas registradas en el sistema.</p>
+        </div>
+        <div class="mt-4 md:mt-0">
+            <a asp-controller="Aerolineas"
+               asp-action="Register"
+               class="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Registrar Aerolínea
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+        <div class="max-w-md">
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Buscar aerolínea</label>
+            <input type="text" id="buscadorAerolineas"
+                   class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                   placeholder="Escribe nombre o código IATA...">
+        </div>
+    </div>
+
+    <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
+        <table class="min-w-full divide-y divide-gray-200" id="tablaAerolineas">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Aerolínea</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Código IATA</th>
+                    <th class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-100" id="cuerpoAerolineas">
+                @foreach (var item in Model)
+                {
+                    <tr class="hover:bg-blue-50/50 transition duration-150">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center gap-4">
+                                @if (!string.IsNullOrEmpty(item.Logo))
+                                {
+                                    <div class="h-10 w-16 flex-shrink-0 bg-white rounded-lg  shadow-sm flex items-center justify-center overflow-hidden">
+                                        <img src="~/images/logos/@item.Logo"
+                                             alt="@item.Nombre"
+                                             class="h-8 w-full object-contain px-1" />
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="h-10 w-10 flex-shrink-0 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm">
+                                        @item.Nombre.Substring(0, 1).ToUpper()
+                                    </div>
+                                }
+                                <div class="text-sm font-semibold text-gray-900">@item.Nombre</div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 border border-blue-200 tracking-widest font-mono">
+                                @item.CodIata
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a asp-controller="Aerolineas"
+                               asp-action="Update"
+                               asp-route-idAerolinea="@item.IdAerolinea"
+                               class="text-blue-600 hover:text-blue-900 mr-3">Editar</a>
+              
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (!Model.Any())
+        {
+            <div class="text-center py-16 text-gray-400">
+                <svg class="mx-auto h-12 w-12 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                          d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
+                </svg>
+                <p class="text-sm font-medium">No hay aerolíneas registradas</p>
+                <p class="text-xs mt-1">Comienza registrando la primera aerolínea.</p>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('buscadorAerolineas').addEventListener('input', function () {
+            const filtro = this.value.toLowerCase();
+            const filas = document.querySelectorAll('#cuerpoAerolineas tr');
+            filas.forEach(fila => {
+                const texto = fila.innerText.toLowerCase();
+                fila.style.display = texto.includes(filtro) ? '' : 'none';
+            });
+        });
+    </script>
+}

@@ -129,15 +129,15 @@ public class RepositoryTripulantes
             com.Parameters.Add(pamVuelo);
             await com.Connection.OpenAsync();
             DbDataReader reader = await com.ExecuteReaderAsync();
-// Comandante
+    // Comandante
             while (await reader.ReadAsync())
                 resultado.Comandante = MapTripulante(reader);
 
             Console.WriteLine($"Comandante: {resultado.Comandante?.Nombre}");
 
-//Primer Oficial
+    //Primer Oficial
             bool haySegundo = await reader.NextResultAsync();
-            Console.WriteLine($"NextResult para Oficial: {haySegundo}");  // debe ser True
+            Console.WriteLine($"NextResult para Oficial: {haySegundo}");  
 
             while (await reader.ReadAsync())
                 resultado.Oficial = MapTripulante(reader);
@@ -146,7 +146,7 @@ public class RepositoryTripulantes
 
         // TCPs
             bool hayTercero = await reader.NextResultAsync();
-            Console.WriteLine($"NextResult para TCPs: {hayTercero}");  // debe ser True
+            Console.WriteLine($"NextResult para TCPs: {hayTercero}"); 
 
             while (await reader.ReadAsync())
                 resultado.Tcps.Add(MapTripulante(reader));

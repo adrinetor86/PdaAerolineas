@@ -588,7 +588,25 @@
                     return;
                 }
                 
-                if (!confirm('¿Deseas confirmar los datos y pasar al siguiente estado?')) return;
+                const textosPaso = {
+                    1: { title: '¿Iniciar embarque?', text: 'Se asignará la tripulación y pasará al estado de embarque.' },
+                    2: { title: '¿Autorizar despegue?', text: 'El vuelo pasará a estado "En Vuelo". Asegúrese de que todos los datos son correctos.' },
+                    3: { title: '¿Completar vuelo?', text: 'El vuelo se marcará como completado.' }
+                };
+                const textoActual = textosPaso[estadoActualValor] || { title: '¿Confirmar?', text: 'Se avanzará al siguiente estado.' };
+                
+                const swalResult = await Swal.fire({
+                    title: textoActual.title,
+                    text: textoActual.text,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2563eb',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Sí, confirmar',
+                    cancelButtonText: 'Cancelar'
+                });
+                
+                if (!swalResult.isConfirmed) return;
 
                 try {
                     await fetch('/Vuelos/ActualizarBorrador', {
@@ -601,6 +619,14 @@
                     const result = await response.json();
 
                     if (result.success) {
+                        await Swal.fire({
+                            icon: 'success',
+                            title: '¡Confirmado!',
+                            text: result.message || 'Estado actualizado correctamente.',
+                            confirmButtonColor: '#2563eb',
+                            timer: 2000,
+                            timerProgressBar: true
+                        });
                         window.location.reload();
                     } else {
                         if (result.errors && result.errors.length) mostrarErrores(result.errors);
@@ -610,7 +636,12 @@
                         }]);
                     }
                 } catch (err) {
-                    mostrarErrores([{field: 'Global', message: 'Error crítico de red.'}]);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error crítico',
+                        text: 'Error de red al comunicar con el servidor.',
+                        confirmButtonColor: '#dc2626'
+                    });
                     console.error(err);
                 }
             }
@@ -620,9 +651,20 @@
                 if (!datos) return;
 
                 limpiarErrores();
-                if (!confirm('¿Deseas cancelar este vuelo?')) return;
-
-                // Cancelar NO debe pasar por validaciones de pasos.
+                
+                const swalResult = await Swal.fire({
+                    title: '¿Cancelar este vuelo?',
+                    text: 'Esta acción no se puede deshacer. El vuelo quedará cancelado permanentemente.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Sí, cancelar vuelo',
+                    cancelButtonText: 'Volver'
+                });
+                
+                if (!swalResult.isConfirmed) return;
+                
                 datos.IdEstado = ESTADO_CANCELADO;
                 document.getElementById('inputEstado').value = datos.IdEstado;
                 actualizarUIEstado();
@@ -638,6 +680,14 @@
                     const result = await response.json();
 
                     if (result.success) {
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'Vuelo cancelado',
+                            text: 'El vuelo ha sido cancelado correctamente.',
+                            confirmButtonColor: '#2563eb',
+                            timer: 2000,
+                            timerProgressBar: true
+                        });
                         window.location.reload();
                     } else {
                         // Si el servidor manda errores, los mostramos, pero el cancelado debería siempre poder ejecutarse.
@@ -645,7 +695,12 @@
                         else mostrarErrores([{field: 'Global', message: result.message || 'No se pudo cancelar el vuelo'}]);
                     }
                 } catch (err) {
-                    mostrarErrores([{field: 'Global', message: 'Error crítico de red.'}]);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error crítico',
+                        text: 'Error de red al cancelar el vuelo.',
+                        confirmButtonColor: '#dc2626'
+                    });
                     console.error(err);
                 }
             }
@@ -709,13 +764,35 @@
             let rolActual = null;
             let listaFiltrada = [];
 
+            function getAssignedTcpIds() {
+                return Array.from(document.querySelectorAll('.tag-tcp')).map(el => parseInt(el.getAttribute('data-id')));
+            }
+
             function abrirSelector(rol) {
                 rolActual = rol;
                 const labels = {capitan: 'Capitán', copiloto: 'Primer Oficial', tcp: 'TCP'};
                 const labelEl = document.getElementById('selectorLabel');
                 if (labelEl) labelEl.innerText = labels[rol] || '';
-                listaFiltrada = (window.tripulantesPorRol && window.tripulantesPorRol[rol]) ? window.tripulantesPorRol[rol].slice() : [];
+                
+                let lista = (window.tripulantesPorRol && window.tripulantesPorRol[rol]) ? window.tripulantesPorRol[rol].slice() : [];
+                
+                // Filtrar TCPs ya asignados
+                if (rol === 'tcp') {
+                    const asignados = getAssignedTcpIds();
+                    lista = lista.filter(t => !asignados.includes(t.id));
+                }
+                
+                listaFiltrada = lista;
                 renderizarLista(listaFiltrada);
+                
+                // Mostrar mensaje si no hay disponibles
+                if (lista.length === 0) {
+                    const contenedor = document.getElementById('selectorLista');
+                    if (contenedor) {
+                        contenedor.innerHTML = '<div class="text-center py-6"><p class="text-sm text-gray-400 italic">No hay ' + labels[rol] + 's disponibles</p></div>';
+                    }
+                }
+                
                 const modal = document.getElementById('selectorModal');
                 if (modal) modal.classList.replace('hidden', 'flex');
             }
@@ -742,10 +819,25 @@
 
             function filtrarSelector(q) {
                 const query = (q || '').toLowerCase().trim();
-                const listaOriginal = window.tripulantesPorRol && window.tripulantesPorRol[rolActual] ? window.tripulantesPorRol[rolActual] : [];
+                let listaOriginal = window.tripulantesPorRol && window.tripulantesPorRol[rolActual] ? window.tripulantesPorRol[rolActual] : [];
+                
+                // Filtrar TCPs ya asignados
+                if (rolActual === 'tcp') {
+                    const asignados = getAssignedTcpIds();
+                    listaOriginal = listaOriginal.filter(t => !asignados.includes(t.id));
+                }
+                
                 if (!query) listaFiltrada = listaOriginal.slice();
                 else listaFiltrada = listaOriginal.filter(t => t.nombre.toLowerCase().includes(query));
-                renderizarLista(listaFiltrada);
+                
+                if (listaFiltrada.length === 0) {
+                    const contenedor = document.getElementById('selectorLista');
+                    if (contenedor) {
+                        contenedor.innerHTML = '<div class="text-center py-6"><p class="text-sm text-gray-400 italic">No se encontraron tripulantes</p></div>';
+                    }
+                } else {
+                    renderizarLista(listaFiltrada);
+                }
             }
 
             function aplicarSelector() {
@@ -799,7 +891,6 @@
                     const resp = await fetch(`/Vuelos/CacheAlive?idVuelo=${datos.IdVuelo}`);
                     const json = await resp.json();
                     if (!json.alive) {
-                        // Reset completo: recargar para repoblar tripulantes/estado desde DB
                         window.location.reload();
                     }
                 } catch (e) {
@@ -854,9 +945,16 @@
                     const result = await resp.json();
 
                     if (result.success) {
-                        window.location.reload();
                         cerrarRetraso();
-                        mostrarInfo(result.message); // Notificación superior
+                        await Swal.fire({
+                            icon: 'warning',
+                            title: 'Retraso registrado',
+                            text: result.message || 'El retraso se ha registrado correctamente.',
+                            confirmButtonColor: '#f59e0b',
+                            timer: 2000,
+                            timerProgressBar: true
+                        });
+                        window.location.reload();
 
                         // --- MAGIA VISUAL: ACTUALIZAMOS LA TARJETA DE FECHAS ---
                         document.getElementById('tarjetaFechas')?.classList.replace('bg-slate-50/40', 'bg-amber-50');

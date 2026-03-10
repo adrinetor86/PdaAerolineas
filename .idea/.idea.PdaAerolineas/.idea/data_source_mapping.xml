@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourcePerFileMappings">
+    <file url="dbSrc:///7ddfaf8b/d6b35c88-0732-46e2-b54c-48c494709b02/database/PDA_AEROLINEAS/schema/dbo/routine/SP_CREATE_AEROLINEA.sql" value="d6b35c88-0732-46e2-b54c-48c494709b02" />
     <file url="dbSrc:///7ddfaf8b/d6b35c88-0732-46e2-b54c-48c494709b02/database/PDA_AEROLINEAS/schema/dbo/routine/SP_CREATE_VUELO.sql" value="d6b35c88-0732-46e2-b54c-48c494709b02" />
     <file url="dbSrc:///7ddfaf8b/d6b35c88-0732-46e2-b54c-48c494709b02/database/PDA_AEROLINEAS/schema/dbo/routine/SP_GET_TELEMETRIA_VUELO.sql" value="d6b35c88-0732-46e2-b54c-48c494709b02" />
+    <file url="dbSrc:///7ddfaf8b/d6b35c88-0732-46e2-b54c-48c494709b02/database/PDA_AEROLINEAS/schema/dbo/routine/SP_GET_TRIPULANTES_DISPONIBLES.sql" value="d6b35c88-0732-46e2-b54c-48c494709b02" />
     <file url="dbSrc:///7ddfaf8b/d6b35c88-0732-46e2-b54c-48c494709b02/database/PDA_AEROLINEAS/schema/dbo/routine/SP_VALIDADICION_CREACION_VUELO.sql" value="d6b35c88-0732-46e2-b54c-48c494709b02" />
+    <file url="dbSrc:///7ddfaf8b/d6b35c88-0732-46e2-b54c-48c494709b02/database/PDA_AEROLINEAS/schema/dbo/view/V_ADMINISTRACION_USUARIOS.sql" value="d6b35c88-0732-46e2-b54c-48c494709b02" />
     <file url="dbSrc:///7ddfaf8b/d6b35c88-0732-46e2-b54c-48c494709b02/database/PDA_AEROLINEAS/schema/dbo/view/V_HISTORIAL_VUELOS_AVION.sql" value="d6b35c88-0732-46e2-b54c-48c494709b02" />
     <file url="file://$PROJECT_DIR$/Script.sql" value="d6b35c88-0732-46e2-b54c-48c494709b02" />
     <file url="file://$PROJECT_DIR$/procedures.sql" value="d6b35c88-0732-46e2-b54c-48c494709b02" />
+    <file url="das://d6b35c88-0732-46e2-b54c-48c494709b02/database/PDA_AEROLINEAS/schema/dbo/table/aerolinea.sql" value="d6b35c88-0732-46e2-b54c-48c494709b02" />
   </component>
 </project>

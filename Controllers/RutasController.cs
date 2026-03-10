@@ -24,8 +24,7 @@ public class RutasController : Controller
     
     public async Task<IActionResult> Index()
     {   
-         //Si no existe seteo a 0 
-         int idAerolinea = HttpContext.Session.GetInt32("AEROLINEA") ?? 0;
+         int idAerolinea = HttpContext.Session.GetObject<int>("AEROLINEA");
          
          //Seteamos la base en madrid
          List<VistaRuta> rutas = await _repoRutas.GetRutasAerolinea(1,idAerolinea);

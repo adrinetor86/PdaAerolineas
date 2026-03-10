@@ -412,8 +412,18 @@
             </button>
         </div>
 
-        <form method="post" asp-controller="Vuelos" asp-action="Create" class="space-y-6">
+        <form id="formCrearVuelo" method="post" asp-controller="Vuelos" asp-action="Create" class="space-y-6">
         
+            <div id="panelErroresCrear" class="hidden rounded-xl border-2 border-red-200 bg-red-50 px-5 py-4 mb-4">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <div class="text-xs font-black text-red-700 uppercase tracking-widest">Revisa el formulario</div>
+                        <ul id="listaErroresCrear" class="mt-2 list-disc pl-5 text-sm text-red-700 space-y-1"></ul>
+                    </div>
+                    <button type="button" class="text-red-700 font-black" onclick="limpiarErroresCrear()">✕</button>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Nº Vuelo
@@ -426,7 +436,7 @@
                             <option value="@vuelo">@vuelo</option>
                         }
                     </select>
-        
+                    <p id="error-crear-numeroVuelo" class="mt-1 hidden text-xs font-bold text-red-600"></p>
                 </div>
                 
                 <div>
@@ -440,6 +450,7 @@
                             <option value="@avion.IdAvion">@avion.Matricula</option>
                         }
                     </select>
+                    <p id="error-crear-avion" class="mt-1 hidden text-xs font-bold text-red-600"></p>
                 </div>
         
                 <div>
@@ -447,6 +458,7 @@
                         Salida *</label>
                     <input type="datetime-local" name="FechaSalida" required
                            class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition"/>
+                    <p id="error-crear-FechaSalida" class="mt-1 hidden text-xs font-bold text-red-600"></p>
                 </div>
             </div>
         
@@ -473,6 +485,7 @@
                                 class="w-full px-4 py-2 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition cursor-pointer font-bold text-blue-900">
                             <option value="" disabled selected>Esperando aeronave...</option>
                         </select>
+                        <p id="error-crear-idRuta" class="mt-1 hidden text-xs font-bold text-red-600"></p>
                     </div>
                 </div>
             </div>
@@ -529,7 +542,7 @@
         document.getElementById('formFiltros').submit();
     }
 
-    document.getElementById('checkAll').addEventListener('change', function () {
+    document.getElementById('checkAll')?.addEventListener('change', function () {
         document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
     });
 </script>
@@ -557,150 +570,117 @@
     });
 </script>
 
-<script>
-    const tripulantesPorRol = {
-        capitan: [
-            @foreach (var t in ViewData["COMANDANTES"] as List<Tripulante> ?? new List<Tripulante>())
-            {
-                @:{id: @t.IdTripulante, nombre: "@Html.Raw(t.Nombre) @Html.Raw(t.Apellido)", rol: "@t.Rol"},
-            }
-        ],
-        copiloto: [
-            @foreach (var t in ViewData["COPILOTOS"] as List<Tripulante> ?? new List<Tripulante>())
-            {
-                @:{id: @t.IdTripulante, nombre: "@Html.Raw(t.Nombre) @Html.Raw(t.Apellido)", rol: "@t.Rol"},
-            }
-        ],
-        tcp: [
-            @foreach (var t in ViewData["TCPS"] as List<Tripulante> ?? new List<Tripulante>())
-            {
-                @:{id: @t.IdTripulante, nombre: "@Html.Raw(t.Nombre) @Html.Raw(t.Apellido)", rol: "@t.Rol"},
-            }
-        ]
-    };
-    let rolActual = null;
-    
-
-    function abrirSelector(rol) {
-        rolActual = rol;
-        const labels = {capitan: 'Capitán', copiloto: 'Primer Oficial', tcp: 'TCP'};
-        document.getElementById('selectorLabel').innerText = labels[rol];
-        renderizarLista(tripulantesPorRol[rol]);
-        document.getElementById('selectorModal').classList.replace('hidden', 'flex');
-    }
-
-    function cerrarSelector() {
-        document.getElementById('selectorModal').classList.replace('flex', 'hidden');
-    }
-
-    function renderizarLista(lista) {
-        document.getElementById('selectorLista').innerHTML = lista.map(t => `
-            <label class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-blue-50 cursor-pointer">
-                <input type="${rolActual === 'tcp' ? 'checkbox' : 'radio'}" name="selectorOpc" value="${t.id}" data-nombre="${t.nombre}" class="w-4 h-4 accent-blue-600" />
-                <div><p class="text-sm font-bold text-gray-800">${t.nombre}</p><p class="text-[10px] text-gray-500 uppercase">${t.rol}</p></div>
-            </label>`).join('');
-    }
-
-    function aplicarSelector() {
-        const sel = [...document.querySelectorAll('input[name="selectorOpc"]:checked')];
-        if (!sel.length) {
-            cerrarSelector();
-            return;
-        }
-        if (rolActual === 'tcp') {
-            const display = document.getElementById('tcp-display');
-            document.getElementById('tcp-empty')?.remove();
-            sel.forEach(s => {
-                if (document.querySelector(`.tag-tcp[data-id="${s.value}"]`)) return;
-                const div = document.createElement('div');
-                div.className = "tag-tcp inline-flex items-center gap-1.5 bg-blue-600 text-white px-2.5 py-1 rounded-full text-xs font-bold";
-                div.setAttribute('data-id', s.value);
-                div.innerHTML = `${s.dataset.nombre} <button type="button" onclick="eliminarTcp(${s.value})" class="ml-1 hover:text-red-200">✕</button><input type="hidden" name="idsTcp" value="${s.value}" />`;
-                display.appendChild(div);
-            });
-        } else {
-            document.getElementById(`${rolActual}-input`).value = sel[0].value;
-            document.getElementById(`${rolActual}-display`).value = sel[0].dataset.nombre;
-        }
-        sincronizarConCache();
-        cerrarSelector();
-    }
-
-    function eliminarTcp(id) {
-        document.querySelector(`.tag-tcp[data-id="${id}"]`)?.remove();
-        if (!document.querySelectorAll('.tag-tcp').length)
-            document.getElementById('tcp-display').innerHTML = '<span id="tcp-empty" class="text-xs text-gray-400 italic">No hay TCPs asignados</span>';
-        sincronizarConCache();
-    }
-
-    function obtenerDatosUI() {
-        const c = document.getElementById('gestionVueloContainer');
-        if (!c) return null;
-        return {
-            IdVuelo: parseInt(c.getAttribute('data-idvuelo')),
-            IdEstado: parseInt(document.getElementById('inputEstado').value),
-            Puerta: document.getElementById('inputPuerta').value,
-            PasajerosConfirmados: parseInt(document.getElementById('inputConfirmados').value) || 0,
-            PasajerosEmbarcados: parseInt(document.getElementById('inputEmbarcados').value) || 0,
-            IdCapitan: parseInt(document.getElementById('capitan-input').value) || 0,
-            IdCopiloto: parseInt(document.getElementById('copiloto-input').value) || 0,
-            IdsTcp: Array.from(document.querySelectorAll('input[name="idsTcp"]')).map(i => parseInt(i.value))
-        };
-    }
-
-    async function sincronizarConCache() {
-        const s = document.getElementById('statusCache');
-        if (!s) return;
-        s.innerText = "Sincronizando...";
-        try {
-            await fetch("/Vuelos/ActualizarBorrador", {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(obtenerDatosUI())
-            });
-            s.innerText = "Borrador Guardado";
-        } catch (e) {
-            s.innerText = "Error sync";
-        }
-    }
-
-    function initModalHandlers() {
-        document.querySelectorAll('.cache-input').forEach(i => i.addEventListener('blur', sincronizarConCache));
-    }
-</script>
 
 <script>
-    $(document).ready(function () {
 
-
-// Abrir modal
-        $("#btnOpenModal").on("click", function () {
-            $("#modalOverlay")
-                .removeClass("hidden")
-                .addClass("flex");
+    // --- FUNCIONES DE ERROR DEL FORMULARIO CREAR ---
+    function limpiarErroresCrear() {
+        document.getElementById('panelErroresCrear')?.classList.add('hidden');
+        const lista = document.getElementById('listaErroresCrear');
+        if (lista) lista.innerHTML = '';
+        document.querySelectorAll('[id^="error-crear-"]').forEach(el => {
+            el.classList.add('hidden');
+            el.textContent = '';
         });
-// Cerrar modal (botones)
-        $(".btnCloseModal").on("click", function () {
-            $("#modalOverlay")
-                .addClass("hidden")
-                .removeClass("flex");
+    }
+
+    function mostrarErroresCrear(errores) {
+        limpiarErroresCrear();
+        if (!errores || errores.length === 0) return;
+
+        const panel = document.getElementById('panelErroresCrear');
+        const lista = document.getElementById('listaErroresCrear');
+
+        const normalizados = errores.map(e => {
+            if (typeof e === 'string') return { field: '', message: e };
+            return { field: e.field || e.Field || '', message: e.message || e.Message || 'Error' };
         });
 
-        $("#modalOverlay").on("click", function (e) {
-            if ($(e.target).is("#modalOverlay")) {
-                $(this)
-                    .addClass("hidden")
-                    .removeClass("flex");
+        if (lista) lista.innerHTML = normalizados.map(e => `<li>${e.message}</li>`).join('');
+        if (panel) panel.classList.remove('hidden');
+
+        normalizados.forEach(e => {
+            if (e.field) {
+                const msg = document.getElementById(`error-crear-${e.field}`);
+                if (msg) {
+                    msg.textContent = e.message;
+                    msg.classList.remove('hidden');
+                }
             }
         });
-    });
+    }
 
+    // --- AJAX SUBMIT DEL FORMULARIO CREAR VUELO ---
     $(document).ready(function () {
-        $("#btnOpenModal").on("click", () => $("#modalOverlay").removeClass("hidden").addClass("flex"));
+        $("#btnOpenModal").on("click", () => { limpiarErroresCrear(); $("#modalOverlay").removeClass("hidden").addClass("flex"); });
         $(".btnCloseModal").on("click", () => $("#modalOverlay").addClass("hidden").removeClass("flex"));
         $("#modalOverlay").on("click", function (e) {
             if ($(e.target).is("#modalOverlay")) $(this).addClass("hidden").removeClass("flex");
         });
+
+        
+        $("#formCrearVuelo").on("submit", async function (e) {
+            e.preventDefault();
+            limpiarErroresCrear();
+
+            // Validación client-side
+            const erroresLocal = [];
+            const numVuelo = $("#selectNumeroVuelo").val();
+            const avion = $("#selectAvion").val();
+            const fecha = $("input[name='FechaSalida']").val();
+            const ruta = $("#selectDestino").val();
+
+            if (!numVuelo) erroresLocal.push({ field: 'numeroVuelo', message: 'Debe seleccionar un número de vuelo.' });
+            if (!avion) erroresLocal.push({ field: 'avion', message: 'Debe seleccionar una aeronave.' });
+            if (!fecha) erroresLocal.push({ field: 'FechaSalida', message: 'La fecha de salida es obligatoria.' });
+            if (!ruta) erroresLocal.push({ field: 'idRuta', message: 'Debe seleccionar un destino.' });
+
+            if (erroresLocal.length > 0) {
+                mostrarErroresCrear(erroresLocal);
+                return;
+            }
+
+            const formData = new FormData(this);
+            const btn = $(this).find('button[type="submit"]');
+            btn.prop('disabled', true).text('Creando...');
+
+            try {
+                const response = await fetch($(this).attr('action'), {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    // Cerrar modal
+                    $("#modalOverlay").addClass("hidden").removeClass("flex");
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Vuelo creado!',
+                        text: result.message || 'El vuelo se ha programado correctamente.',
+                        confirmButtonColor: '#2563eb',
+                        timer: 2500,
+                        timerProgressBar: true
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    mostrarErroresCrear(result.errors || [{ field: '', message: result.message || 'Error desconocido' }]);
+                }
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de conexión',
+                    text: 'No se pudo conectar con el servidor.',
+                    confirmButtonColor: '#dc2626'
+                });
+            } finally {
+                btn.prop('disabled', false).text('Confirmar y Crear');
+            }
+        });
+
+        // Cargar rutas al seleccionar avión
         $("#selectAvion").change(function () {
             const avion = $(this).val();
             if (!avion) return;
@@ -719,6 +699,10 @@
                         document.getElementById("rutaContainer").classList.remove("hidden");
                         document.getElementById("inputOrigen").value = rutas[0].codOrigen;
                         rutas.forEach(r => sel.innerHTML += `<option value="${r.id}">${r.codDestino} (${r.distancia} km)</option>`);
+                    } else {
+                        document.getElementById("rutaContainer").classList.remove("hidden");
+                        document.getElementById("inputOrigen").value = '';
+                        sel.innerHTML = '<option disabled selected>No hay rutas disponibles para esta aeronave</option>';
                     }
                 });
         });

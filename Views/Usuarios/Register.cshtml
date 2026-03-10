@@ -18,6 +18,8 @@
         <form asp-action="Register" method="post" class="mt-8 space-y-6">
             @Html.AntiForgeryToken()
             
+            <div asp-validation-summary="ModelOnly" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4"></div>
+            
             <div class="rounded-md shadow-sm space-y-4">
                 <div>
                     <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre</label>
@@ -36,6 +38,7 @@
                     <input type="text" name="email" id="email" required 
                            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" 
                            placeholder="Ej: epst@@gmail.com">
+                    <span class="text-red-600 text-sm mt-1 block">@Html.ValidationMessage("Email")</span>
                 </div>
 
                 <div>

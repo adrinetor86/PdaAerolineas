@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PdaAerolineas.Models;
 using PdaAerolineas.Models.Auth;
+using PdaAerolineas.Models.Dashboard;
 using PdaAerolineas.Models.Resumenes;
 using PdaAerolineas.Models.Views;
 
@@ -49,5 +50,32 @@ public class DataContext:DbContext
     
     public DbSet<VistaRetraso> VistaRetrasos { get; set; }
     public DbSet<CodigoRetrasoIata> CodigosRetrasos{ get; set; }
+    
+    public DbSet<EstadoVuelo> EstadosVuelo { get; set; }
+    public DbSet<EstadoAvion> EstadosAvion { get; set; }
+
+    
+    public DbSet<DashboardStats> DashboardStats { get; set; }
+    public DbSet<VuelosPorHoraDto> VuelosPorHora { get; set; }
+    public DbSet<VuelosPorEstadoDto> VuelosPorEstado { get; set; }
+    public DbSet<OcupacionSemanalDto> OcupacionSemanal { get; set; }
+    public DbSet<AeronavesPorEstadoDto> AeronavesPorEstado { get; set; }
+    public DbSet<ProximoVueloDto> ProximosVuelos { get; set; }
+    public DbSet<VueloRecienteDto> VuelosRecientes { get; set; }
+    public DbSet<TopRutaDto> TopRutas { get; set; }
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<DashboardStats>().HasNoKey().ToView(null);
+        modelBuilder.Entity<VuelosPorHoraDto>().HasNoKey().ToView(null);
+        modelBuilder.Entity<VuelosPorEstadoDto>().HasNoKey().ToView(null);
+        modelBuilder.Entity<OcupacionSemanalDto>().HasNoKey().ToView(null);
+        modelBuilder.Entity<AeronavesPorEstadoDto>().HasNoKey().ToView(null);
+        modelBuilder.Entity<ProximoVueloDto>().HasNoKey().ToView(null);
+        modelBuilder.Entity<VueloRecienteDto>().HasNoKey().ToView(null);
+        modelBuilder.Entity<TopRutaDto>().HasNoKey().ToView(null);
+        
+        base.OnModelCreating(modelBuilder);
+    }
     
 }

@@ -2,6 +2,97 @@
 
 @{
     Layout = "_AdminLayout";
+    ViewData["Title"] = "Editar Usuario";
 }
 
-<h1>Editar Datos de @Model.Nombre @Model.Apellidos</h1>
+<div class="max-w-2xl mx-auto px-6 py-8">
+    
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Editar Usuario</h1>
+    </div>
+
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+        
+        <form asp-action="Update" method="post">
+            
+            @Html.AntiForgeryToken()
+            
+
+            <div asp-validation-summary="ModelOnly" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6"></div>
+
+
+            <input type="hidden" asp-for="Id" />
+            
+            <div class="mb-4">
+                <label asp-for="Nombre" class="block text-sm font-semibold text-gray-700 mb-2"></label>
+                <input asp-for="Nombre"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                       placeholder="Ingrese el nombre" />
+                <span asp-validation-for="Nombre" class="text-red-600 text-sm mt-1 block"></span>
+            </div>
+            
+            <div class="mb-4">
+                <label asp-for="Apellidos" class="block text-sm font-semibold text-gray-700 mb-2"></label>
+                <input asp-for="Apellidos"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                       placeholder="Ingrese los apellidos" />
+                <span asp-validation-for="Apellidos" class="text-red-600 text-sm mt-1 block"></span>
+            </div>
+            
+            <div class="mb-4">
+                <label asp-for="Email" class="block text-sm font-semibold text-gray-700 mb-2"></label>
+                <input asp-for="Email"
+                       readonly
+                       type="email"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed" />
+                <span asp-validation-for="Email" class="text-red-600 text-sm mt-1 block"></span>
+            </div>
+            
+            <div class="mb-4">
+                <label asp-for="Aerolinea" class="block text-sm font-semibold text-gray-700 mb-2"></label>
+                <select asp-for="Aerolinea" 
+                        asp-items="ViewBag.Aerolineas"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">-- Seleccione una aerolinea --</option>
+                </select>
+                <span asp-validation-for="Rol" class="text-red-600 text-sm mt-1 block"></span>
+            </div>   
+            
+            <div class="mb-4">
+                <label asp-for="Rol" class="block text-sm font-semibold text-gray-700 mb-2"></label>
+                <select asp-for="Rol" 
+                        asp-items="ViewBag.Roles"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">-- Seleccione un rol --</option>
+                </select>
+                <span asp-validation-for="Rol" class="text-red-600 text-sm mt-1 block"></span>
+            </div>
+            
+            <div class="mb-6">
+                <label class="flex items-center">
+                    <input asp-for="Activo" type="checkbox" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                    <span class="ml-2 text-sm font-semibold text-gray-700">Usuario activo</span>
+                </label>
+            </div>
+    
+            <div class="flex gap-3">
+                <button type="submit" 
+                        class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
+                    Guardar Cambios
+                </button>
+                
+                <a asp-controller="PanelAdmin" asp-action="Usuarios" 
+                   class="px-6 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition">
+                    Cancelar
+                </a>
+            </div>
+            
+        </form>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

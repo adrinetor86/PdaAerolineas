@@ -263,6 +263,9 @@ public class RepositorySimulador : BackgroundService
     // ✅ Control de tiempo para GUARDADO en BD
     private readonly Dictionary<int, DateTime> _ultimoGuardado = new();
     private readonly TimeSpan _intervaloGuardado = TimeSpan.FromSeconds(30);
+    
+    // ✅ Registro de despegue real para vuelos "faked" (fechas futuras despegados hoy)
+    private readonly Dictionary<int, DateTime> _despegueReal = new();
 
     public RepositorySimulador(IServiceProvider serviceProvider, ILogger<RepositorySimulador> logger, IHubContext<VueloHub> hubContext)
     {
@@ -319,21 +322,34 @@ public class RepositorySimulador : BackgroundService
                 .ToListAsync();
 
             var ahora = DateTime.Now;
+            var datosRadar = new List<object>();
 
             foreach (var t in tracking)
             {
                 double? lat = null;
                 double? lng = null;
+                double progress = 0;
 
                 // Calcular posición en tiempo real
                 if (t.LatOrigen.HasValue && t.LngOrigen.HasValue && t.LatDestino.HasValue && t.LngDestino.HasValue)
                 {
-                    var total = (t.FechaLlegada - t.FechaSalida).TotalSeconds;
-                    double progress = 0;
+                    var duracionTotal = (t.FechaLlegada - t.FechaSalida).TotalSeconds;
 
-                    if (total > 0)
+                    if (duracionTotal > 0)
                     {
-                        progress = (ahora - t.FechaSalida).TotalSeconds / total;
+                        if (ahora < t.FechaSalida)
+                        {
+                            // VUELO FAKED: despegado antes de su fecha programada
+                            if (!_despegueReal.ContainsKey(t.VueloId))
+                                _despegueReal[t.VueloId] = ahora;
+
+                            progress = (ahora - _despegueReal[t.VueloId]).TotalSeconds / duracionTotal;
+                        }
+                        else
+                        {
+                            // Vuelo normal: usar fechas reales
+                            progress = (ahora - t.FechaSalida).TotalSeconds / duracionTotal;
+                        }
                         progress = Math.Clamp(progress, 0, 1);
                     }
 
@@ -354,25 +370,21 @@ public class RepositorySimulador : BackgroundService
 
                 if (!_ultimoGuardado.ContainsKey(t.VueloId))
                 {
-                    // Primera posición del vuelo
                     debeGuardar = true;
                     _ultimoGuardado[t.VueloId] = ahora;
                 }
                 else if (ahora - _ultimoGuardado[t.VueloId] >= _intervaloGuardado)
                 {
-                    // Han pasado 30 segundos
                     debeGuardar = true;
                     _ultimoGuardado[t.VueloId] = ahora;
                 }
 
-                // 💾 GUARDAR EN BD (solo cada 30 segundos)
                 if (debeGuardar)
                 {
                     await GuardarPosicionJSON(context, t, lat.Value, lng.Value);
-                    _logger.LogDebug($"💾 Posición guardada: Vuelo {t.NumeroVuelo} - {lat:F6}, {lng:F6}");
                 }
 
-                // 📡 EMITIR A SIGNALR (SIEMPRE, cada 3 segundos)
+                // 📡 EMITIR A SIGNALR grupo individual del vuelo
                 await _hubContext.Clients.Group(VueloGroupName(t.VueloId)).SendAsync("PosicionActualizada", new
                 {
                     vueloId = t.VueloId,
@@ -380,8 +392,30 @@ public class RepositorySimulador : BackgroundService
                     lat = lat.Value,
                     lng = lng.Value,
                     altitudPies = t.AltitudPies ?? 0,
-                    progreso = t.Progreso.HasValue ? (double)t.Progreso.Value : 0
+                    progreso = progress
                 });
+
+                // Acumular datos para el radar global
+                datosRadar.Add(new
+                {
+                    vueloId = t.VueloId,
+                    numeroVuelo = t.NumeroVuelo,
+                    lat = lat.Value,
+                    lng = lng.Value,
+                    info = new
+                    {
+                        origen = t.CodigoOrigen,
+                        destino = t.CodigoDestino,
+                        altitud = t.AltitudPies ?? 0,
+                        progreso = progress
+                    }
+                });
+            }
+
+            // 📡 BROADCAST al grupo radar global (un solo mensaje con todos los vuelos)
+            if (datosRadar.Count > 0)
+            {
+                await _hubContext.Clients.Group("radar").SendAsync("RadarActualizado", datosRadar);
             }
         }
         catch (Exception ex)
@@ -441,23 +475,40 @@ public class RepositorySimulador : BackgroundService
     private async Task CompletarVuelosFinalizados(DataContext context)
     {
         var ahora = DateTime.Now;
-        var vuelosParaCompletar = await context.Vuelos
+        var vuelosEnVuelo = await context.Vuelos
             .Where(v => v.IdEstado == 3)
-            .Where(v => v.FechaLlegada <= ahora)
             .ToListAsync();
 
-        foreach (var vuelo in vuelosParaCompletar)
+        foreach (var vuelo in vuelosEnVuelo)
         {
+            bool debeCompletar = false;
+            
+            if (vuelo.FechaLlegada <= ahora)
+            {
+                // Vuelo normal: la fecha de llegada ya pasó
+                debeCompletar = true;
+            }
+            else if (_despegueReal.ContainsKey(vuelo.IdVuelo))
+            {
+                // Vuelo faked: comprobar si la duración simulada ya terminó
+                var duracionTotal = (vuelo.FechaLlegada - vuelo.FechaSalida);
+                var tiempoTranscurrido = ahora - _despegueReal[vuelo.IdVuelo];
+                if (tiempoTranscurrido >= duracionTotal)
+                    debeCompletar = true;
+            }
+
+            if (!debeCompletar) continue;
+
             try
             {
                 await context.Database.ExecuteSqlInterpolatedAsync(
                     $"EXEC SP_UPDATE_ESTADO_VUELO @vuelo_id={vuelo.IdVuelo}, @nuevo_estado_id=7, @fecha_actualizacion={ahora}"
                 );
 
-                // Limpiar del diccionario cuando el vuelo termina
                 _ultimoGuardado.Remove(vuelo.IdVuelo);
+                _despegueReal.Remove(vuelo.IdVuelo);
 
-                _logger.LogInformation($" Vuelo {vuelo.NumeroVuelo} completado");
+                _logger.LogInformation($"Vuelo {vuelo.NumeroVuelo} completado");
 
                 await _hubContext.Clients.All.SendAsync("VueloCompletado", new
                 {

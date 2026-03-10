@@ -6,7 +6,7 @@ using PdaAerolineas.Extensions;
 
 namespace PdaAerolineas.Controllers;
 
-
+// TODO PASAR LOS ROLES TAMBIEN COMO AEROLINEAS
 [HighRoles]
 public class TripulacionController : Controller
 {
@@ -34,8 +34,7 @@ public class TripulacionController : Controller
         
         var aerolineas = await _repoAerolineas.GetAerolineasAsync();
         ViewBag.Aerolineas = aerolineas;
-
-        // 3. Pasamos los datos del total de registros a la vista
+        
         ViewData["TOTAL_REGISTROS"] = resultado.TotalRegistros;
 
         return View(resultado.Tripulantes);
@@ -105,7 +104,6 @@ public class TripulacionController : Controller
         
         if (!ModelState.IsValid)
         {
-             //Si hay errores, volvemos a cargar las aerolíneas para no explotar
             var aerolineas = await _repoAerolineas.GetAerolineasAsync(); 
             ViewBag.Aerolineas = aerolineas.Select(a => new SelectListItem
             {
@@ -116,8 +114,6 @@ public class TripulacionController : Controller
         
             return View();
         }
-
-        // Usas tu repositorio para crear/insertar el nuevo tripulante
         await _repoTripulantes.CreateTripulantesAsync(idAerolinea, nombre, apellido, rol, activo);
     
         return RedirectToAction("Index");

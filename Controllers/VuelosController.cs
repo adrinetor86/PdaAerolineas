@@ -32,7 +32,7 @@ public class VuelosController : Controller
         int numPag = 1,
         int numFilas = 10,
         int? idEstado = null,
-        int? idAerolinea = 1,
+        int? idAerolinea = -1,
         DateTime? fechaSalida = null,
         string? busqueda = null)
     {
@@ -48,16 +48,15 @@ public class VuelosController : Controller
 
         ViewData["ESTADOS"] = await _repoVuelos.GetEstadosVuelosAync();
         
-        
-        // HARDCODEADO PARA SIMULAR LA AEROLINEA 1
-        ViewData["AVIONES"] = await _repoVuelos.GetAvionesByDisponiblesAsync(1);
-        ViewData["NUMEROVUELOS"] = await _repoVuelos.GetNumeroVueloByAerolineaAsync(1);
+        ViewData["AVIONES"] = await _repoVuelos.GetAvionesByDisponiblesAsync(idAero);
+        ViewData["NUMEROVUELOS"] = await _repoVuelos.GetNumeroVueloByAerolineaAsync(idAero);
 
         return View(vuelos);
     }
 
     [HttpPost]
     [ActionName("Index")]
+    [ValidateAntiForgeryToken]
     public IActionResult IndexPost(int numPag, int numFilas, int? idEstado, int? idAerolinea, DateTime? fechaSalida, string? busqueda)
     {
         return RedirectToAction("Index", new { numPag, numFilas, idEstado, idAerolinea, fechaSalida, busqueda });
@@ -66,100 +65,66 @@ public class VuelosController : Controller
     [HttpPost]
     public async Task<IActionResult> GetRutasPorAvion(int idAvion)
     {
-
+        //CONTROL ERRORES
         var rutas = await _repoVuelos.GetRutasDisponibles(idAvion);
-        Console.WriteLine(":_____________________________________________________________________________");
-        Console.WriteLine(rutas);
-
         return Json(rutas);
     }
 
 
-    //[ValidateAntiForgeryToken]
+    
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(string numeroVuelo, int idRuta, int avion, DateTime fechaSalida,
         string puerta)
     {
+        var errores = new List<FormError>();
 
-        Console.WriteLine(":_____________________________________________________________________________");
-        Console.WriteLine(numeroVuelo);
-        Console.WriteLine(idRuta);
-        Console.WriteLine(avion);
-        Console.WriteLine(fechaSalida);
-        //TODO QUITAR HARD AEROLINEA
-        await _repoVuelos.CreateVueloAsync(numeroVuelo, 1, idRuta,
-            avion, fechaSalida, puerta);
+        if (string.IsNullOrWhiteSpace(numeroVuelo))
+            errores.Add(new FormError { Field = "numeroVuelo", Message = "El número de vuelo es obligatorio." });
+        if (avion <= 0)
+            errores.Add(new FormError { Field = "avion", Message = "Debe seleccionar una aeronave." });
+        if (idRuta <= 0)
+            errores.Add(new FormError { Field = "idRuta", Message = "Debe seleccionar una ruta de destino." });
+        if (fechaSalida == default)
+            errores.Add(new FormError { Field = "FechaSalida", Message = "La fecha de salida es obligatoria." });
 
-        return RedirectToAction("Index");
+        if (errores.Count > 0)
+            return Json(new { success = false, errors = errores });
+
+        int idAerolinea = HttpContext.Session.GetObject<int>("AEROLINEA");
+
+        try
+        {
+            await _repoVuelos.CreateVueloAsync(numeroVuelo, idAerolinea, idRuta,
+                avion, fechaSalida, puerta);
+
+            return Json(new { success = true, message = "Vuelo creado correctamente." });
+        }
+        catch (Microsoft.Data.SqlClient.SqlException ex)
+        {
+            if (ex.Message.Contains("numero") || ex.Message.Contains("vuelo"))
+                errores.Add(new FormError { Field = "numeroVuelo", Message = ex.Message });
+            else if (ex.Message.Contains("avion") || ex.Message.Contains("aeronave"))
+                errores.Add(new FormError { Field = "avion", Message = ex.Message });
+            else if (ex.Message.Contains("ruta"))
+                errores.Add(new FormError { Field = "idRuta", Message = ex.Message });
+            else
+                errores.Add(new FormError { Field = "", Message = "Error: " + ex.Message });
+
+            return Json(new { success = false, errors = errores });
+        }
+        catch (Exception ex)
+        {
+            errores.Add(new FormError { Field = "", Message = "Error inesperado: " + ex.Message });
+            return Json(new { success = false, errors = errores });
+        }
     }
-
     
-    // public async Task<IActionResult> Update(int idVuelo)
-    // {
-    //     VistaVuelo vuelo = await _repoVuelos.GetDatosVueloByIdAsync(idVuelo);
-    //
-    //     int idAerolinea = HttpContext.Session.GetObject<int>("AEROLINEA");
-    //     
-    //     var comandantes = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, idAerolinea,"Comandante");
-    //     var copilotos = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, idAerolinea,"Primer Oficial");
-    //     var tcps = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, idAerolinea,"Tripulante de Cabina");
-    //
-    //     // List<Tripulante> tripulantesAsignados = await _repoTripulantes.GetTripulantesVueloAsync(idVuelo);
-    //     ViewData["COMANDANTES"] = comandantes;
-    //     ViewData["COPILOTOS"] = copilotos;
-    //     ViewData["TCPS"] = tcps;
-    //     // ViewData["TRIPULANTES"] = tripulantesAsignados;
-    //
-    //     return View(vuelo);
-    // }
-    //
-    //
-    //
-    // [HttpPost]
-    // public async Task<IActionResult> Update
-    // (int idVuelo, string numerovuelo, int aerolinea, int ruta, int avion,
-    //     DateTime salida, DateTime llegada, int estado, string puerta, int capacidad,
-    //     int confirmados, int embarcados,
-    //     int idCapitan, int idCopiloto, int[] idsTcp)
-    // {
-    //     Console.WriteLine("=============================");
-    //     Console.WriteLine($"idVuelo    = {idVuelo}");
-    //     Console.WriteLine($"numerovuelo= {numerovuelo}");
-    //     Console.WriteLine($"aerolinea  = {aerolinea}");
-    //     Console.WriteLine($"ruta       = {ruta}");
-    //     Console.WriteLine($"avion      = {avion}");
-    //     Console.WriteLine($"salida     = {salida}");
-    //     Console.WriteLine($"llegada    = {llegada}");
-    //     Console.WriteLine($"estado     = {estado}");
-    //     Console.WriteLine($"puerta     = {puerta}");
-    //     Console.WriteLine($"capacidad  = {capacidad}");
-    //     Console.WriteLine($"confirmados= {confirmados}");
-    //     Console.WriteLine($"embarcados = {embarcados}");
-    //     Console.WriteLine($"capitan = {idCapitan}");
-    //     Console.WriteLine($"copi = {idCopiloto}");
-    //     Console.WriteLine($"tcps = {idsTcp}");
-    //     Console.WriteLine("=============================");
-    //
-    //     int[] idsTripulantes = new[] { idCapitan, idCopiloto }
-    //         .Where(id => id > 0) // filtrar los que no se asignaron
-    //         .Concat(idsTcp ?? Array.Empty<int>()) // añadir los TCPs
-    //         .ToArray();
-    //
-    //     await _repoVuelos.UpdateDatosVuelo
-    //     (idVuelo, numerovuelo, 1, ruta, avion, salida, llegada, estado, puerta,
-    //         capacidad, embarcados, embarcados, idsTripulantes);
-    //
-    //     return RedirectToAction("Index");
-    // }
-
-
-
     public IActionResult GestionCache(int idVuelo)
     {
         string cacheKey = $"VUELO_{idVuelo}";
 
        
-    // Intentamos obtener el vuelo de la cache
     if (!_memoryCache.TryGetValue(cacheKey, out VueloCache vuelo))
         {
              vuelo = new VueloCache
@@ -181,20 +146,17 @@ public class VuelosController : Controller
     [HighRoles]
     public async Task<IActionResult> GestionarVuelo(int idVuelo)
     {
-        // Obtener el vuelo original
         VistaVuelo vuelo = await _repoVuelos.GetDatosVueloByIdAsync(idVuelo);
         
         if (vuelo.IdEstado == 7)
         {
             return RedirectToAction("Index");
         }
-
-        // Obtener cache
+        
         VueloCache cache = _repoVuelos.GetVueloCache(idVuelo);
      
         if (cache == null)
-        {
-            // Si no hay cache, inicializarlo desde la DB
+        { 
             var tripulacion = await _repoTripulantes.GetTripulantesVueloAsync(idVuelo);
             cache = new VueloCache
             {
@@ -209,8 +171,7 @@ public class VuelosController : Controller
             };
             _repoVuelos.SaveVueloCache(cache);
         }
-
-        // Listas base (solo disponibles)
+        
         int idAerolinea = HttpContext.Session.GetObject<int>("AEROLINEA") ;
         
         var comandantes = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, idAerolinea,"Comandante");
@@ -253,13 +214,14 @@ public class VuelosController : Controller
         
     }
     [HttpPost]
+    // [ValidateAntiForgeryToken]
     public IActionResult ActualizarBorrador([FromBody] VueloCache datos)
     {
         if (datos == null) return BadRequest();
         Console.WriteLine("CAPITAN2: " + datos.IdCapitan);
         Console.WriteLine("COPILOTO2: " + datos.IdCopiloto);
         Console.WriteLine("TCPS2: " + string.Join(",", datos.IdsTcp ?? new List<int>()));
-        // Guardar el cache con los datos actualizados
+       
         _repoVuelos.SaveVueloCache(datos);
         return Json(new { success = true });
     }
@@ -272,12 +234,12 @@ public class VuelosController : Controller
         {
             VistaVuelo vueloActual = await _repoVuelos.GetDatosVueloByIdAsync(idVuelo);
 
+            const int estadoEnVuelo = 3;
+            const int estadoAterrizado = 4;
             const int estadoCancelado = 5;
             const int estadoCompletado = 7;
-            const int estadoAterrizado = 4;
-            const int estadoEnVuelo = 3;
-
-            // Estados terminales
+            
+    
             if (vueloActual.IdEstado == estadoCancelado || vueloActual.IdEstado == estadoCompletado)
             {
                 _memoryCache.Remove($"VUELO_{idVuelo}");
@@ -291,7 +253,7 @@ public class VuelosController : Controller
             {
                 nuevoEstado = estadoCompletado;
             }
-            // Compatibilidad: si por cualquier motivo quedó en Aterrizado (4), también pasamos a 7
+
             else if (vueloActual.IdEstado == estadoAterrizado)
             {
                 nuevoEstado = estadoCompletado;
@@ -320,6 +282,7 @@ public class VuelosController : Controller
     }
 
     [HttpPost]
+   
     public async Task<IActionResult> RegistrarRetraso(int? idVuelo, [FromBody] RetrasoVuelo input)
     {
         if (input == null)

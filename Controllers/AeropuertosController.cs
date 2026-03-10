@@ -13,12 +13,10 @@ public class AeropuertosController : Controller
         _repoAeropuertos = repoAeropuertos;
         _serviceMetar = serviceMetar;
     }
-
-    // GET: Index (Paginado y con búsqueda)
+    
     public async Task<IActionResult> Index(int? numPag, string busqueda)
     {
         int pagina = numPag ?? 1;
-        // Supongamos un tamaño de página de 12 para un diseño de "Cards"
         int pageSize = 12; 
 
         var resultado = await _repoAeropuertos.GetAeropuertosPaginadosAsync(pagina, pageSize, busqueda);
@@ -42,6 +40,6 @@ public class AeropuertosController : Controller
             return RedirectToAction("Index");
         }
 
-        return View(clima); // Usaremos la vista profesional que diseñamos ayer
+        return View(clima);
     }
 }

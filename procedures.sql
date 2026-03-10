@@ -259,7 +259,7 @@ FROM vuelo v
          INNER JOIN estado_vuelo ev ON v.estado_id = ev.id
 go
 
-CREATE   VIEW V_VUELOS_TRACKING AS
+CREATE or alter  VIEW V_VUELOS_TRACKING AS
 WITH VuelosConProgreso AS (
     SELECT
         v.id AS vuelo_id,
@@ -282,11 +282,15 @@ WITH VuelosConProgreso AS (
         ev.nombre AS estado_vuelo,
         r.distancia_km,
 
-        -- ✅ Calcular progreso una sola vez
         CASE
-            WHEN v.estado_id = 3 AND GETDATE() BETWEEN v.fecha_salida AND v.fecha_llegada THEN
-                CAST(DATEDIFF(MINUTE, v.fecha_salida, GETDATE()) AS FLOAT) /
-                NULLIF(DATEDIFF(MINUTE, v.fecha_salida, v.fecha_llegada), 0)
+            WHEN v.estado_id = 3 THEN
+                CASE
+                    WHEN DATEDIFF(SECOND, v.fecha_salida, v.fecha_llegada) = 0 THEN 1.0
+                    WHEN GETDATE() <= v.fecha_salida THEN 0.0
+                    WHEN GETDATE() >= v.fecha_llegada THEN 1.0
+                    ELSE CAST(DATEDIFF(SECOND, v.fecha_salida, GETDATE()) AS FLOAT) /
+                         DATEDIFF(SECOND, v.fecha_salida, v.fecha_llegada)
+                END
             ELSE NULL
             END AS progreso_calculado
 
@@ -766,66 +770,6 @@ BEGIN
              INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
     WHERE r.aeropuerto_origen_id = @aeropuerto_actual_id
     ORDER BY r.distancia_km ASC;
-END;
-go
-
-CREATE or alter      PROCEDURE SP_GET_TRIPULANTES_DISPONIBLES
-    @vuelo_id INT,
-    @aerolinea_id INT,
-    @rol      NVARCHAR(50) = NULL  -- 'Comandante' | 'Primer Oficial' | 'Tripulante de Cabina' | NULL = todos
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    DECLARE @fecha_salida  DATETIME;
-    DECLARE @fecha_llegada DATETIME;
-
-    SELECT
-        @fecha_salida  = fecha_salida,
-        @fecha_llegada = fecha_llegada
-    FROM vuelo
-    WHERE id = @vuelo_id;
-
-    IF @fecha_salida IS NULL
-        BEGIN
-            RAISERROR('El vuelo no existe.', 16, 1);
-            RETURN;
-        END
-
-    SELECT
-        t.id                            AS tripulante_id,
-        t.nombre + ' ' + t.apellido     AS nombre_completo,
-        t.rol
-    FROM tripulante t
-    WHERE
-        t.activo = 1
-        AND t.id_aerolinea=@aerolinea_id
-
-      -- Filtro por rol si se envía
-      AND (@rol IS NULL OR t.rol = @rol)
-
-      -- No asignado ya a este vuelo
-      AND t.id NOT IN (
-        SELECT tripulante_id
-        FROM asignacion_tripulacion
-        WHERE vuelo_id = @vuelo_id
-          AND t.id_aerolinea=@aerolinea_id
-    )
-
-      -- Sin solapamiento horario
-      AND t.id NOT IN (
-        SELECT at2.tripulante_id
-        FROM asignacion_tripulacion at2
-                 INNER JOIN vuelo v ON at2.vuelo_id = v.id
-        WHERE
-            at2.vuelo_id    <> @vuelo_id
-          AND v.estado_id NOT IN (4, 5)
-          AND @fecha_salida  < v.fecha_llegada
-          AND @fecha_llegada > v.fecha_salida
-          AND t.id_aerolinea=@aerolinea_id
-    )
-
-    ORDER BY t.rol, nombre_completo;
 END;
 go
 

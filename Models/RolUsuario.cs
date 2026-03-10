@@ -11,6 +11,7 @@ public class RolUsuario
     
     public int Id { get; set; }
     
+    [Required(ErrorMessage = "Debe seleccionar una rol")]
     [Column("NOMBRE")]
     public string Nombre { get; set; }
 }

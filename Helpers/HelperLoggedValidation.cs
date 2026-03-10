@@ -1,16 +1,20 @@
-﻿namespace PdaAerolineas.Helpers;
+﻿using PdaAerolineas.Extensions;
+
+namespace PdaAerolineas.Helpers;
 
 public static class HelperLoggedValidation
 {
 
 
-    // public static int IsLogged(this ISession session)
+    // public static int? IsLogged(this ISession session)
     // {
     //
-    //     int data = session.Get("LOGGED");
+    //     int data = session.GetObject<int>("LOGGED");
     //     if (data != null)
     //     {
-    //         return Int32.Parse(session.GetInt32("LOGGED"));
+    //         return session.GetObject<int>("LOGGED");
     //     }
+    //
+    //     return null;
     // }
 }

@@ -1,350 +1,542 @@
-﻿@* @model PdaAerolineas.Models.Resumenes.FlotaResumen *@
-
-@* <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4 sm:px-6 lg:px-8"> *@
-@*     <div class="max-w-7xl mx-auto"> *@
+﻿@* *@
+@* @model PdaAerolineas.Models.Views.VistaDashboard *@
+@* @{ *@
+@*     ViewData["Title"] = "Dashboard Operacional"; *@
+@* } *@
+@* *@
+@* <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8"> *@
+@* *@
+@*     <div class="mb-8 flex items-center justify-between"> *@
+@*         <div> *@
+@*             <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Centro de Control</h1> *@
+@*             <p class="text-sm font-medium text-gray-500 mt-1"> *@
+@*                 Visión general en tiempo real operaciones de <span class="text-blue-600 font-bold">@Model.Nombre</span> *@
+@*             </p> *@
+@*         </div> *@
+@*         <div class="text-right"> *@
+@*             <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Fecha Operativa</p> *@
+@*             <p class="text-lg font-mono font-bold text-gray-800">@DateTime.Now.ToString("dd MMM yyyy")</p> *@
+@*         </div> *@
+@*     </div> *@
+@* *@
+@*     <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Vuelos de Hoy</h2> *@
+@*     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-10"> *@
 @*          *@
-@*         <!-- Header --> *@
-@*         <div class="mb-8"> *@
-@*             <h1 class="text-4xl font-bold text-gray-900 mb-2">Dashboard de Flota</h1> *@
-@*             <p class="text-gray-600">Iberia - Vista general de operaciones</p> *@
-@*         </div> *@
-@*         <!-- Cards de Estadísticas --> *@
-@*         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"> *@
-@*              *@
-@*             <!-- Total Flota --> *@
-@*             <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow"> *@
-@*                 <div class="flex items-center justify-between"> *@
-@*                     <div> *@
-@*                         <p class="text-sm font-medium text-gray-600 uppercase tracking-wide">Total Flota</p> *@
-@*                         <p class="text-3xl font-bold text-gray-900 mt-2">@Model.NumeroFlota</p> *@
-@*                     </div> *@
+@*         <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"> *@
+@*             <div class="flex items-center gap-4"> *@
+@*                 <div class="p-3 bg-blue-50 text-blue-600 rounded-xl"> *@
+@*                     <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> *@
+@*                 </div> *@
+@*                 <div> *@
+@*                     <p class="text-xs font-bold text-gray-500 uppercase">Programados</p> *@
+@*                     <p class="text-2xl font-black text-gray-900">@Model.VuelosProgramadosHoy</p> *@
 @*                 </div> *@
 @*             </div> *@
-@* *@
-@*             <!-- Aviones Operativos --> *@
-@*             <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow"> *@
-@*                 <div class="flex items-center justify-between"> *@
-@*                     <div> *@
-@*                         <p class="text-sm font-medium text-gray-600 uppercase tracking-wide">Operativos</p> *@
-@*                         <p class="text-3xl font-bold text-green-600 mt-2">@Model.AvionesOperativos</p> *@
-@*                         <p class="text-xs text-gray-500 mt-1"> *@
-@*                             @(Model.NumeroFlota > 0 ? Math.Round((decimal)Model.AvionesOperativos / Model.NumeroFlota * 100, 1) : 0)% del total *@
-@*                         </p> *@
-@*                     </div> *@
-@*                 </div> *@
-@*             </div> *@
-@* *@
-@*             <!-- Vuelos Activos --> *@
-@*             <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow"> *@
-@*                 <div class="flex items-center justify-between"> *@
-@*                     <div> *@
-@*                         <p class="text-sm font-medium text-gray-600 uppercase tracking-wide">Vuelos Activos</p> *@
-@*                         <p class="text-3xl font-bold text-purple-600 mt-2">@Model.VuelosActivos</p> *@
-@*                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 mt-2"> *@
-@*                             En tiempo real *@
-@*                         </span> *@
-@*                     </div> *@
-@*                 </div> *@
-@*             </div> *@
-@* *@
-@*             <!-- En Mantenimiento --> *@
-@*             <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow"> *@
-@*                 <div class="flex items-center justify-between"> *@
-@*                     <div> *@
-@*                         <p class="text-sm font-medium text-gray-600 uppercase tracking-wide">Mantenimiento</p> *@
-@*                         <p class="text-3xl font-bold text-orange-600 mt-2">@Model.AvionesMantenimiento</p> *@
-@*                     </div> *@
-@*                 </div> *@
-@*             </div> *@
-@* *@
 @*         </div> *@
 @* *@
-@*         <!-- Tabla de Flota --> *@
-@*         <div class="bg-white rounded-xl shadow-lg overflow-hidden"> *@
-@*              *@
-@*             <!-- Header de la tabla --> *@
-@*             <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600"> *@
-@*                 <h2 class="text-xl font-bold text-white">Flota Actual</h2> *@
-@*             </div> *@
-@* *@
-@*             <!-- Tabla responsive --> *@
-@*             <div class="overflow-x-auto"> *@
-@*                 <table class="min-w-full divide-y divide-gray-200"> *@
-@*                     <thead class="bg-gray-50"> *@
-@*                         <tr> *@
-@*                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matrícula</th> *@
-@*                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Modelo</th> *@
-@*                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Capacidad</th> *@
-@*                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th> *@
-@*                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ubicación</th> *@
-@*                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Horas</th> *@
-@*                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ciclos</th> *@
-@*                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Próx. Mant.</th> *@
-@*                         </tr> *@
-@*                     </thead> *@
-@*                     <tbody class="bg-white divide-y divide-gray-200"> *@
-@*                         @if (Model.Flota != null && Model.Flota.Any()) *@
-@*                         { *@
-@*                             @foreach (var avion in Model.Flota) *@
-@*                             { *@
-@*                                  *@
-@*                                 <tr class="hover:bg-gray-50 transition-colors"> *@
-@*                                     <td class="px-4 py-3 whitespace-nowrap"> *@
-@*                                         <div class="flex items-center"> *@
-@*                                             <div class="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center"> *@
-@*                                                 <span class="text-blue-600 font-semibold text-xs"> *@
-@*                                                     @avion.Matricula.Substring(Math.Max(0, avion.Matricula.Length - 3)) *@
-@*                                                 </span> *@
-@*                                             </div> *@
-@*                                             <div class="ml-3"> *@
-@*                                                 <div class="text-sm font-medium text-gray-900">@avion.Matricula</div> *@
-@*                                             </div> *@
-@*                                         </div> *@
-@*                                     </td> *@
-@*                                      *@
-@*                                     <td class="px-4 py-3 whitespace-nowrap"> *@
-@*                                         <div class="text-sm text-gray-900 font-medium">@avion.Fabricante</div> *@
-@*                                         <div class="text-xs text-gray-500">@avion.NombreModelo</div> *@
-@*                                     </td> *@
-@*                                      *@
-@*                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-semibold"> *@
-@*                                         @avion.CapacidadTotal *@
-@*                                     </td> *@
-@*                                      *@
-@*                                     <td class="px-4 py-3 whitespace-nowrap"> *@
-@*                                         @if (avion.Estado == "Operativo") *@
-@*                                         { *@
-@*                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"> *@
-@*                                                  @avion.Estado *@
-@*                                             </span> *@
-@*                                         } *@
-@*                                         else if (avion.Estado == "En Vuelo") *@
-@*                                         { *@
-@*                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"> *@
-@*                                                  @avion.Estado *@
-@*                                             </span> *@
-@*                                         } *@
-@*                                         else if (avion.Estado == "En Mantenimiento") *@
-@*                                         { *@
-@*                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800"> *@
-@*                                                  @avion.Estado *@
-@*                                             </span> *@
-@*                                         } *@
-@*                                         else *@
-@*                                         { *@
-@*                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"> *@
-@*                                                 @avion.Estado *@
-@*                                             </span> *@
-@*                                         } *@
-@*                                     </td> *@
-@*                                      *@
-@*                                     <td class="px-4 py-3 whitespace-nowrap"> *@
-@*                                          *@
-@*                                         @if (avion.IdEstadoAvion == 3) *@
-@*                                         { *@
-@*                                             <a class="text-blue-700 ">Ver posición</a> *@
-@*                                         }else{ *@
-@*                                         <div class="text-sm text-gray-900 font-medium">@avion.CodigoAeropuerto</div> *@
-@*                                         <div class="text-xs text-gray-500">@avion.Ubicacion</div> *@
-@*                                         } *@
-@*                                    *@
-@*                                     </td> *@
-@*                                      *@
-@*                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-mono"> *@
-@*                                         @avion.HorasVueloTotales.ToString("N0") *@
-@*                                     </td> *@
-@*                                      *@
-@*                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-mono"> *@
-@*                                         @avion.CiclosTotales.ToString("N0") *@
-@*                                     </td> *@
-@*                                      *@
-@*                                     <td class="px-4 py-3 whitespace-nowrap text-sm"> *@
-@*                                         @if (avion.ProximoMantenimiento != null) *@
-@*                                         { *@
-@*                                             <span class="text-gray-900"> *@
-@*                                                 @avion.ProximoMantenimiento.Value.ToString("dd/MM/yyyy") *@
-@*                                             </span> *@
-@*                                         } *@
-@*                                         else *@
-@*                                         { *@
-@*                                             <span class="text-gray-400 italic">N/A</span> *@
-@*                                         } *@
-@*                                     </td> *@
-@*                                 </tr> *@
-@*                             } *@
-@*                         } *@
-@*                         else *@
-@*                         { *@
-@*                             <tr> *@
-@*                                 <td colspan="8" class="px-6 py-12 text-center"> *@
-@*                                     <p class="text-gray-500 text-lg">No hay aviones registrados</p> *@
-@*                                 </td> *@
-@*                             </tr> *@
-@*                         } *@
-@*                     </tbody> *@
-@*                 </table> *@
-@*             </div> *@
-@* *@
-@*             <!-- Footer --> *@
-@*             @if (Model.Flota != null && Model.Flota.Any()) *@
-@*             { *@
-@*                 <div class="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-between text-sm"> *@
-@*                     <span class="text-gray-700">Mostrando <span class="font-medium">@Model.Flota.Count</span> aviones</span> *@
-@*                     <span class="text-gray-500">@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span> *@
+@*         <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"> *@
+@*             <div class="flex items-center gap-4"> *@
+@*                 <div class="p-3 bg-green-50 text-green-600 rounded-xl"> *@
+@*                     <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2L8 8h3v8H5l-2 2v2l8-2 8 2v-2l-2-2h-6V8h3L12 2z"/></svg> *@
 @*                 </div> *@
-@*             } *@
+@*                 <div> *@
+@*                     <p class="text-xs font-bold text-gray-500 uppercase">En Curso</p> *@
+@*                     <p class="text-2xl font-black text-gray-900">@Model.VuelosCurso</p> *@
+@*                 </div> *@
+@*             </div> *@
+@*         </div> *@
 @* *@
+@*         <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"> *@
+@*             <div class="flex items-center gap-4"> *@
+@*                 <div class="p-3 bg-gray-50 text-gray-600 rounded-xl"> *@
+@*                     <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg> *@
+@*                 </div> *@
+@*                 <div> *@
+@*                     <p class="text-xs font-bold text-gray-500 uppercase">Aterrizados</p> *@
+@*                     <p class="text-2xl font-black text-gray-900">@Model.VuelosAterrizadosHoy</p> *@
+@*                 </div> *@
+@*             </div> *@
+@*         </div> *@
+@* *@
+@*         <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"> *@
+@*             <div class="flex items-center gap-4"> *@
+@*                 <div class="p-3 bg-orange-50 text-orange-600 rounded-xl"> *@
+@*                     <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> *@
+@*                 </div> *@
+@*                 <div> *@
+@*                     <p class="text-xs font-bold text-gray-500 uppercase">Retrasados</p> *@
+@*                     <p class="text-2xl font-black text-orange-600">@Model.VuelosRetrasadosHoy</p> *@
+@*                 </div> *@
+@*             </div> *@
+@*         </div> *@
+@* *@
+@*         <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"> *@
+@*             <div class="flex items-center gap-4"> *@
+@*                 <div class="p-3 bg-red-50 text-red-600 rounded-xl"> *@
+@*                     <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg> *@
+@*                 </div> *@
+@*                 <div> *@
+@*                     <p class="text-xs font-bold text-gray-500 uppercase">Cancelados</p> *@
+@*                     <p class="text-2xl font-black text-red-600">@Model.VuelosCanceladosHoy</p> *@
+@*                 </div> *@
+@*             </div> *@
+@*         </div> *@
+@* *@
+@*     </div> *@
+@* *@
+@*     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6"> *@
+@* *@
+@*         <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm"> *@
+@*             <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6">Disponibilidad de Flota</h2> *@
+@*              *@
+@*             <div class="grid grid-cols-1 sm:grid-cols-3 gap-6"> *@
+@*                 <div class="flex flex-col items-center justify-center p-6 bg-green-50/50 rounded-2xl border border-green-100"> *@
+@*                     <p class="text-4xl font-black text-green-600 mb-2">@Model.AvionesOperativos</p> *@
+@*                     <p class="text-xs font-bold text-green-800 uppercase text-center">En Tierra<br/>(Operativos)</p> *@
+@*                 </div> *@
+@*                  *@
+@*                 <div class="flex flex-col items-center justify-center p-6 bg-blue-50/50 rounded-2xl border border-blue-100"> *@
+@*                     <p class="text-4xl font-black text-blue-600 mb-2">@Model.AvionesVueloHoy</p> *@
+@*                     <p class="text-xs font-bold text-blue-800 uppercase text-center">En el Aire<br/>(Volando)</p> *@
+@*                 </div> *@
+@*                  *@
+@*                 <div class="flex flex-col items-center justify-center p-6 bg-orange-50/50 rounded-2xl border border-orange-100 relative overflow-hidden"> *@
+@*                     <div class="absolute -right-4 -top-4 opacity-10"> *@
+@*                         <svg class="w-24 h-24 text-orange-600" fill="currentColor" viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7c-1.1 2.4-.7 5.4 1.3 7.4 1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.8.8 2.1.8 2.8 0l.9-.9c.8-.8.8-2 0-2.8z"/></svg> *@
+@*                     </div> *@
+@*                     <p class="text-4xl font-black text-orange-600 mb-2 z-10">@Model.AvionesMantenimiento</p> *@
+@*                     <p class="text-xs font-bold text-orange-800 uppercase text-center z-10">En Taller<br/>(Mantenimiento)</p> *@
+@*                 </div> *@
+@*             </div> *@
+@*         </div> *@
+@* *@
+@*         <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between"> *@
+@*             <div> *@
+@*                 <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Rendimiento Comercial</h2> *@
+@*                 <p class="text-xs text-gray-500 mb-6">Ocupación promedio de los vuelos programados para hoy.</p> *@
+@*             </div> *@
+@*              *@
+@*             <div class="flex flex-col items-center justify-center flex-grow"> *@
+@*                 <div class="relative flex items-center justify-center w-32 h-32 rounded-full border-8 @(Model.OcupacionPromedio >= 80 ? "border-green-500" : Model.OcupacionPromedio >= 60 ? "border-yellow-400" : "border-red-500") mb-4"> *@
+@*                     <span class="text-3xl font-black text-gray-800">@(Math.Round(Model.OcupacionPromedio))%</span>       *@
+@*                     </div> *@
+@*                  *@
+@*                 @if(Model.OcupacionPromedio >= 80) *@
+@*                 { *@
+@*                     <p class="text-sm font-bold text-green-600 flex items-center gap-1"> *@
+@*                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg> *@
+@*                         Alta Rentabilidad *@
+@*                     </p> *@
+@*                 } *@
+@*                 else if(Model.OcupacionPromedio >= 60) *@
+@*                 { *@
+@*                     <p class="text-sm font-bold text-yellow-600 flex items-center gap-1"> *@
+@*                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> *@
+@*                         Ocupación Moderada *@
+@*                     </p> *@
+@*                 } *@
+@*                 else *@
+@*                 { *@
+@*                     <p class="text-sm font-bold text-red-600 flex items-center gap-1"> *@
+@*                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg> *@
+@*                         Baja Ocupación *@
+@*                     </p> *@
+@*                 } *@
+@*             </div> *@
 @*         </div> *@
 @* *@
 @*     </div> *@
 @* </div> *@
 
 
-@model PdaAerolineas.Models.Views.VistaDashboard
+
+@model PdaAerolineas.Models.Dashboard.DashboardViewModel
 @{
-    ViewData["Title"] = "Dashboard Operacional";
+    ViewData["Title"] = "Dashboard";
 }
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+<div class="min-h-screen bg-gray-50 p-6">
 
-    <div class="mb-8 flex items-center justify-between">
-        <div>
-            <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Centro de Control</h1>
-            <p class="text-sm font-medium text-gray-500 mt-1">
-                Visión general en tiempo real operaciones de <span class="text-blue-600 font-bold">@Model.Nombre</span>
-            </p>
-        </div>
-        <div class="text-right">
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Fecha Operativa</p>
-            <p class="text-lg font-mono font-bold text-gray-800">@DateTime.Now.ToString("dd MMM yyyy")</p>
-        </div>
-    </div>
+    <div class="max-w-7xl mx-auto">
 
-    <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Vuelos de Hoy</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
-        
-        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-            <div class="flex items-center gap-4">
-                <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                </div>
-                <div>
-                    <p class="text-xs font-bold text-gray-500 uppercase">Programados</p>
-                    <p class="text-2xl font-black text-gray-900">@Model.VuelosProgramadosHoy</p>
-                </div>
-            </div>
+        <!-- HEADER -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p class="text-gray-600 mt-1">Resumen general del sistema</p>
         </div>
 
-        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-            <div class="flex items-center gap-4">
-                <div class="p-3 bg-green-50 text-green-600 rounded-xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2L8 8h3v8H5l-2 2v2l8-2 8 2v-2l-2-2h-6V8h3L12 2z"/></svg>
-                </div>
-                <div>
-                    <p class="text-xs font-bold text-gray-500 uppercase">En Curso</p>
-                    <p class="text-2xl font-black text-gray-900">@Model.VuelosCurso</p>
-                </div>
-            </div>
-        </div>
+        <!-- TARJETAS DE ESTADÍSTICAS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
 
-        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-            <div class="flex items-center gap-4">
-                <div class="p-3 bg-gray-50 text-gray-600 rounded-xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                </div>
-                <div>
-                    <p class="text-xs font-bold text-gray-500 uppercase">Aterrizados</p>
-                    <p class="text-2xl font-black text-gray-900">@Model.VuelosAterrizadosHoy</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-            <div class="flex items-center gap-4">
-                <div class="p-3 bg-orange-50 text-orange-600 rounded-xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </div>
-                <div>
-                    <p class="text-xs font-bold text-gray-500 uppercase">Retrasados</p>
-                    <p class="text-2xl font-black text-orange-600">@Model.VuelosRetrasadosHoy</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-            <div class="flex items-center gap-4">
-                <div class="p-3 bg-red-50 text-red-600 rounded-xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                </div>
-                <div>
-                    <p class="text-xs font-bold text-gray-500 uppercase">Cancelados</p>
-                    <p class="text-2xl font-black text-red-600">@Model.VuelosCanceladosHoy</p>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6">Disponibilidad de Flota</h2>
-            
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div class="flex flex-col items-center justify-center p-6 bg-green-50/50 rounded-2xl border border-green-100">
-                    <p class="text-4xl font-black text-green-600 mb-2">@Model.AvionesOperativos</p>
-                    <p class="text-xs font-bold text-green-800 uppercase text-center">En Tierra<br/>(Operativos)</p>
-                </div>
-                
-                <div class="flex flex-col items-center justify-center p-6 bg-blue-50/50 rounded-2xl border border-blue-100">
-                    <p class="text-4xl font-black text-blue-600 mb-2">@Model.AvionesVueloHoy</p>
-                    <p class="text-xs font-bold text-blue-800 uppercase text-center">En el Aire<br/>(Volando)</p>
-                </div>
-                
-                <div class="flex flex-col items-center justify-center p-6 bg-orange-50/50 rounded-2xl border border-orange-100 relative overflow-hidden">
-                    <div class="absolute -right-4 -top-4 opacity-10">
-                        <svg class="w-24 h-24 text-orange-600" fill="currentColor" viewBox="0 0 24 24"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7c-1.1 2.4-.7 5.4 1.3 7.4 1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.8.8 2.1.8 2.8 0l.9-.9c.8-.8.8-2 0-2.8z"/></svg>
+            <!-- Vuelos Hoy -->
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600 uppercase tracking-wider">Vuelos Hoy</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-2">@Model.VuelosHoy</p>
                     </div>
-                    <p class="text-4xl font-black text-orange-600 mb-2 z-10">@Model.AvionesMantenimiento</p>
-                    <p class="text-xs font-bold text-orange-800 uppercase text-center z-10">En Taller<br/>(Mantenimiento)</p>
+                    <div class="bg-blue-100 p-3 rounded-lg">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                    </div>
                 </div>
+                <p class="text-xs text-gray-500 mt-4">
+                    <span class="text-green-600 font-semibold">@Model.VuelosEnVuelo en vuelo</span>
+                </p>
             </div>
+
+            <!-- Pasajeros Hoy -->
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600 uppercase tracking-wider">Pasajeros Hoy</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-2">@Model.PasajerosHoy.ToString("N0")</p>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-lg">
+                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-4">
+                    <span class="font-semibold">@Model.OcupacionPromedio.ToString("F1")%</span> ocupación promedio
+                </p>
+            </div>
+
+            <!-- Aeronaves Operativas -->
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600 uppercase tracking-wider">Aeronaves</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-2">@Model.AeronavesOperativas</p>
+                    </div>
+                    <div class="bg-purple-100 p-3 rounded-lg">
+                        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-4">
+                    <span class="text-amber-600 font-semibold">@Model.AeronavesEnMantenimiento en mantenimiento</span>
+                </p>
+            </div>
+
+            <!-- Mantenimientos -->
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600 uppercase tracking-wider">Mantenimientos</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-2">@Model.MantenimientosActivos</p>
+                    </div>
+                    <div class="bg-orange-100 p-3 rounded-lg">
+                        <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-4">
+                    <span class="font-semibold">@Model.MantenimientosPendientes pendientes</span>
+                </p>
+            </div>
+
         </div>
 
-        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
-            <div>
-                <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Rendimiento Comercial</h2>
-                <p class="text-xs text-gray-500 mb-6">Ocupación promedio de los vuelos programados para hoy.</p>
+        <!-- GRÁFICOS -->
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+
+            <!-- Vuelos por Hora -->
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Vuelos por Hora (Hoy)</h3>
+                <div id="chartVuelosPorHora"></div>
             </div>
-            
-            <div class="flex flex-col items-center justify-center flex-grow">
-                <div class="relative flex items-center justify-center w-32 h-32 rounded-full border-8 @(Model.OcupacionPromedio >= 80 ? "border-green-500" : Model.OcupacionPromedio >= 60 ? "border-yellow-400" : "border-red-500") mb-4">
-                    <span class="text-3xl font-black text-gray-800">@(Math.Round(Model.OcupacionPromedio))%</span>      
-                    </div>
-                
-                @if(Model.OcupacionPromedio >= 80)
-                {
-                    <p class="text-sm font-bold text-green-600 flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
-                        Alta Rentabilidad
-                    </p>
-                }
-                else if(Model.OcupacionPromedio >= 60)
-                {
-                    <p class="text-sm font-bold text-yellow-600 flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        Ocupación Moderada
-                    </p>
-                }
-                else
-                {
-                    <p class="text-sm font-bold text-red-600 flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
-                        Baja Ocupación
-                    </p>
-                }
+
+            <!-- Ocupación Semanal -->
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Ocupación Última Semana</h3>
+                <div id="chartOcupacionSemanal"></div>
             </div>
+
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6 mb-6">
+
+            <!-- Vuelos por Estado -->
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Vuelos por Estado</h3>
+                <div id="chartVuelosPorEstado"></div>
+            </div>
+
+            <!-- Aeronaves por Estado -->
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Estado de Aeronaves</h3>
+                <div id="chartAeronavesPorEstado"></div>
+            </div>
+
+        </div>
+
+        <!-- TABLAS -->
+        <div class="grid lg:grid-cols-2 gap-6">
+
+            <!-- Próximos Vuelos -->
+            <div class="bg-white border border-gray-200 rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-900">Próximos Vuelos</h3>
+                </div>
+                <div class="divide-y divide-gray-200">
+                    @if (Model.ProximosVuelos != null && Model.ProximosVuelos.Any())
+                    {
+                        @foreach (var vuelo in Model.ProximosVuelos)
+                        {
+                            <div class="px-6 py-4 hover:bg-gray-50 transition">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="font-bold text-gray-900">@vuelo.NumeroVuelo</p>
+                                        <p class="text-sm text-gray-600">@vuelo.Ruta</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-semibold text-gray-900">@vuelo.FechaSalida.ToString("HH:mm")</p>
+                                        <p class="text-xs text-gray-500">Puerta @vuelo.Puerta</p>
+                                    </div>
+                                </div>
+                                <div class="mt-2 flex items-center gap-2">
+                                    <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-blue-600 h-2 rounded-full" 
+                                             style="width: @vuelo.PorcentajeOcupacion%"></div>
+                                    </div>
+                                    <span class="text-xs text-gray-600">@vuelo.PasajerosConfirmados/@vuelo.CapacidadTotal</span>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="px-6 py-8 text-center text-gray-500">
+                            <p>No hay vuelos próximos</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Top Rutas -->
+            <div class="bg-white border border-gray-200 rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-900">Top Rutas (Último Mes)</h3>
+                </div>
+                <div class="divide-y divide-gray-200">
+                    @if (Model.TopRutas != null && Model.TopRutas.Any())
+                    {
+                        @foreach (var ruta in Model.TopRutas)
+                        {
+                            <div class="px-6 py-4 hover:bg-gray-50 transition">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <p class="font-bold text-gray-900">@ruta.Ruta</p>
+                                        <p class="text-sm text-gray-600">@ruta.TotalPasajeros.ToString("N0") pasajeros</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-2xl font-bold text-blue-600">@ruta.TotalVuelos</p>
+                                        <p class="text-xs text-gray-500">vuelos</p>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="px-6 py-8 text-center text-gray-500">
+                            <p>No hay datos de rutas</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
         </div>
 
     </div>
+
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    
+    <script>
+    // Datos del servidor
+    const vuelosPorHora = @Html.Raw(Model.VuelosPorHoraJson ?? "[]");
+    const vuelosPorEstado = @Html.Raw(Model.VuelosPorEstadoJson ?? "[]");
+    const ocupacionSemanal = @Html.Raw(Model.OcupacionSemanalJson ?? "[]");
+    const aeronavesPorEstado = @Html.Raw(Model.AeronavesPorEstadoJson ?? "[]");
+
+    // ====== VUELOS POR HORA ======
+    new ApexCharts(document.querySelector("#chartVuelosPorHora"), {
+        series: [{
+            name: 'Vuelos',
+            data: vuelosPorHora.map(d => d.vuelos)
+        }],
+        chart: {
+            type: 'bar',
+            height: 300,
+            toolbar: { show: false },
+            fontFamily: 'Inter, system-ui, sans-serif'
+        },
+        colors: ['#3b82f6'],
+        plotOptions: {
+            bar: {
+                borderRadius: 4,
+                columnWidth: '60%'
+            }
+        },
+        xaxis: {
+            categories: vuelosPorHora.map(d => d.hora),
+            labels: {
+                style: {
+                    colors: '#6b7280',
+                    fontSize: '12px'
+                }
+            }
+        },
+        yaxis: {
+            title: { 
+                text: 'Cantidad de Vuelos',
+                style: {
+                    color: '#374151',
+                    fontSize: '13px',
+                    fontWeight: 600
+                }
+            },
+            labels: {
+                style: {
+                    colors: '#6b7280'
+                }
+            }
+        },
+        grid: {
+            borderColor: '#e5e7eb',
+            strokeDashArray: 3
+        },
+        dataLabels: {
+            enabled: false
+        }
+    }).render();
+
+    // ====== OCUPACIÓN SEMANAL ======
+    new ApexCharts(document.querySelector("#chartOcupacionSemanal"), {
+        series: [{
+            name: 'Ocupación %',
+            data: ocupacionSemanal.map(d => parseFloat(d.ocupacion.toFixed(1)))
+        }],
+        chart: {
+            type: 'line',
+            height: 300,
+            toolbar: { show: false },
+            fontFamily: 'Inter, system-ui, sans-serif'
+        },
+        stroke: {
+            curve: 'smooth',
+            width: 3
+        },
+        colors: ['#10b981'],
+        markers: {
+            size: 5,
+            colors: ['#10b981'],
+            strokeWidth: 2,
+            strokeColors: '#fff'
+        },
+        xaxis: {
+            categories: ocupacionSemanal.map(d => d.fecha),
+            labels: {
+                style: {
+                    colors: '#6b7280',
+                    fontSize: '12px'
+                }
+            }
+        },
+        yaxis: {
+            min: 0,
+            max: 100,
+            title: { 
+                text: 'Ocupación (%)',
+                style: {
+                    color: '#374151',
+                    fontSize: '13px',
+                    fontWeight: 600
+                }
+            },
+            labels: {
+                formatter: function(val) {
+                    return val.toFixed(0) + '%';
+                },
+                style: {
+                    colors: '#6b7280'
+                }
+            }
+        },
+        grid: {
+            borderColor: '#e5e7eb',
+            strokeDashArray: 3
+        }
+    }).render();
+
+    // ====== VUELOS POR ESTADO ======
+    new ApexCharts(document.querySelector("#chartVuelosPorEstado"), {
+        series: vuelosPorEstado.map(d => d.total),
+        labels: vuelosPorEstado.map(d => d.estado),
+        chart: {
+            type: 'donut',
+            height: 300,
+            fontFamily: 'Inter, system-ui, sans-serif'
+        },
+        colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6b7280'],
+        legend: {
+            position: 'bottom',
+            fontSize: '13px'
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: function(val) {
+                return val.toFixed(0) + '%';
+            }
+        },
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '65%',
+                    labels: {
+                        show: true,
+                        total: {
+                            show: true,
+                            label: 'Total',
+                            fontSize: '16px',
+                            fontWeight: 600,
+                            color: '#374151'
+                        }
+                    }
+                }
+            }
+        }
+    }).render();
+
+    // ====== AERONAVES POR ESTADO ======
+    new ApexCharts(document.querySelector("#chartAeronavesPorEstado"), {
+        series: aeronavesPorEstado.map(d => d.total),
+        labels: aeronavesPorEstado.map(d => d.estado),
+        chart: {
+            type: 'pie',
+            height: 300,
+            fontFamily: 'Inter, system-ui, sans-serif'
+        },
+        colors: ['#10b981', '#f59e0b', '#3b82f6', '#ef4444'],
+        legend: {
+            position: 'bottom',
+            fontSize: '13px'
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: function(val, opts) {
+                return opts.w.config.series[opts.seriesIndex];
+            }
+        }
+    }).render();
+    </script>
+}

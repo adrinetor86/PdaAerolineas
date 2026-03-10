@@ -1,6 +1,4 @@
-﻿@using System.Security.Cryptography
-@model PdaAerolineas.Models.Auth.Usuario;
-@{
+﻿@{
     Layout = "_LoginLayout"; // Esto ignora el _Layout.cshtml con el Sidebar
     ViewData["Title"] = "Iniciar Sesión";
 }
@@ -13,6 +11,8 @@
 
         <form method="post" class="mt-8 space-y-6">
             @Html.AntiForgeryToken()
+            
+            <div asp-validation-summary="ModelOnly" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4"></div>
             
             <div class="rounded-md shadow-sm space-y-4">
                 <div>
@@ -37,34 +37,9 @@
 
             <div class="text-center mt-4">
                 <a asp-controller="Usuarios" asp-action="Register" class="text-sm text-blue-600 hover:text-blue-500 font-medium">
-                    ¿No tienes cuenta? Regístrate aquí
+                    ¿No tienes cuenta? Pidele a un administrador que te registre
                 </a>
             </div>
         </form>
-
-        @if (Model != null)
-        {
-            <div class="mt-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700">
-                <p class="font-bold">Bienvenido, @Model.Nombre @Model.Apellidos</p>
-                <p class="text-sm">Email: @Model.Email</p>
-            </div>
-        }
-        else if (ViewBag.Error != null)
-        {
-            <div class="mt-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
-                <p class="text-sm">@ViewBag.Error</p>
-            </div>
-        }
     </div>
 </div>
-
-
-@if (Model != null){
-    <h1>Logueado</h1>
-    <h2>@Model.Nombre @Model.Apellidos</h2>
-    <h2>@Model.Email</h2>
-}
-else
-{
-    <h1>Credenciales incorrectas</h1>
-}

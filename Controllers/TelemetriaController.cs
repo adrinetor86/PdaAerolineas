@@ -39,15 +39,15 @@ public class TelemetriaController : Controller
         return Ok(vuelo);
     }
 
-    [HttpGet]
+    [HttpGet("GetLiveVuelos")]
     public async Task<IActionResult> GetLiveVuelos()
     {
-        // Supongamos que traes los vuelos que están "En Aire"
+      
         var vuelosActivos = await _context.VuelosTracking
             .Where(v => v.EstadoId == 3) // 3 = En Vuelo
             .Select(v => new {
                 v.NumeroVuelo,
-                v.LatitudActual,  // Asegúrate de tener estas columnas en tu DB
+                v.LatitudActual, 
                 v.LongitudActual,
                 v.CodigoOrigen,
                 v.CodigoDestino,
@@ -62,10 +62,7 @@ public class TelemetriaController : Controller
     {
         try
         {
-            // var t = await _context.VuelosTracking
-            //     .AsNoTracking()
-            //     .FirstOrDefaultAsync(x => x.VueloId == idVuelo);  
-            
+        
             var t = await _context.VuelosTracking
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.VueloId == idVuelo);
@@ -104,7 +101,7 @@ public class TelemetriaController : Controller
             return Json(new
             {
                 success = false,
-                error = "Error leyendo V_VUELOS_TRACKING",
+                error = "Error al trackear los datos del vuelo.",
                 idVuelo,
                 detail = _env.IsDevelopment() ? ex.ToString() : null
             });
@@ -112,8 +109,13 @@ public class TelemetriaController : Controller
     }
     
     
+    [HttpGet("RadarFlota")]
+    public IActionResult RadarFlota()
+    {
+        return View();
+    }
     
-    [HttpGet]
+    [HttpGet("GetAllTracking")]
     public async Task<IActionResult> GetAllTracking()
     {
         // 1. Traemos todos los vuelos que están "En Aire" (Estado 3)

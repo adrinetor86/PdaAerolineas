@@ -16,4 +16,13 @@ public class VueloHub : Hub
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, VueloGroupName(idVuelo));
     }
     
+    public async Task JoinRadarGroup()
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, "radar");
+    }
+
+    public async Task LeaveRadarGroup()
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, "radar");
+    }
 }

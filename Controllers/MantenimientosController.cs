@@ -45,8 +45,9 @@ public class MantenimientosController : Controller
     
     public async Task<IActionResult> Programar()
     {
-        //TODO QUITAR EL HARD
-        ViewData["AVIONES"] = await _repoAviones.GetVistaAvionesAsync(1);
+        
+        int idAerolinea=HttpContext.Session.GetObject<int>("AEROLINEA");
+        ViewData["AVIONES"] = await _repoAviones.GetVistaAvionesAsync(idAerolinea);
         ViewData["TIPOSMANTENIMIENTO"] = await _repoMantenimientos.GetTiposMantenimientoAsync();
         return View();
     }
@@ -56,8 +57,8 @@ public class MantenimientosController : Controller
     public async Task<IActionResult> Programar(int avion,int tipoMantenimiento,DateTime fechaProgramada)
     {
         
-        //TODO QUITAR EL HARD
-        ViewData["AVIONES"] = await _repoAviones.GetVistaAvionesAsync(1);
+        int idAerolinea=HttpContext.Session.GetObject<int>("AEROLINEA");
+        ViewData["AVIONES"] = await _repoAviones.GetVistaAvionesAsync(idAerolinea);
         ViewData["TIPOSMANTENIMIENTO"] = await _repoMantenimientos.GetTiposMantenimientoAsync();
         
         await _repoMantenimientos.ProgramarMantenimientoAsync(avion, tipoMantenimiento, fechaProgramada);

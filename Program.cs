@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PdaAerolineas.Data;
+using PdaAerolineas.Helpers;
 using PdaAerolineas.Repositories;
 using PdaAerolineas.Services;
 
@@ -11,8 +12,11 @@ builder.Services.AddControllersWithViews();
 // builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession();
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<HelperPathProvider>();
+
 builder.Services.AddAntiforgery();
 
+builder.Services.AddHttpContextAccessor(); 
 
 string connectionString = builder.Configuration.GetConnectionString("SqlPda");
 
@@ -26,6 +30,7 @@ builder.Services.AddTransient<RepositoryAviones>();
 builder.Services.AddTransient<RepositoryUsuarios>();
 builder.Services.AddTransient<RepositoryAerolineas>();
 builder.Services.AddTransient<RepositoryAeropuertos>();
+builder.Services.AddTransient<RepositoryDashboard>();
 
 builder.Services.AddDbContext<DataContext>
     (options => options.UseSqlServer(connectionString));
@@ -46,7 +51,11 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.MapControllers();
+
 app.UseHttpsRedirection();
+
+app.UseStaticFiles();
+
 app.UseRouting();
 
 app.UseAuthorization();

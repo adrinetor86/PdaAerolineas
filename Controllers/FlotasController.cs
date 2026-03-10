@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using PdaAerolineas.Extensions;
 using PdaAerolineas.Repositories;
 
 namespace PdaAerolineas.Controllers;
@@ -22,12 +23,12 @@ public class FlotasController : Controller
         int numPag = 1,
         int numFilas = 10,
         int? idEstado = null,
-        int? idAerolinea = 1,
+        int? idAerolinea=-1,
         string? busqueda = null)
     {
         
         
-        int? idAero = HttpContext.Session.GetInt32("AEROLINEA");
+        int idAero = HttpContext.Session.GetObject<int>("AEROLINEA");
         if (numPag < 1) numPag = 1;
         if (numFilas < 1) numFilas = 10;
         
