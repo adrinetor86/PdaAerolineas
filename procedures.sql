@@ -1,420 +1,4 @@
-﻿create table dbo.usuario
-(
-    id           int identity
-        primary key,
-    nombre       nvarchar(50)  not null,
-    apellidos    nvarchar(50)  not null,
-    email        nvarchar(100) not null
-        unique,
-    password     nvarchar(100) not null
-        unique,
-    aerolinea_id int           not null
-        references dbo.aerolinea,
-    activo       bit default 1 not null
-)
-go
-
-create     view V_AVIONES
-AS
-SELECT a.ID,
-       ae.id as idAerolinea,
-       ae.nombre aerolinea,
-       a.MATRICULA,
-       m.nombre_modelo modelo,
-       e.nombre estado,
-       ap.nombre aeropuerto_actual,
-       a.horas_vuelo_totales,
-       a.ciclos_totales
-
-FROM AVION as a
-         inner join modelo_avion m
-                    on a.modelo_id = m.id
-         inner join aerolinea ae
-                    on a.aerolinea_id = ae.id
-         inner join estado_avion e on
-    a.estado_id = e.id
-         inner join aeropuerto ap on
-    a.aeropuerto_actual_id = ap.id
-go
-
-CREATE   VIEW V_DATOS_USUARIO AS
-select u.id,u.aerolinea_id,u.email,u.password,us.salt,us.pass from usuario u
-                                                                       inner join users_security us on  u.id=us.id_usuario
-go
-
-CREATE      VIEW V_FLOTA_ESTADO AS
-SELECT
-    av.id               AS avion_id,
-    av.matricula,
-    al.nombre           AS aerolinea,
-    m.fabricante,
-    m.nombre_modelo,
-    m.capacidad_total,
-    ea.id               AS idestado,
-    ea.nombre           AS estado,
-    CASE
-        WHEN aer.id IS NOT NULL THEN aer.nombre
-        ELSE 'En Vuelo'
-        END AS ubicacion,
-    CASE
-        WHEN aer.id IS NOT NULL THEN aer.codigo_iata
-        ELSE 'N/A'
-        END AS codigo_aeropuerto,
-    av.horas_vuelo_totales,
-    av.ciclos_totales,
-
-    (
-        SELECT MIN(mp.fecha_programada)
-        FROM mantenimiento mp
-        WHERE mp.avion_id = av.id
-          AND mp.estado = 'Programado'
-    ) AS proximo_mantenimiento,
-
-    (
-        SELECT TOP 1 v.numero_vuelo
-        FROM vuelo v
-        WHERE v.avion_id = av.id
-          AND v.estado_id = 3
-          AND v.fecha_salida <= GETDATE()
-          AND (v.fecha_llegada IS NULL OR v.fecha_llegada >= GETDATE())
-        ORDER BY v.fecha_salida DESC
-    ) AS vuelo_actual
-
-FROM avion av
-         INNER JOIN modelo_avion m  ON av.modelo_id          = m.id
-         INNER JOIN estado_avion ea ON av.estado_id           = ea.id
-         INNER JOIN aerolinea al    ON av.aerolinea_id        = al.id
-         LEFT  JOIN aeropuerto aer  ON av.aeropuerto_actual_id = aer.id
-go
-
-CREATE   VIEW V_LOGED_USER
-AS
-select
-    u.id as idUsuario,
-    u.aerolinea_id as idAerolinea,
-    u.nombre,
-    ur.rol_id
-
-from usuario u
-         inner join usuario_rol ur on u.id= ur.usuario_id
-go
-
-CREATE    VIEW V_MANTENIMIENTOS AS
-select m.*,
-       av.aerolinea_id         AS AEROLINEA_ID,
-       mt.nombre as tipo,
-       av.matricula,
-       mod.nombre_modelo
-from mantenimiento as m
-         inner join avion as av on m.avion_id = av.id
-         inner join modelo_avion as mod on av.modelo_id = mod.id
-         inner join mantenimiento_tipo as mt on m.mantenimiento_tipo_id=mt.id
-go
-
-create      view V_PRUEBA_AVION
-AS
-SELECT a.ID,ae.nombre aerolinea,a.MATRICULA,m.nombre_modelo modelo,
-       e.nombre estado, ap.nombre aeropuerto_actual,a.horas_vuelo_totales,a.ciclos_totales
-FROM AVION as a
-         inner join modelo_avion m
-                    on a.modelo_id = m.id
-         inner join aerolinea ae
-                    on a.aerolinea_id = ae.id
-         inner join estado_avion e on
-    a.estado_id = e.id
-         inner join aeropuerto ap on
-    a.aeropuerto_actual_id = ap.id
-go
-
-CREATE   VIEW V_RETRASOS_DETALLADOS AS
-SELECT
-    rv.id AS retraso_id,
-    v.id AS id_vuelo,
-    v.numero_vuelo,
-    v.fecha_salida,
-    ao.codigo_iata AS origen,
-    ad.codigo_iata AS destino,
-    cr.codigo AS codigo_retraso,
-    cr.descripcion AS motivo_retraso,
-    rv.minutos AS minutos_retraso,
-    CASE
-        WHEN rv.minutos <= 15 THEN 'Menor'
-        WHEN rv.minutos <= 60 THEN 'Moderado'
-        WHEN rv.minutos <= 180 THEN 'Significativo'
-        ELSE 'Severo'
-        END AS categoria_retraso
-FROM retraso_vuelo rv
-         INNER JOIN vuelo v ON rv.vuelo_id = v.id
-         INNER JOIN codigo_retraso_iata cr ON rv.codigo_retraso_id = cr.id
-         INNER JOIN ruta r ON v.ruta_id = r.id
-         INNER JOIN aeropuerto ao ON r.aeropuerto_origen_id = ao.id
-         INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
-go
-
-CREATE        VIEW V_RUTAS_AVION
-AS
-SELECT r.id AS ruta_id,
-       r.distancia_km,
-       ao.id AS id_origen,
-       ao.codigo_iata AS codigo_origen,
-       ao.nombre AS nombre_origen,
-       ao.ciudad AS ciudad_origen,
-       ao.latitud      AS latitud_origen,
-       ao.longitud     AS longitud_origen,
-       ad.id AS id_destino,
-       ad.codigo_iata AS codigo_destino,
-       ad.nombre AS nombre_destino,
-       ad.ciudad AS ciudad_destino,
-       ad.latitud      AS latitud_destino,
-       ad.longitud     AS longitud_destino,
-
-       CAST(ROUND((r.distancia_km / 800.0) * 60, 0) AS INT) AS duracion_minutos,
-
-       -- 2. Usamos ese valor para el formato (Horas y Minutos)
-       CAST(CAST(ROUND((r.distancia_km / 800.0) * 60, 0) AS INT) / 60 AS VARCHAR) + 'h ' +
-       CAST(CAST(ROUND((r.distancia_km / 800.0) * 60, 0) AS INT) % 60 AS VARCHAR) + 'min'
-           AS duracion_formateada
-FROM ruta r
-         INNER JOIN aeropuerto ao ON r.aeropuerto_origen_id = ao.id
-         INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
-go
-
-CREATE    or alter   VIEW V_TRIPULACION_ROLES AS
-SELECT
-    t.id                            AS tripulante_id,
-    t.id_aerolinea                            AS aerolinea_id,
-    t.nombre + ' ' + t.apellido     AS nombre_completo,
-    t.rol,
-    t.activo
-FROM tripulante t
-go
-
-CREATE        VIEW V_TRIPULACION_VUELOS AS
-SELECT
-    v.id                            AS vuelo_id,
-    v.numero_vuelo,
-    v.fecha_salida,
-    ao.codigo_iata                  AS origen,
-    ad.codigo_iata                  AS destino,
-    t.id                            AS tripulante_id,
-    t.nombre + ' ' + t.apellido     AS nombre_completo,
-    t.rol
-FROM vuelo v
-         INNER JOIN asignacion_tripulacion at2 ON v.id   = at2.vuelo_id
-         INNER JOIN tripulante t               ON at2.tripulante_id = t.id
-         INNER JOIN ruta r                     ON v.ruta_id = r.id
-         INNER JOIN aeropuerto ao              ON r.aeropuerto_origen_id  = ao.id
-         INNER JOIN aeropuerto ad              ON r.aeropuerto_destino_id = ad.id
-go
-
-CREATE        VIEW V_VUELOS AS
-SELECT
-    v.id AS vuelo_id,
-    v.numero_vuelo,
-    v.estado_id as id_estado,
-    v.ruta_id as ruta,
-    al.id as id_aerolinea,
-    al.nombre AS aerolinea,
-
-    -- Aeropuertos
-    ao.nombre AS aeropuerto_origen,
-    ao.codigo_iata AS codigo_origen,
-    ao.ciudad AS ciudad_origen,
-    ad.nombre AS aeropuerto_destino,
-    ad.codigo_iata AS codigo_destino,
-    ad.ciudad AS ciudad_destino,
-
-    -- Avión
-    av.id as avion,
-    av.matricula,
-    m.fabricante,
-    m.nombre_modelo,
-
-    -- Fechas y estado
-    v.fecha_salida,
-    v.fecha_llegada,
-    ev.nombre AS estado_vuelo,
-    CASE
-        WHEN v.puerta IS NOT NULL THEN v.puerta
-        ELSE 'Por Asignar'
-        END AS PUERTA,
-
-    -- Pasajeros
-    v.capacidad_total,
-    v.pasajeros_confirmados,
-    v.pasajeros_embarcados,
-    CAST(ROUND((v.pasajeros_confirmados * 100.0 / NULLIF(v.capacidad_total, 0)), 2)
-        AS DECIMAL(5,2)) AS porcentaje_ocupacion,
-
-
-    -- Ruta
-    r.distancia_km
-FROM vuelo v
-         INNER JOIN aerolinea al ON v.aerolinea_id = al.id
-         INNER JOIN ruta r ON v.ruta_id = r.id
-         INNER JOIN aeropuerto ao ON r.aeropuerto_origen_id = ao.id
-         INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
-         INNER JOIN avion av ON v.avion_id = av.id
-         INNER JOIN modelo_avion m ON av.modelo_id = m.id
-         INNER JOIN estado_vuelo ev ON v.estado_id = ev.id
-go
-
-CREATE or alter  VIEW V_VUELOS_TRACKING AS
-WITH VuelosConProgreso AS (
-    SELECT
-        v.id AS vuelo_id,
-        v.numero_vuelo,
-        v.estado_id,
-        al.nombre AS aerolinea,
-        av.matricula,
-        m.fabricante,
-        m.nombre_modelo,
-        ao.codigo_iata AS codigo_origen,
-        ao.ciudad AS ciudad_origen,
-        ao.latitud AS lat_origen,
-        ao.longitud AS lng_origen,
-        ad.codigo_iata AS codigo_destino,
-        ad.ciudad AS ciudad_destino,
-        ad.latitud AS lat_destino,
-        ad.longitud AS lng_destino,
-        v.fecha_salida,
-        v.fecha_llegada,
-        ev.nombre AS estado_vuelo,
-        r.distancia_km,
-
-        CASE
-            WHEN v.estado_id = 3 THEN
-                CASE
-                    WHEN DATEDIFF(SECOND, v.fecha_salida, v.fecha_llegada) = 0 THEN 1.0
-                    WHEN GETDATE() <= v.fecha_salida THEN 0.0
-                    WHEN GETDATE() >= v.fecha_llegada THEN 1.0
-                    ELSE CAST(DATEDIFF(SECOND, v.fecha_salida, GETDATE()) AS FLOAT) /
-                         DATEDIFF(SECOND, v.fecha_salida, v.fecha_llegada)
-                END
-            ELSE NULL
-            END AS progreso_calculado
-
-    FROM vuelo v
-             INNER JOIN aerolinea al ON v.aerolinea_id = al.id
-             INNER JOIN ruta r ON v.ruta_id = r.id
-             INNER JOIN aeropuerto ao ON r.aeropuerto_origen_id = ao.id
-             INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
-             INNER JOIN avion av ON v.avion_id = av.id
-             INNER JOIN modelo_avion m ON av.modelo_id = m.id
-             INNER JOIN estado_vuelo ev ON v.estado_id = ev.id
-)
-SELECT
-    vuelo_id,
-    numero_vuelo,
-    estado_id,
-    aerolinea,
-    matricula,
-    fabricante,
-    nombre_modelo,
-    codigo_origen,
-    ciudad_origen,
-    lat_origen,
-    lng_origen,
-    codigo_destino,
-    ciudad_destino,
-    lat_destino,
-    lng_destino,
-    fecha_salida,
-    fecha_llegada,
-    estado_vuelo,
-    distancia_km,
-    progreso_calculado AS progreso,
-
-    -- ✅ Latitud actual
-    CASE
-        WHEN estado_id = 3 AND progreso_calculado IS NOT NULL THEN
-            lat_origen + (lat_destino - lat_origen) * progreso_calculado
-        WHEN estado_id IN (1, 2) THEN lat_origen
-        ELSE lat_destino
-        END AS latitud_actual,
-
-    -- ✅ Longitud actual
-    CASE
-        WHEN estado_id = 3 AND progreso_calculado IS NOT NULL THEN
-            lng_origen + (lng_destino - lng_origen) * progreso_calculado
-        WHEN estado_id IN (1, 2) THEN lng_origen
-        ELSE lng_destino
-        END AS longitud_actual,
-
-    -- ✅ Altitud (ahora puede usar progreso_calculado)
-    CASE
-        WHEN estado_id = 3 AND progreso_calculado IS NOT NULL THEN
-            CASE
-                WHEN progreso_calculado < 0.1 THEN progreso_calculado * 10 * 35000
-                WHEN progreso_calculado > 0.9 THEN (1 - progreso_calculado) * 10 * 35000
-                ELSE 35000
-                END
-        ELSE 0
-        END AS altitud_pies
-
-FROM VuelosConProgreso
-go
-
-CREATE      VIEW v_dashboard_operacional AS
-SELECT
-    (SELECT COUNT(*) FROM vuelo WHERE estado_id = 1 AND fecha_salida >= CAST(GETDATE() AS DATE)) AS vuelos_programados_hoy,
-    (SELECT COUNT(*) FROM vuelo WHERE estado_id = 3) AS vuelos_en_curso,
-    (SELECT COUNT(*) FROM vuelo WHERE estado_id = 4 AND fecha_llegada >= CAST(GETDATE() AS DATE)) AS vuelos_aterrizados_hoy,
-    (SELECT COUNT(*) FROM vuelo WHERE estado_id = 5 AND fecha_salida >= CAST(GETDATE() AS DATE)) AS vuelos_cancelados_hoy,
-    (SELECT COUNT(*) FROM vuelo WHERE estado_id = 6 AND fecha_salida >= CAST(GETDATE() AS DATE)) AS vuelos_retrasados_hoy,
-    (SELECT COUNT(*) FROM avion WHERE estado_id = 1) AS aviones_operativos,
-    (SELECT COUNT(*) FROM avion WHERE estado_id = 2) AS aviones_en_mantenimiento,
-    (SELECT COUNT(*) FROM avion WHERE estado_id = 3) AS aviones_en_vuelo,
-    (SELECT AVG(CAST(pasajeros_confirmados AS FLOAT) / capacidad_total * 100)
-     FROM vuelo
-     WHERE fecha_salida >= CAST(GETDATE() AS DATE)) AS ocupacion_promedio_hoy
-go
-
-CREATE      VIEW v_vuelos_completos AS
-SELECT
-    v.id AS vuelo_id,
-    v.numero_vuelo,
-    al.nombre AS aerolinea,
-    al.codigo_iata AS codigo_aerolinea,
-
-    -- Aeropuertos
-    ao.nombre AS aeropuerto_origen,
-    ao.codigo_iata AS codigo_origen,
-    ao.ciudad AS ciudad_origen,
-    ad.nombre AS aeropuerto_destino,
-    ad.codigo_iata AS codigo_destino,
-    ad.ciudad AS ciudad_destino,
-
-    -- Avión
-    av.matricula,
-    m.fabricante,
-    m.nombre_modelo,
-
-    -- Fechas y estado
-    v.fecha_salida,
-    v.fecha_llegada,
-    ev.nombre AS estado_vuelo,
-    v.puerta,
-
-    -- Pasajeros
-    v.capacidad_total,
-    v.pasajeros_confirmados,
-    v.pasajeros_embarcados,
-    CAST(ROUND((v.pasajeros_confirmados * 100.0 / v.capacidad_total), 2) AS DECIMAL(5,2)) AS porcentaje_ocupacion,
-
-    -- Ruta
-    r.distancia_km
-FROM vuelo v
-         INNER JOIN aerolinea al ON v.aerolinea_id = al.id
-         INNER JOIN ruta r ON v.ruta_id = r.id
-         INNER JOIN aeropuerto ao ON r.aeropuerto_origen_id = ao.id
-         INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
-         INNER JOIN avion av ON v.avion_id = av.id
-         INNER JOIN modelo_avion m ON av.modelo_id = m.id
-         INNER JOIN estado_vuelo ev ON v.estado_id = ev.id
-go
-
-CREATE   PROCEDURE SP_ACTUALIZAR_ESTADO_MANTENIMIENTO
+﻿CREATE   PROCEDURE SP_ACTUALIZAR_ESTADO_MANTENIMIENTO
     @mantenimiento_id INT,
     @nuevo_estado NVARCHAR(50) -- 'Programado', 'En Curso', 'Completado', 'Cancelado'
 AS
@@ -503,6 +87,68 @@ BEGIN
 END;
 go
 
+-- ============================================
+-- SP_ASIGNAR_RUTA_AEROLINEA
+-- ============================================
+CREATE   PROCEDURE SP_ASIGNAR_RUTA_AEROLINEA
+    @ruta_id INT,
+    @aerolinea_id INT,
+    @precio_base DECIMAL(10,2) = NULL,
+    @frecuencia_semanal INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- Validar que la ruta existe
+        IF NOT EXISTS (SELECT 1 FROM ruta WHERE id = @ruta_id)
+            BEGIN
+                RAISERROR('La ruta no existe', 16, 1);
+                RETURN;
+            END
+
+        -- Validar que la aerolínea existe
+        IF NOT EXISTS (SELECT 1 FROM aerolinea WHERE id = @aerolinea_id)
+            BEGIN
+                RAISERROR('La aerolínea no existe', 16, 1);
+                RETURN;
+            END
+
+        -- Insertar o reactivar
+        IF EXISTS (SELECT 1 FROM ruta_aerolinea
+                   WHERE ruta_id = @ruta_id AND aerolinea_id = @aerolinea_id)
+            BEGIN
+                -- Ya existe, actualizar
+                UPDATE ruta_aerolinea
+                SET activa = 1,
+                    precio_base = ISNULL(@precio_base, precio_base),
+                    frecuencia_semanal = ISNULL(@frecuencia_semanal, frecuencia_semanal),
+                    fecha_fin = NULL
+                WHERE ruta_id = @ruta_id AND aerolinea_id = @aerolinea_id;
+
+                SELECT 'Ruta reactivada correctamente' AS Mensaje;
+            END
+        ELSE
+            BEGIN
+                -- Nueva asignación
+                INSERT INTO ruta_aerolinea (ruta_id, aerolinea_id, precio_base, frecuencia_semanal)
+                VALUES (@ruta_id, @aerolinea_id, @precio_base, @frecuencia_semanal);
+
+                SELECT 'Ruta asignada correctamente' AS Mensaje;
+            END
+
+        COMMIT TRANSACTION;
+
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+go
+
 CREATE      PROCEDURE SP_ASIGNAR_TRIPULACION
     @vuelo_id      INT,
     @tripulante_id INT
@@ -550,6 +196,33 @@ BEGIN
 END;
 go
 
+CREATE   PROCEDURE SP_CREATE_AEROLINEA
+    @nombre NVARCHAR(100),
+    @logo NVARCHAR(250),
+    @codIata NVARCHAR(3)
+AS
+BEGIN
+
+    IF EXISTS (SELECT 1 FROM aerolinea WHERE nombre = @nombre)
+        BEGIN
+            DECLARE @msgNombre NVARCHAR(200) = CONCAT('Ya existe la aerolinea: ', @nombre);
+            RAISERROR(@msgNombre, 16, 1);
+            RETURN;
+        END
+
+
+    IF EXISTS (SELECT 1 FROM aerolinea WHERE codigo_iata = @codIata)
+        BEGIN
+            DECLARE @msgIata NVARCHAR(200) = CONCAT('Ya existe el codigo IATA: ', @codIata);
+            RAISERROR(@msgIata, 16, 1);
+            RETURN;
+        END
+
+    INSERT INTO aerolinea (nombre, logo, codigo_iata)
+    VALUES (@nombre, @logo, @codIata);
+END
+go
+
 CREATE      PROCEDURE SP_CREATE_AVION
 (@matricula nvarchar(20),@modelo int,@aerolinea int,@estado int,@aeropuertoactual int,@horasvuelo int,@ciclos int)
 AS
@@ -563,7 +236,21 @@ INSERT INTO AVION (matricula, modelo_id, aerolinea_id, estado_id, aeropuerto_act
      @ciclos)
 go
 
-CREATE or alter    PROCEDURE SP_CREATE_VUELO
+CREATE   PROCEDURE SP_CREATE_TRIPULACION
+(@idAerolinea INT,
+ @nombre NVARCHAR(50),
+ @apellido NVARCHAR(50),
+ @rol NVARCHAR(50),
+ @activo BIT =1)
+AS
+INSERT INTO tripulante (id_aerolinea,nombre,apellido,rol,activo)
+VALUES(@idAerolinea,@nombre,@apellido,@rol,@activo) ;
+go
+
+-- ============================================
+-- SP_CREATE_VUELO (MODIFICADO)
+-- ============================================
+CREATE   PROCEDURE SP_CREATE_VUELO
 (
     @numero_vuelo NVARCHAR(10),
     @aerolinea_id INT,
@@ -581,30 +268,56 @@ BEGIN
 
     BEGIN TRY
         BEGIN TRANSACTION;
-        --------------------------------------------------
-        -- Obtener duración de la ruta
-        --------------------------------------------------
-        SELECT @duracion_minutos = duracion_minutos
-        FROM V_RUTAS_AVION
-        WHERE ruta_id = @ruta_id;
 
-        IF @duracion_minutos IS NULL
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM ruta_aerolinea
+            WHERE ruta_id = @ruta_id
+              AND aerolinea_id = @aerolinea_id
+              AND activa = 1
+        )
             BEGIN
-                RAISERROR('La ruta no existe.',16,1);
+                DECLARE @mensaje NVARCHAR(300);
+                DECLARE @nombre_aerolinea NVARCHAR(100);
+                DECLARE @codigo_ruta NVARCHAR(10);
+
+                SELECT @nombre_aerolinea = nombre FROM aerolinea WHERE id = @aerolinea_id;
+                SELECT @codigo_ruta = ao.codigo_iata + '-' + ad.codigo_iata
+                FROM ruta r
+                         INNER JOIN aeropuerto ao ON r.aeropuerto_origen_id = ao.id
+                         INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
+                WHERE r.id = @ruta_id;
+
+                SET @mensaje = 'La aerolínea ' + @nombre_aerolinea +
+                               ' no opera la ruta ' + @codigo_ruta + '. ' +
+                               'Debe asignar la ruta primero.';
+
+                RAISERROR(@mensaje, 16, 1);
                 RETURN;
             END
 
-        --------------------------------------------------
-        -- Calcular fecha llegada automáticamente
-        --------------------------------------------------
-        --SET @fecha_llegada = DATEADD(MINUTE, @duracion_minutos, @fecha_salida);
+        -- Obtener duración de la ruta
+        SELECT @duracion_minutos = ROUND((distancia_km / 800.0) * 60, 0)
+        FROM ruta
+        WHERE id = @ruta_id;
+
+        IF @duracion_minutos IS NULL
+            BEGIN
+                RAISERROR('La ruta no existe.', 16, 1);
+                RETURN;
+            END
+
+        -- Calcular fecha llegada
         SET @fecha_llegada = DATEADD(MINUTE, @duracion_minutos, CAST(@fecha_salida AS DATETIME));
-        --Validar datos
+
+        -- Validar disponibilidad del avión
         EXEC SP_VALIDADICION_CREACION_VUELO
              @avion_id,
              @ruta_id,
              @fecha_salida,
-             @fecha_llegada;
+             @fecha_llegada,
+             @numero_vuelo;
 
         -- Insertar vuelo
         INSERT INTO vuelo (
@@ -651,19 +364,299 @@ BEGIN
 END;
 go
 
-CREATE     PROCEDURE SP_GET_RUTAS_DISPONIBLES_POR_AVION_Y_FECHA
-    @avion_id            INT,
+-- ============================================
+-- SP_DESACTIVAR_RUTA_AEROLINEA
+-- ============================================
+CREATE   PROCEDURE SP_DESACTIVAR_RUTA_AEROLINEA
+    @ruta_id INT,
+    @aerolinea_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- Validar que no hay vuelos activos con esta ruta
+        IF EXISTS (
+            SELECT 1 FROM vuelo
+            WHERE ruta_id = @ruta_id
+              AND aerolinea_id = @aerolinea_id
+              AND estado_id IN (1, 2, 3) -- Programado, Embarcando, En Vuelo
+        )
+            BEGIN
+                RAISERROR('No se puede desactivar la ruta porque tiene vuelos activos', 16, 1);
+                RETURN;
+            END
+
+        UPDATE ruta_aerolinea
+        SET activa = 0,
+            fecha_fin = GETDATE()
+        WHERE ruta_id = @ruta_id
+          AND aerolinea_id = @aerolinea_id;
+
+        IF @@ROWCOUNT = 0
+            BEGIN
+                RAISERROR('No se encontró la asignación de ruta', 16, 1);
+                RETURN;
+            END
+
+        SELECT 'Ruta desactivada correctamente' AS Mensaje;
+
+        COMMIT TRANSACTION;
+
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+go
+
+CREATE PROCEDURE SP_FLOTAS_PAGINADO
+    @PageNumber     INT           = 1,
+    @PageSize       INT           = 10,
+    @EstadoId       INT           = NULL,
+    @AerolineaId    INT           = NULL,
+    @Busqueda       NVARCHAR(100) = NULL,
+    @TotalRegistros INT           OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @PageNumber < 1  SET @PageNumber = 1;
+    IF @PageSize   < 1  SET @PageSize   = 10;
+    IF @PageSize   > 100 SET @PageSize  = 100;
+
+
+
+    SELECT @TotalRegistros = COUNT(*)
+    FROM V_FLOTA_ESTADO as vf
+    WHERE
+        (@EstadoId    IS NULL OR vf.idestado    = @EstadoId)
+      AND (@AerolineaId IS NULL OR vf.id_aerolinea = @AerolineaId)
+      AND (@Busqueda    IS NULL OR
+           vf.matricula    LIKE '%' + @Busqueda + '%' OR
+           vf.nombre_modelo     LIKE '%' + @Busqueda + '%' OR
+           vf.capacidad_total    LIKE '%' + @Busqueda + '%' OR
+           vf.ubicacion     LIKE '%' + @Busqueda + '%' OR
+           vf.vuelo_actual    LIKE '%' + @Busqueda + '%'
+        );
+
+
+    SELECT
+        vf.*,
+        @TotalRegistros                                              AS total_registros,
+        @PageNumber                                                  AS pagina_actual,
+        @PageSize                                                    AS registros_por_pagina,
+        CEILING(CAST(@TotalRegistros AS FLOAT) / @PageSize)         AS total_paginas
+    FROM V_FLOTA_ESTADO as vf
+    WHERE
+        (@AerolineaId IS NULL OR vf.id_aerolinea = @AerolineaId)
+
+
+      AND (@EstadoId IS NULL OR vf.idestado = @EstadoId)
+
+      AND (@Busqueda    IS NULL OR
+           vf.matricula    LIKE '%' + @Busqueda + '%' OR
+           vf.nombre_modelo     LIKE '%' + @Busqueda + '%' OR
+           vf.capacidad_total   LIKE '%' + @Busqueda + '%' OR
+           vf.ubicacion     LIKE '%' + @Busqueda + '%' OR
+           vf.vuelo_actual     LIKE '%' + @Busqueda + '%'
+        )
+    ORDER BY vf.matricula DESC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS
+        FETCH NEXT @PageSize ROWS ONLY;
+
+END;
+go
+
+-- ============================================
+-- SP_GET_AERONAVES_POR_ESTADO
+-- ============================================
+CREATE   PROCEDURE SP_GET_AERONAVES_POR_ESTADO
+@aerolinea_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        ea.nombre AS estado,
+        COUNT(a.id) AS total
+    FROM estado_avion ea
+             LEFT JOIN avion a ON a.estado_id = ea.id AND a.aerolinea_id = @aerolinea_id
+    GROUP BY ea.id, ea.nombre
+    ORDER BY COUNT(a.id) DESC;
+END;
+go
+
+-- ============================================
+-- SP_GET_DASHBOARD_STATS
+-- ============================================
+CREATE   PROCEDURE SP_GET_DASHBOARD_STATS
+@aerolinea_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Hoy DATE = CAST(GETDATE() AS DATE);
+    DECLARE @Ahora DATETIME = GETDATE();
+    DECLARE @InicioMes DATE = DATEFROMPARTS(YEAR(@Ahora), MONTH(@Ahora), 1);
+
+    SELECT
+        -- Vuelos
+        (SELECT COUNT(*) FROM vuelo WHERE aerolinea_id = @aerolinea_id) AS TotalVuelos,
+        (SELECT COUNT(*) FROM vuelo WHERE aerolinea_id = @aerolinea_id AND estado_id = 3) AS VuelosEnVuelo,
+        (SELECT COUNT(*) FROM vuelo WHERE aerolinea_id = @aerolinea_id AND CAST(fecha_salida AS DATE) = @Hoy) AS VuelosHoy,
+        (SELECT COUNT(*) FROM vuelo WHERE aerolinea_id = @aerolinea_id AND estado_id = 5) AS VuelosCancelados,
+
+        -- Aeronaves
+        (SELECT COUNT(*) FROM avion WHERE aerolinea_id = @aerolinea_id) AS TotalAeronaves,
+        (SELECT COUNT(*) FROM avion WHERE aerolinea_id = @aerolinea_id AND estado_id = 1) AS AeronavesOperativas,
+        (SELECT COUNT(*) FROM avion WHERE aerolinea_id = @aerolinea_id AND estado_id = 2) AS AeronavesEnMantenimiento,
+        (SELECT COUNT(*) FROM avion WHERE aerolinea_id = @aerolinea_id AND estado_id = 3) AS AeronavesEnVuelo,
+
+        -- Pasajeros
+        (SELECT ISNULL(SUM(pasajeros_embarcados), 0)
+         FROM vuelo
+         WHERE aerolinea_id = @aerolinea_id AND CAST(fecha_salida AS DATE) = @Hoy) AS PasajerosHoy,
+
+        (SELECT ISNULL(AVG(CAST(pasajeros_confirmados AS FLOAT) / NULLIF(capacidad_total, 0) * 100), 0)
+         FROM vuelo
+         WHERE aerolinea_id = @aerolinea_id AND fecha_salida >= DATEADD(DAY, -7, @Hoy)) AS OcupacionPromedio,
+
+        (SELECT ISNULL(SUM(pasajeros_embarcados), 0)
+         FROM vuelo
+         WHERE aerolinea_id = @aerolinea_id AND fecha_salida >= @InicioMes) AS TotalPasajerosMes,
+
+        -- Mantenimiento
+        (SELECT COUNT(*)
+         FROM mantenimiento m
+                  INNER JOIN avion a ON m.avion_id = a.id
+         WHERE a.aerolinea_id = @aerolinea_id AND m.estado = 'En Curso') AS MantenimientosActivos,
+
+        (SELECT COUNT(*)
+         FROM mantenimiento m
+                  INNER JOIN avion a ON m.avion_id = a.id
+         WHERE a.aerolinea_id = @aerolinea_id AND m.estado = 'Programado') AS MantenimientosPendientes;
+END;
+go
+
+-- ============================================
+-- SP_GET_OCUPACION_SEMANAL
+-- ============================================
+CREATE   PROCEDURE SP_GET_OCUPACION_SEMANAL
+@aerolinea_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Hoy DATE = CAST(GETDATE() AS DATE);
+
+    -- ✅ SOLUCIÓN: Usar CTE en lugar de spt_values
+    ;WITH Dias AS (
+        SELECT DATEADD(DAY, -6, @Hoy) AS fecha UNION ALL
+        SELECT DATEADD(DAY, -5, @Hoy) UNION ALL
+        SELECT DATEADD(DAY, -4, @Hoy) UNION ALL
+        SELECT DATEADD(DAY, -3, @Hoy) UNION ALL
+        SELECT DATEADD(DAY, -2, @Hoy) UNION ALL
+        SELECT DATEADD(DAY, -1, @Hoy) UNION ALL
+        SELECT @Hoy
+    )
+     SELECT
+         FORMAT(d.fecha, 'dd/MM') AS fecha,
+         ISNULL(AVG(CAST(v.pasajeros_confirmados AS FLOAT) / NULLIF(v.capacidad_total, 0) * 100), 0) AS ocupacion
+     FROM Dias d
+              LEFT JOIN vuelo v ON CAST(v.fecha_salida AS DATE) = d.fecha
+         AND v.aerolinea_id = @aerolinea_id
+     GROUP BY d.fecha
+     ORDER BY d.fecha;
+END;
+go
+
+-- ============================================
+-- SP_GET_PROXIMOS_VUELOS
+-- ============================================
+CREATE   PROCEDURE SP_GET_PROXIMOS_VUELOS
+    @aerolinea_id INT,
+    @limite INT = 5
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (@limite)
+        v.numero_vuelo AS NumeroVuelo,
+        ao.codigo_iata + ' → ' + ad.codigo_iata AS Ruta,
+        v.fecha_salida AS FechaSalida,
+        v.pasajeros_confirmados AS PasajerosConfirmados,
+        v.capacidad_total AS CapacidadTotal,
+        v.puerta AS Puerta,
+        CAST((v.pasajeros_confirmados * 100.0 / NULLIF(v.capacidad_total, 0)) AS FLOAT) AS PorcentajeOcupacion
+    FROM vuelo v
+             INNER JOIN ruta r ON v.ruta_id = r.id
+             INNER JOIN aeropuerto ao ON r.aeropuerto_origen_id = ao.id
+             INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
+    WHERE v.aerolinea_id = @aerolinea_id
+      AND v.fecha_salida > GETDATE()
+      AND v.estado_id IN (1, 2)
+    ORDER BY v.fecha_salida;
+END;
+go
+
+-- ============================================
+-- SP_GET_RUTAS_DISPONIBLES_AEROLINEA
+-- ============================================
+CREATE   PROCEDURE SP_GET_RUTAS_DISPONIBLES_AEROLINEA
+    @aerolinea_id INT,
+    @aeropuerto_origen_id INT = NULL  -- NULL = todas las rutas
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        r.id AS ruta_id,
+        ao.codigo_iata + ' → ' + ad.codigo_iata AS codigo_ruta,
+        ao.nombre AS aeropuerto_origen,
+        ao.ciudad AS ciudad_origen,
+        ad.nombre AS aeropuerto_destino,
+        ad.ciudad AS ciudad_destino,
+        r.distancia_km,
+        ra.precio_base,
+        ra.frecuencia_semanal,
+        ra.activa,
+        -- Duración estimada (800 km/h promedio)
+        ROUND((r.distancia_km / 800.0) * 60, 0) AS duracion_minutos
+    FROM ruta_aerolinea ra
+             INNER JOIN ruta r ON ra.ruta_id = r.id
+             INNER JOIN aeropuerto ao ON r.aeropuerto_origen_id = ao.id
+             INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
+    WHERE ra.aerolinea_id = @aerolinea_id
+      AND ra.activa = 1
+      AND (@aeropuerto_origen_id IS NULL OR r.aeropuerto_origen_id = @aeropuerto_origen_id)
+    ORDER BY r.distancia_km;
+END;
+go
+
+-- ============================================
+-- SP_GET_RUTAS_DISPONIBLES_POR_AVION_Y_FECHA (MODIFICADO)
+-- Solo muestra rutas que la aerolínea del avión opera
+-- ============================================
+CREATE   PROCEDURE SP_GET_RUTAS_DISPONIBLES_POR_AVION_Y_FECHA
+    @avion_id INT,
     @fecha_salida_deseada DATETIME
 AS
 BEGIN
     SET NOCOUNT ON;
 
     DECLARE @aeropuerto_actual_id INT;
-    DECLARE @estado_avion         NVARCHAR(50);
+    DECLARE @estado_avion NVARCHAR(50);
+    DECLARE @aerolinea_id INT;
 
+    -- Obtener datos del avión
     SELECT
         @aeropuerto_actual_id = av.aeropuerto_actual_id,
-        @estado_avion         = ea.nombre
+        @estado_avion = ea.nombre,
+        @aerolinea_id = av.aerolinea_id
     FROM avion av
              INNER JOIN estado_avion ea ON av.estado_id = ea.id
     WHERE av.id = @avion_id;
@@ -673,6 +666,7 @@ BEGIN
             RAISERROR('El avión no existe.', 16, 1);
             RETURN;
         END
+
 
     IF EXISTS (
         SELECT 1 FROM vuelo v
@@ -698,35 +692,72 @@ BEGIN
         END
 
     SELECT
-        r.id            AS ruta_id,
+        r.id AS ruta_id,
         r.distancia_km,
-        ao.id           AS aeropuerto_origen_id,
-        ao.codigo_iata  AS codigo_origen,
-        ao.nombre       AS nombre_origen,
-        ao.ciudad       AS ciudad_origen,
-        ao.latitud      AS latitud_origen,
-        ao.longitud     AS longitud_origen,
-        ad.id           AS aeropuerto_destino_id,
-        ad.codigo_iata  AS codigo_destino,
-        ad.nombre       AS nombre_destino,
-        ad.ciudad       AS ciudad_destino,
-        ad.latitud      AS latitud_destino,
-        ad.longitud     AS longitud_destino,
-        ROUND((r.distancia_km / 800.0) * 60, 0)                          AS duracion_minutos_totales,
-        CAST(ROUND((r.distancia_km / 800.0) * 60, 0) / 60 AS VARCHAR)
-            + 'h ' +
-        CAST(ROUND((r.distancia_km / 800.0) * 60, 0) % 60 AS VARCHAR)
-            + 'min'                                                        AS duracion_formateada,
+        ao.id AS aeropuerto_origen_id,
+        ao.codigo_iata AS codigo_origen,
+        ao.nombre AS nombre_origen,
+        ao.ciudad AS ciudad_origen,
+        ao.latitud AS latitud_origen,
+        ao.longitud AS longitud_origen,
+        ad.id AS aeropuerto_destino_id,
+        ad.codigo_iata AS codigo_destino,
+        ad.nombre AS nombre_destino,
+        ad.ciudad AS ciudad_destino,
+        ad.latitud AS latitud_destino,
+        ad.longitud AS longitud_destino,
+        ROUND((r.distancia_km / 800.0) * 60, 0) AS duracion_minutos_totales,
+        CAST(ROUND((r.distancia_km / 800.0) * 60, 0) / 60 AS VARCHAR) + 'h ' +
+        CAST(ROUND((r.distancia_km / 800.0) * 60, 0) % 60 AS VARCHAR) + 'min' AS duracion_formateada,
         FORMAT(DATEADD(MINUTE, ROUND((r.distancia_km / 800.0) * 60, 0), '19000101'), 'HH:mm') AS duracion_HHMM,
-        DATEADD(MINUTE, ROUND((r.distancia_km / 800.0) * 60, 0), @fecha_salida_deseada)       AS fecha_llegada_estimada,
-        ao.codigo_iata + ' → ' + ad.codigo_iata                           AS ruta_codigo,
-        ao.ciudad + ' (' + ao.codigo_iata + ') → ' +
-        ad.ciudad + ' (' + ad.codigo_iata + ')'                           AS ruta_descripcion
+        DATEADD(MINUTE, ROUND((r.distancia_km / 800.0) * 60, 0), @fecha_salida_deseada) AS fecha_llegada_estimada,
+        ao.codigo_iata + ' → ' + ad.codigo_iata AS ruta_codigo,
+        ao.ciudad + ' (' + ao.codigo_iata + ') → ' + ad.ciudad + ' (' + ad.codigo_iata + ')' AS ruta_descripcion,
+        ra.precio_base,
+        ra.frecuencia_semanal
     FROM ruta r
-             INNER JOIN aeropuerto ao ON r.aeropuerto_origen_id  = ao.id
+             INNER JOIN aeropuerto ao ON r.aeropuerto_origen_id = ao.id
              INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
+             INNER JOIN ruta_aerolinea ra ON ra.ruta_id = r.id
     WHERE r.aeropuerto_origen_id = @aeropuerto_actual_id
+      AND ra.aerolinea_id = @aerolinea_id
+      AND ra.activa = 1
     ORDER BY r.distancia_km ASC;
+END;
+go
+
+-- ============================================
+-- SP_GET_RUTAS_NO_OPERADAS
+-- Rutas disponibles que la aerolínea NO opera aún
+-- ============================================
+CREATE   PROCEDURE SP_GET_RUTAS_NO_OPERADAS
+@aerolinea_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        r.id AS ruta_id,
+        ao.codigo_iata + ' → ' + ad.codigo_iata AS codigo_ruta,
+        ao.nombre AS aeropuerto_origen,
+        ao.ciudad AS ciudad_origen,
+        ad.nombre AS aeropuerto_destino,
+        ad.ciudad AS ciudad_destino,
+        r.distancia_km,
+        -- Ver cuántas aerolíneas la operan
+        (SELECT COUNT(*)
+         FROM ruta_aerolinea
+         WHERE ruta_id = r.id AND activa = 1) AS competidores
+    FROM ruta r
+             INNER JOIN aeropuerto ao ON r.aeropuerto_origen_id = ao.id
+             INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM ruta_aerolinea ra
+        WHERE ra.ruta_id = r.id
+          AND ra.aerolinea_id = @aerolinea_id
+    )
+    ORDER BY r.distancia_km;
 END;
 go
 
@@ -773,6 +804,121 @@ BEGIN
 END;
 go
 
+CREATE   PROCEDURE SP_GET_TELEMETRIA_VUELO
+@vuelo_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Datos básicos del vuelo
+    SELECT
+        v.id AS vuelo_id,
+        v.numero_vuelo,
+        av.matricula,
+        v.fecha_salida,
+        v.fecha_llegada,
+        ev.nombre AS estado,
+        ao.codigo_iata AS origen,
+        ad.codigo_iata AS destino,
+        v.telemetria
+    FROM vuelo v
+             INNER JOIN avion av ON v.avion_id = av.id
+             INNER JOIN estado_vuelo ev ON v.estado_id = ev.id
+             INNER JOIN ruta r ON v.ruta_id = r.id
+             INNER JOIN aeropuerto ao ON r.aeropuerto_origen_id = ao.id
+             INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
+    WHERE v.id = @vuelo_id;
+END;
+go
+
+-- ============================================
+-- SP_GET_TOP_RUTAS
+-- ============================================
+CREATE   PROCEDURE SP_GET_TOP_RUTAS
+    @aerolinea_id INT,
+    @dias INT = 30,
+    @limite INT = 5
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @FechaInicio DATE = DATEADD(DAY, -@dias, CAST(GETDATE() AS DATE));
+
+    SELECT TOP (@limite)
+        ao.codigo_iata + ' → ' + ad.codigo_iata AS Ruta,
+        COUNT(v.id) AS TotalVuelos,
+        SUM(v.pasajeros_embarcados) AS TotalPasajeros
+    FROM vuelo v
+             INNER JOIN ruta r ON v.ruta_id = r.id
+             INNER JOIN aeropuerto ao ON r.aeropuerto_origen_id = ao.id
+             INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
+    WHERE v.aerolinea_id = @aerolinea_id
+      AND v.fecha_salida >= @FechaInicio
+    GROUP BY ao.codigo_iata, ad.codigo_iata
+    ORDER BY COUNT(v.id) DESC;
+END;
+go
+
+CREATE        PROCEDURE SP_GET_TRIPULANTES_DISPONIBLES
+    @vuelo_id INT,
+    @aerolinea_id INT,
+    @rol      NVARCHAR(50) = NULL  -- 'Comandante' | 'Primer Oficial' | 'Tripulante de Cabina' | NULL = todos
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @fecha_salida  DATETIME;
+    DECLARE @fecha_llegada DATETIME;
+
+    SELECT
+        @fecha_salida  = fecha_salida,
+        @fecha_llegada = fecha_llegada
+    FROM vuelo
+    WHERE id = @vuelo_id;
+
+    IF @fecha_salida IS NULL
+        BEGIN
+            RAISERROR('El vuelo no existe.', 16, 1);
+            RETURN;
+        END
+
+    SELECT
+        t.id                            AS tripulante_id,
+        t.nombre + ' ' + t.apellido     AS nombre_completo,
+        t.rol
+    FROM tripulante t
+    WHERE
+        t.activo = 1
+      AND t.id_aerolinea=@aerolinea_id
+
+      -- Filtro por rol si se envía
+      AND (@rol IS NULL OR t.rol = @rol)
+
+      -- No asignado ya a este vuelo
+      AND t.id NOT IN (
+        SELECT tripulante_id
+        FROM asignacion_tripulacion
+        WHERE vuelo_id = @vuelo_id
+          AND t.id_aerolinea=@aerolinea_id
+    )
+
+      -- Sin solapamiento horario
+      AND t.id NOT IN (
+        SELECT at2.tripulante_id
+        FROM asignacion_tripulacion at2
+                 INNER JOIN vuelo v ON at2.vuelo_id = v.id
+        WHERE
+            at2.vuelo_id    <> @vuelo_id
+          AND v.estado_id NOT IN (4, 5, 7)
+          AND @fecha_salida  < v.fecha_llegada
+          AND @fecha_llegada > v.fecha_salida
+          AND t.id_aerolinea=@aerolinea_id
+    )
+
+    ORDER BY t.rol, nombre_completo;
+END;
+go
+
 CREATE    PROCEDURE SP_GET_TRIPULANTES_VUELO
 @vuelo_id INT
 AS
@@ -801,6 +947,85 @@ BEGIN
     FROM asignacion_tripulacion at2
              INNER JOIN tripulante t ON at2.tripulante_id = t.id
     WHERE at2.vuelo_id = @vuelo_id AND t.rol = 'Tripulante de Cabina';
+END;
+go
+
+-- ============================================
+-- SP_GET_VUELOS_POR_ESTADO
+-- ============================================
+CREATE   PROCEDURE SP_GET_VUELOS_POR_ESTADO
+@aerolinea_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        ev.nombre AS estado,
+        COUNT(v.id) AS total
+    FROM estado_vuelo ev
+             LEFT JOIN vuelo v ON v.estado_id = ev.id AND v.aerolinea_id = @aerolinea_id
+    GROUP BY ev.id, ev.nombre
+    ORDER BY COUNT(v.id) DESC;
+END;
+go
+
+-- ============================================
+-- SP_GET_VUELOS_POR_HORA
+-- ============================================
+CREATE   PROCEDURE SP_GET_VUELOS_POR_HORA
+    @aerolinea_id INT,
+    @fecha DATE = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @fecha IS NULL
+        SET @fecha = CAST(GETDATE() AS DATE);
+
+        -- ✅ SOLUCIÓN: Usar CTE en lugar de spt_values
+        ;WITH Horas AS (
+        SELECT 0 AS hora UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL
+        SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL
+        SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL
+        SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15 UNION ALL
+        SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL
+        SELECT 20 UNION ALL SELECT 21 UNION ALL SELECT 22 UNION ALL SELECT 23
+    )
+         SELECT
+             FORMAT(h.hora, '00') + ':00' AS hora,
+             ISNULL(COUNT(v.id), 0) AS vuelos
+         FROM Horas h
+                  LEFT JOIN vuelo v ON DATEPART(HOUR, v.fecha_salida) = h.hora
+             AND CAST(v.fecha_salida AS DATE) = @fecha
+             AND v.aerolinea_id = @aerolinea_id
+         GROUP BY h.hora
+         ORDER BY h.hora;
+END;
+go
+
+-- ============================================
+-- SP_GET_VUELOS_RECIENTES
+-- ============================================
+CREATE   PROCEDURE SP_GET_VUELOS_RECIENTES
+    @aerolinea_id INT,
+    @limite INT = 5
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (@limite)
+        v.numero_vuelo AS NumeroVuelo,
+        ao.codigo_iata + ' → ' + ad.codigo_iata AS Ruta,
+        ev.nombre AS Estado,
+        v.fecha_salida AS Fecha,
+        v.pasajeros_embarcados AS Pasajeros
+    FROM vuelo v
+             INNER JOIN ruta r ON v.ruta_id = r.id
+             INNER JOIN aeropuerto ao ON r.aeropuerto_origen_id = ao.id
+             INNER JOIN aeropuerto ad ON r.aeropuerto_destino_id = ad.id
+             INNER JOIN estado_vuelo ev ON v.estado_id = ev.id
+    WHERE v.aerolinea_id = @aerolinea_id
+    ORDER BY v.fecha_salida DESC;
 END;
 go
 
@@ -866,7 +1091,7 @@ CREATE   PROCEDURE SP_MANTENIMIENTOS_PAGINADO
     @PageSize       INT            = 10,
     @AerolineaId    INT            =1,
     @Estado         NVARCHAR(50)   = NULL,   -- NULL = todos
-    @FechaProgramada DATETIME          = NULL,   -- NULL = cualquier fecha
+    @FechaProgramada DATE          = NULL,   -- NULL = cualquier fecha
     @Busqueda       NVARCHAR(100)  = NULL,   -- matrícula, tipo, modelo
     @TotalRegistros INT = 0            OUTPUT
 AS
@@ -1210,7 +1435,7 @@ CREATE   PROCEDURE SP_REGISTRAR_USUARIO
     @IdAerolinea  INT,
     @Salt       NVARCHAR(50),
     @Pass      VARBINARY(MAX),
-    @IdRol      INT = 2
+    @IdRol      INT =2
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -1247,6 +1472,79 @@ BEGIN
         DECLARE @Msg NVARCHAR(MAX) = ERROR_MESSAGE();
         RAISERROR(@Msg, 16, 1);
     END CATCH
+END
+go
+
+CREATE   PROCEDURE SP_TRIPULANTES_PAGINADO
+    @PageNumber     INT           = 1,
+    @PageSize       INT           = 10,
+    @Rol            NVARCHAR(50)  = NULL,
+    @IdAerolinea    INT           = NULL,
+    @Activo         BIT           = NULL,
+    @Busqueda       NVARCHAR(100) = NULL,
+    @TotalRegistros INT           OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+
+    SELECT @TotalRegistros = COUNT(*)
+    FROM TRIPULANTE T
+    WHERE
+        (@Rol IS NULL OR T.ROL = @Rol)
+      AND (@IdAerolinea IS NULL OR T.ID_AEROLINEA = @IdAerolinea)
+      AND (@Activo IS NULL OR T.ACTIVO = @Activo)
+      AND (@Busqueda IS NULL OR
+           T.NOMBRE LIKE '%' + @Busqueda + '%' OR
+           T.APELLIDO LIKE '%' + @Busqueda + '%');
+
+
+    SELECT
+        T.ID,
+        T.ID_AEROLINEA,
+        T.NOMBRE,
+        T.APELLIDO,
+        T.ROL,
+        T.ACTIVO
+    FROM TRIPULANTE T
+    WHERE
+        (@Rol IS NULL OR T.ROL = @Rol)
+      AND (@IdAerolinea IS NULL OR T.ID_AEROLINEA = @IdAerolinea)
+      AND (@Activo IS NULL OR T.ACTIVO = @Activo)
+      AND (@Busqueda IS NULL OR
+           T.NOMBRE LIKE '%' + @Busqueda + '%' OR
+           T.APELLIDO LIKE '%' + @Busqueda + '%')
+    ORDER BY T.ID ASC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS
+        FETCH NEXT @PageSize ROWS ONLY;
+END;
+go
+
+CREATE   PROCEDURE SP_UPDATE_AEROLINEA
+    @idAerolinea INT,
+    @nombre NVARCHAR(100),
+    @logo NVARCHAR(250),
+    @codIata NVARCHAR(3)
+AS
+BEGIN
+
+    IF EXISTS (SELECT 1 FROM aerolinea WHERE nombre = @nombre AND id <> @idAerolinea)
+        BEGIN
+            DECLARE @msgNombre NVARCHAR(200) = CONCAT('Ya existe la aerolinea: ', @nombre);
+            RAISERROR(@msgNombre, 16, 1);
+            RETURN;
+        END
+
+
+    IF EXISTS (SELECT 1 FROM aerolinea WHERE codigo_iata = @codIata AND id <> @idAerolinea)
+        BEGIN
+            DECLARE @msgIata NVARCHAR(200) = CONCAT('Ya existe el codigo IATA: ', @codIata);
+            RAISERROR(@msgIata, 16, 1);
+            RETURN;
+        END
+
+    UPDATE aerolinea SET nombre=@nombre,logo=@logo,codigo_iata=@codIata
+    WHERE id=@idAerolinea
 END
 go
 
@@ -1414,6 +1712,70 @@ BEGIN
 END;
 go
 
+CREATE   PROCEDURE SP_UPDATE_TRIPULACION
+(@idTripulacion INT,
+ @idAerolinea INT,
+ @nombre NVARCHAR(50),
+ @apellido NVARCHAR(50),
+ @rol NVARCHAR(50),
+ @activo BIT =1
+)
+AS
+
+UPDATE tripulante SET nombre=@nombre,apellido=@apellido,rol=@rol,activo=@activo
+WHERE id= @idTripulacion
+go
+
+CREATE   PROCEDURE SP_UPDATE_USUARIOS
+(@idUsuario INT,
+ @nombre NVARCHAR(50),
+ @apellidos NVARCHAR(50),
+ @rol NVARCHAR(50),
+ @aerolinea NVARCHAR(50),
+ @activo BIT
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+
+        DECLARE @idAerolinea INT;
+        SELECT @idAerolinea = id FROM aerolinea WHERE nombre = @aerolinea;
+
+        IF @idAerolinea IS NOT NULL
+            BEGIN
+                UPDATE usuario
+                SET nombre = @nombre,
+                    apellidos = @apellidos,
+                    activo = @activo,
+                    aerolinea_id=@idAerolinea
+                WHERE id = @idUsuario;
+            END
+
+        DECLARE @idRol INT;
+        SELECT @idRol = id FROM rol WHERE nombre = @rol;
+
+        IF @idRol IS NOT NULL
+            BEGIN
+                UPDATE usuario_rol
+                SET rol_id = @idRol
+                WHERE usuario_id = @idUsuario;
+            END
+
+
+        COMMIT TRANSACTION;
+        SELECT 'Usuario actualizado correctamente' AS Mensaje;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+go
+
 CREATE       PROCEDURE SP_UPDATE_VUELO
 (@idvuelo int,@numerovuelo nvarchar(50), @idaerolinea int,
  @idruta int,@idavion int, @fechasalida datetime,
@@ -1429,11 +1791,12 @@ UPDATE VUELO SET numero_vuelo=@numerovuelo,aerolinea_id=@idaerolinea,
 WHERE id=@idvuelo;
 go
 
-CREATE     PROCEDURE SP_VALIDADICION_CREACION_VUELO
+CREATE      PROCEDURE SP_VALIDADICION_CREACION_VUELO
     @avion_id      INT,
     @ruta_id       INT,
     @fecha_salida  DATETIME,
-    @fecha_llegada DATETIME
+    @fecha_llegada DATETIME,
+    @numero_vuelo  NVARCHAR(10)
 AS
 BEGIN
     DECLARE @aeropuerto_origen_id INT;
@@ -1463,13 +1826,32 @@ BEGIN
         END
 
     IF EXISTS (
-        SELECT 1 FROM mantenimiento
-        WHERE avion_id = @avion_id
-          AND estado = 'Programado'
-          AND @fecha_salida BETWEEN fecha_programada AND DATEADD(HOUR, 4, fecha_programada)
+        SELECT 1 FROM vuelo
+        WHERE numero_vuelo = @numero_vuelo
+          AND estado_id IN (1, 2, 3, 6) -- Programado, Embarcando, En Vuelo, Retrasado
+          AND (
+            (@fecha_salida BETWEEN fecha_salida AND fecha_llegada) -- Mi salida cruza otro vuelo
+                OR (@fecha_llegada BETWEEN fecha_salida AND fecha_llegada) -- Mi llegada cruza otro vuelo
+                OR (fecha_salida BETWEEN @fecha_salida AND @fecha_llegada) -- Otro vuelo empieza dentro del mío
+            )
     )
         BEGIN
-            RAISERROR('El avión tiene mantenimiento programado en ese horario.', 16, 1);
+            RAISERROR('El número de vuelo %s ya está asignado a otro trayecto en ese horario.', 16, 1, @numero_vuelo);
+            RETURN;
+        END
+
+    IF EXISTS (
+        SELECT 1 FROM mantenimiento
+        WHERE avion_id = @avion_id
+          AND estado IN ('Programado', 'En Curso') -- Solo bloquean estos dos estados
+          AND (
+            -- Bloquea si la fecha de salida del vuelo es posterior o igual 
+            -- al inicio del día programado del mantenimiento
+            @fecha_salida >= CAST(fecha_programada AS DATETIME)
+            )
+    )
+        BEGIN
+            RAISERROR('El avión tiene un mantenimiento pendiente o en curso y no puede realizar vuelos hasta que finalice.', 16, 1);
             RETURN;
         END
 
@@ -1639,4 +2021,3 @@ BEGIN
 
 END;
 go
-
