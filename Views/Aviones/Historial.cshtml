@@ -1,0 +1,196 @@
+﻿@using PdaAerolineas.Models.Views
+@model List<VistaHistorialVuelo>
+
+@{
+    ViewData["Title"] = "Historial del Avión";
+    string avionInfo = ViewData["AVION_INFO"]?.ToString() ?? "—";
+    int totalVuelos = Model.Count;
+    int completados = Model.Count(v => v.EstadoId == 7);
+    int enVuelo = Model.Count(v => v.EstadoId == 3);
+    int cancelados = Model.Count(v => v.EstadoId == 5);
+    int totalHoras = Model.Sum(v => v.DuracionMinutos);
+    int totalDistancia = Model.Sum(v => v.DistanciaKm);
+}
+
+@functions {
+    string BadgeEstado(int estadoId, string estado)
+    {
+        return estadoId switch
+        {
+            1 => "bg-blue-50 text-blue-700 ring-blue-200",
+            2 => "bg-yellow-50 text-yellow-700 ring-yellow-200",
+            3 => "bg-emerald-50 text-emerald-700 ring-emerald-200",
+            4 => "bg-cyan-50 text-cyan-700 ring-cyan-200",
+            5 => "bg-red-50 text-red-700 ring-red-200",
+            6 => "bg-amber-50 text-amber-700 ring-amber-200",
+            7 => "bg-gray-50 text-gray-700 ring-gray-200",
+            _ => "bg-gray-50 text-gray-500 ring-gray-200"
+        };
+    }
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+
+    <!-- HEADER -->
+    <div class="flex items-end justify-between">
+        <div>
+            <h2 class="text-3xl font-extrabold tracking-tight text-gray-900">Historial de Vuelos</h2>
+            <p class="mt-1 text-sm font-bold text-blue-600">@avionInfo</p>
+            <p class="mt-0.5 text-xs font-mono text-gray-400">
+                @totalVuelos vuelos totales &nbsp;·&nbsp; @completados completados &nbsp;·&nbsp; @cancelados cancelados
+            </p>
+        </div>
+        <a asp-controller="Flotas" asp-action="Index"
+           class="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-200 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Volver a Flotas
+        </a>
+    </div>
+
+    <!-- ESTADÍSTICAS RÁPIDAS -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Total Vuelos</div>
+            <div class="text-2xl font-extrabold text-gray-900 mt-1">@totalVuelos</div>
+        </div>
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-sm">
+            <div class="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Completados</div>
+            <div class="text-2xl font-extrabold text-emerald-700 mt-1">@completados</div>
+        </div>
+        <div class="rounded-xl border border-blue-200 bg-blue-50/50 p-4 shadow-sm">
+            <div class="text-[10px] font-black text-blue-600 uppercase tracking-wider">En Vuelo</div>
+            <div class="text-2xl font-extrabold text-blue-700 mt-1">@enVuelo</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Horas Totales</div>
+            <div class="text-2xl font-extrabold text-gray-900 mt-1">@(totalHoras / 60)h @(totalHoras % 60)m</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Distancia Total</div>
+            <div class="text-2xl font-extrabold text-gray-900 mt-1">@totalDistancia.ToString("N0") km</div>
+        </div>
+    </div>
+
+    <!-- BUSCADOR -->
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/40">
+            <div class="flex items-center gap-4">
+                <div class="flex-1 relative">
+                    <input type="text" id="inputBusqueda" placeholder="Buscar por número de vuelo, ruta, estado..."
+                           class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                           oninput="filtrarTabla(this.value)" />
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <span id="contadorResultados" class="text-xs font-mono text-gray-400 whitespace-nowrap"></span>
+            </div>
+        </div>
+
+        <!-- TABLA -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm" id="tablaHistorial">
+                <thead class="border-b border-gray-200 bg-gray-50/40">
+                    <tr>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Vuelo</th>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Ruta</th>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Salida</th>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Llegada</th>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Duración</th>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Estado</th>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Ocupación</th>
+                        <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Retraso</th>
+                        <th class="px-5 py-3 text-right text-xs font-bold uppercase tracking-wider text-gray-500">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100" id="tbodyHistorial">
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="9" class="px-5 py-16 text-center">
+                                <div class="text-4xl opacity-20">✈️</div>
+                                <p class="mt-2 text-sm text-gray-400">Este avión no tiene vuelos registrados.</p>
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var vuelo in Model)
+                    {
+                        <tr class="group transition-colors hover:bg-gray-50/70 fila-historial"
+                            data-search="@vuelo.NumeroVuelo @vuelo.RutaCodigo @vuelo.EstadoVuelo @vuelo.CiudadOrigen @vuelo.CiudadDestino @vuelo.CodigoOrigen @vuelo.CodigoDestino">
+                            <td class="px-5 py-3.5">
+                                <span class="font-mono text-sm font-semibold text-gray-900">@vuelo.NumeroVuelo</span>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <div class="text-sm font-bold text-gray-800">@vuelo.RutaCodigo</div>
+                                <div class="text-xs text-gray-500">@vuelo.CiudadOrigen → @vuelo.CiudadDestino</div>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <div class="text-sm font-semibold text-gray-700">@vuelo.FechaSalida.ToString("dd/MM/yyyy")</div>
+                                <div class="text-xs text-gray-400">@vuelo.FechaSalida.ToString("HH:mm")</div>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <div class="text-sm font-semibold text-gray-700">@vuelo.FechaLlegada.ToString("dd/MM/yyyy")</div>
+                                <div class="text-xs text-gray-400">@vuelo.FechaLlegada.ToString("HH:mm")</div>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <span class="font-mono text-xs text-gray-600">@vuelo.DuracionFormateada</span>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <span class="inline-block rounded-md px-2.5 py-0.5 text-xs font-bold ring-1 ring-inset @BadgeEstado(vuelo.EstadoId, vuelo.EstadoVuelo)">
+                                    @vuelo.EstadoVuelo
+                                </span>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-16 bg-gray-200 rounded-full h-1.5">
+                                        <div class="bg-blue-600 h-1.5 rounded-full" style="width: @(vuelo.PorcentajeOcupacion ?? 0)%"></div>
+                                    </div>
+                                    <span class="font-mono text-xs text-gray-600">@(vuelo.PorcentajeOcupacion?.ToString("F0") ?? "0")%</span>
+                                </div>
+                            </td>
+                            <td class="px-5 py-3.5">
+                                @if (vuelo.TieneRetraso)
+                                {
+                                    <span class="inline-block rounded-md px-2 py-0.5 text-xs font-bold bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200">
+                                        +@(vuelo.MinutosRetraso) min
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-xs text-gray-400">—</span>
+                                }
+                            </td>
+                            <td class="px-5 py-3.5 text-right">
+                                <a asp-controller="Vuelos" asp-action="DatosVuelo" asp-route-idVuelo="@vuelo.VueloId"
+                                   class="px-3 py-1.5 rounded-lg bg-gray-100 text-xs font-bold text-gray-700 hover:bg-gray-200 transition-all opacity-60 group-hover:opacity-100">
+                                    Ver Detalle
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function filtrarTabla(query) {
+        const q = (query || '').toLowerCase().trim();
+        const filas = document.querySelectorAll('.fila-historial');
+        let visibles = 0;
+        filas.forEach(fila => {
+            const texto = (fila.getAttribute('data-search') || '').toLowerCase();
+            const mostrar = !q || texto.includes(q);
+            fila.style.display = mostrar ? '' : 'none';
+            if (mostrar) visibles++;
+        });
+        document.getElementById('contadorResultados').textContent = q ? `${visibles} resultado${visibles !== 1 ? 's' : ''}` : '';
+    }
+</script>
+}
+
+

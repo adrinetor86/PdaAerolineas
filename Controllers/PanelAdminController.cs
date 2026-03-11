@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PdaAerolineas.Extensions;
 using PdaAerolineas.Models;
 using PdaAerolineas.Models.Views;
@@ -7,7 +8,7 @@ using PdaAerolineas.Repositories;
 namespace PdaAerolineas.Controllers;
 
 
-[OnlyAdmin]
+[Authorize(Roles="Administrador")]
 public class PanelAdminController : Controller
 {
     

@@ -44,7 +44,7 @@ public class TelemetriaController : Controller
     {
       
         var vuelosActivos = await _context.VuelosTracking
-            .Where(v => v.EstadoId == 3) // 3 = En Vuelo
+            .Where(v => v.EstadoId == 3) 
             .Select(v => new {
                 v.NumeroVuelo,
                 v.LatitudActual, 
@@ -68,7 +68,7 @@ public class TelemetriaController : Controller
                 .FirstOrDefaultAsync(x => x.VueloId == idVuelo);
 
             if (t == null)
-                return NotFound(new { success = false, error = "Vuelo no encontrado en V_VUELOS_TRACKING", idVuelo });
+                return NotFound(new { success = false, error = "No se ha podido trackear el vuelo ", idVuelo });
 
             double? latOrigen = t.LatOrigen.HasValue ? (double?)t.LatOrigen.Value : null;
             double? lngOrigen = t.LngOrigen.HasValue ? (double?)t.LngOrigen.Value : null;
@@ -124,14 +124,13 @@ public class TelemetriaController : Controller
             .AsNoTracking()
             .Where(v => v.EstadoId == 3) 
             .ToListAsync();
-
-        // 2. Si no hay vuelos, devolvemos éxito pero con lista vacía
+        
         if (lista == null)
         {
             return Ok(new { success = true, data = new List<object>() });
         }
 
-        // 3. Proyectamos a un JSON limpio, controlando los nulos de lat/lng
+        // Proyectamos a un JSON limpio, controlando los nulos de lat/lng
         var data = lista.Select(t => new
         {
             vueloId = t.VueloId,

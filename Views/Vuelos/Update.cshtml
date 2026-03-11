@@ -1,4 +1,4 @@
-﻿@model VistaVuelo;
+@model VistaVuelo;
 
 @{
     var comandantes = ViewData["COMANDANTES"] as List<Tripulante> ?? new();
@@ -66,7 +66,7 @@
                                class="mt-1 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Pasajeros embarcados</label>
+                        <label class="block text-sm font-medium text-gray-700">Combustible (L)</label>
                         <input type="number" name="embarcados" value="@Model.PasajerosEmbarcados"
                                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2" />
                     </div>

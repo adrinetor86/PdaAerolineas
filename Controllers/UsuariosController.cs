@@ -1,4 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Data.SqlClient;
 using PdaAerolineas.Extensions;
@@ -29,12 +33,30 @@ public class UsuariosController : Controller
         return View();
     }
     
+    // [HttpPost]
+    // [ValidateAntiForgeryToken]
+    // public async Task<IActionResult> LogIn(string email,string password)
+    // {
+    //     HttpContext.Session.Clear();
+    //     Usuario user=  await _repoUsuarios.LogInUserAsync(email, password);
+    //   
+    //   if (user != null)
+    //   {
+    //       await CargarSession(user.IdUsusario);
+    //       return RedirectToAction("Index","Dashboard"); 
+    //   }
+    //   
+    //   ModelState.AddModelError("", "Credenciales incorrectas. Revise su email y contraseña.");
+    //   return View();
+    // }
+    //
     
     
+    [AllowAnonymous]
     public async Task<IActionResult> LogIn()
     {
         
-        if (HttpContext.Session.GetString("LOGGED") != null)
+        if (User.Identity.IsAuthenticated)
         {
             return RedirectToAction("Index","Dashboard"); 
         }
@@ -43,25 +65,70 @@ public class UsuariosController : Controller
     }    
     
     [HttpPost]
+    [AllowAnonymous]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> LogIn(string email,string password)
     {
-        HttpContext.Session.Clear();
-        Usuario user=  await _repoUsuarios.LogInUserAsync(email, password);
+        
+        VistaLoggedUser user=  await _repoUsuarios.LogInUserAsync(email, password);
       
       if (user != null)
       {
-          await CargarSession(user.IdUsusario);
-          return RedirectToAction("Index","Dashboard"); 
-      }
-      
-      ModelState.AddModelError("", "Credenciales incorrectas. Revise su email y contraseña.");
-      return View();
-    }
 
+          ClaimsIdentity identity = new ClaimsIdentity(
+              CookieAuthenticationDefaults.AuthenticationScheme,
+              ClaimTypes.Email, ClaimTypes.Role);
+
+          Claim claimEmail = new Claim(ClaimTypes.Email, email);
+          identity.AddClaim(claimEmail);
+          
+          Claim claimId = new Claim(ClaimTypes.NameIdentifier, user.IdUsuario.ToString()); 
+          identity.AddClaim(claimId);         
+          
+          Claim claimAerolinea= new Claim("Aerolinea", user.IdAerolinea.ToString()); 
+          identity.AddClaim(claimAerolinea);  
+          
+          Claim claimRole= new Claim(ClaimTypes.Role, user.Rol); 
+          identity.AddClaim(claimRole);
+          
+          
+          ClaimsPrincipal userPrincipal= new ClaimsPrincipal(identity);
+          await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, userPrincipal);
+          await CargarSession(user.IdUsuario);
+          if (user.Rol == "Mecanico")
+          {
+              return RedirectToAction("Index", "Mantenimientos");
+          }
+          else 
+          {
+              return RedirectToAction("Index", "Dashboard");
+          }
+      }
+         ModelState.AddModelError("", "Credenciales incorrectas. Revise su email y contraseña.");
+          return View();      
+          
+    }
+    
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> Logout()
+    {
+        
+        await BorrarSession();
+        await HttpContext.SignOutAsync
+            (CookieAuthenticationDefaults.AuthenticationScheme);
+        return RedirectToAction("LogIn");
+    }
+    
+    [AllowAnonymous]
+    public IActionResult AccessDenied()
+    {
+        return View();
+    }
+    
     private async Task CargarSession(int idUsuario)
     {
-        VistaLogedUser loggedUser= await _repoUsuarios.GetLoggedUserData(idUsuario);
+        VistaLoggedUser loggedUser= await _repoUsuarios.GetLoggedUserData(idUsuario);
 
         await BorrarSession();
         HttpContext.Session.SetObject("LOGGED",idUsuario);
@@ -81,7 +148,7 @@ public class UsuariosController : Controller
 
     private async Task ResetSession(int idUsuario)
     {
-        VistaLogedUser loggedUser= await _repoUsuarios.GetLoggedUserData(idUsuario);
+        VistaLoggedUser loggedUser= await _repoUsuarios.GetLoggedUserData(idUsuario);
 
         HttpContext.Session.Remove("ROL");
         HttpContext.Session.Remove("AEROLINEA");
@@ -90,6 +157,7 @@ public class UsuariosController : Controller
     }
     
     
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Register()
     {
         List<Aerolinea> aerolineas = await _repoAerolineas.GetAerolineasAsync();
@@ -99,6 +167,7 @@ public class UsuariosController : Controller
         return View(aerolineas);
     }   
     [HttpPost]
+    [Authorize(Roles = "Administrador")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(string nombre,string apellidos,string email,int idAerolinea,string password,int idRol)
     {
@@ -138,16 +207,16 @@ public class UsuariosController : Controller
     }
 
     
-    [SessionCheck]
-    public async Task<IActionResult> LogOut()
-    {
-
-        await BorrarSession();
-            return RedirectToAction("LogIn","Usuarios");             
-    }
+    // [SessionCheck]
+    // public async Task<IActionResult> LogOut()
+    // {
+    //
+    //     await BorrarSession();
+    //         return RedirectToAction("LogIn","Usuarios");             
+    // }
 
     [HttpGet]
-    [OnlyAdmin]
+    [Authorize(Roles="Administrador")]
     public async Task<IActionResult> Update(int idUsuario)
     {
         await CargarSelects();
@@ -157,6 +226,7 @@ public class UsuariosController : Controller
     
     
     [HttpPost]
+    [Authorize(Roles="Administrador")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Update(VistaAdministracionUsuarios usuario)
     {
@@ -171,7 +241,8 @@ public class UsuariosController : Controller
         
         return RedirectToAction("Usuarios","PanelAdmin");
     }
-
+    
+    [Authorize]
     public async Task<IActionResult> Configuracion(int idUsuario)
     {
         var usuario = await _repoUsuarios.FindUsuarioAsync(idUsuario);

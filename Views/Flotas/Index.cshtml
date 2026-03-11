@@ -1,10 +1,12 @@
-﻿@model List<VistaFlota>
+@model List<VistaFlota>
 
 @{
     ViewData["Title"] = "Gestor de Flota";
 
     // Extraemos la lista de estados del ViewData
     var estados = ViewData["ESTADOS"] as List<PdaAerolineas.Models.EstadoAvion> ?? new List<PdaAerolineas.Models.EstadoAvion>();
+    var modelos = ViewData["MODELOS"] as List<PdaAerolineas.Models.ModeloAvion> ?? new List<PdaAerolineas.Models.ModeloAvion>();
+    var aeropuertos = ViewData["AEROPUERTOS"] as List<PdaAerolineas.Models.Aeropuerto> ?? new List<PdaAerolineas.Models.Aeropuerto>();
 
     var currentBusqueda = Context.Request.Query["busqueda"].ToString();
     var currentEstado = Context.Request.Query["idEstado"].ToString();
@@ -45,7 +47,7 @@
                 @totalRegistros aeronaves &nbsp;·&nbsp; página @currentPage de @totalPaginas
             </p>
         </div>
-        <button type="button" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:bg-blue-800 transition-colors">
+        <button type="button" id="btnRegistrarAvion" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:bg-blue-800 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
@@ -188,9 +190,18 @@
                             </td>
                             
                             <td class="px-5 py-3.5">
-                                <div class="flex items-center justify-end opacity-60 transition-opacity group-hover:opacity-100">
-                                    <button type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 text-xs font-bold text-gray-700 shadow-sm transition-all hover:bg-gray-200 active:scale-95" title="Ver Detalles">
-                                        Detalles
+                                <div class="flex items-center justify-end gap-2 opacity-60 transition-opacity group-hover:opacity-100">
+                                    <a href="/Aviones/Historial/@avion.AvionId"
+                                       class="px-3 py-1.5 rounded-lg bg-gray-700 text-xs font-bold text-white hover:bg-gray-800 transition-all">
+                                        Historial
+                                    </a>
+                                    <button type="button" onclick="abrirEditarAvion(@avion.AvionId, '@avion.Matricula', @avion.IdEstadoAvion, '@avion.CodigoAeropuerto')"
+                                            class="px-3 py-1.5 rounded-lg bg-blue-600 text-xs font-bold text-white hover:bg-blue-700 transition-all">
+                                        Editar
+                                    </button>
+                                    <button type="button" onclick="eliminarAvion(@avion.AvionId, '@avion.Matricula')"
+                                            class="px-3 py-1.5 rounded-lg bg-red-600 text-xs font-bold text-white hover:bg-red-700 transition-all">
+                                        Eliminar
                                     </button>
                                 </div>
                             </td>
@@ -269,22 +280,218 @@
     </div>
 </div>
 
+<!-- MODAL REGISTRAR AERONAVE -->
+<div id="modalCrearAvion" class="fixed inset-0 hidden items-center justify-center bg-black/40 backdrop-blur-sm" style="z-index: 60;">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-8 relative m-4">
+        <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+            <h2 class="text-xl font-bold text-gray-800">Registrar Aeronave</h2>
+            <button onclick="cerrarModalCrear()" class="text-gray-400 hover:text-gray-700 text-2xl bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center">&times;</button>
+        </div>
+        <div id="panelErrorCrearAvion" class="hidden rounded-xl border-2 border-red-200 bg-red-50 px-5 py-3 mb-4">
+            <ul id="listaErrorCrearAvion" class="text-sm text-red-700 font-bold list-disc pl-5 space-y-1"></ul>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Matrícula *</label>
+                <input type="text" id="inputMatriculaCrear" placeholder="Ej: EC-MXP" maxlength="20"
+                       class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition uppercase font-mono font-bold"/>
+                <p id="error-crear-matricula" class="mt-1 hidden text-xs font-bold text-red-600"></p>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Modelo *</label>
+                <select id="selectModeloCrear" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                    <option value="" disabled selected>Seleccionar modelo...</option>
+                    @foreach (var m in modelos)
+                    {
+                        <option value="@m.IdModelo">@m.Fabricante @m.Nombre (@m.Capacidad pax · @m.Alcance km)</option>
+                    }
+                </select>
+                <p id="error-crear-modeloId" class="mt-1 hidden text-xs font-bold text-red-600"></p>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Aeropuerto Base *</label>
+                <select id="selectAeropuertoCrear" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                    <option value="" disabled selected>Seleccionar aeropuerto...</option>
+                    @foreach (var a in aeropuertos)
+                    {
+                        <option value="@a.IdAeropuerto">@a.Cod_Iata — @a.Nombre (@a.Ciudad)</option>
+                    }
+                </select>
+                <p id="error-crear-aeropuertoId" class="mt-1 hidden text-xs font-bold text-red-600"></p>
+            </div>
+        </div>
+        <div class="flex justify-end space-x-3 pt-6 border-t border-gray-100 mt-6">
+            <button onclick="cerrarModalCrear()" class="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 transition">Cancelar</button>
+            <button onclick="confirmarCrearAvion()" class="px-8 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">Registrar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL EDITAR AERONAVE -->
+<div id="modalEditarAvion" class="fixed inset-0 hidden items-center justify-center bg-black/40 backdrop-blur-sm" style="z-index: 60;">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-8 relative m-4">
+        <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+            <h2 class="text-xl font-bold text-gray-800">Editar <span id="lblMatriculaEditar" class="text-blue-600 font-mono"></span></h2>
+            <button onclick="cerrarModalEditar()" class="text-gray-400 hover:text-gray-700 text-2xl bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center">&times;</button>
+        </div>
+        <input type="hidden" id="inputIdAvionEditar"/>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Estado</label>
+                <select id="selectEstadoEditar" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                    @foreach (var e in estados)
+                    {
+                        <option value="@e.Id">@e.Nombre</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Aeropuerto Actual</label>
+                <select id="selectAeropuertoEditar" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                    @foreach (var a in aeropuertos)
+                    {
+                        <option value="@a.IdAeropuerto">@a.Cod_Iata — @a.Nombre</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="flex justify-end space-x-3 pt-6 border-t border-gray-100 mt-6">
+            <button onclick="cerrarModalEditar()" class="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 transition">Cancelar</button>
+            <button onclick="confirmarEditarAvion()" class="px-8 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">Guardar Cambios</button>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     function cambiarPagina(p) {
         document.getElementById('inputNumPag').value = p;
         document.getElementById('formFiltros').submit();
     }
-
     function resetPage() {
         document.getElementById('inputNumPag').value = 1;
     }
-
     function clearField(name) {
         const el = document.querySelector(`[name="${name}"]`);
         if (el) el.value = '';
         resetPage();
         document.getElementById('formFiltros').submit();
     }
+
+    // === MODAL CREAR ===
+    document.getElementById('btnRegistrarAvion').addEventListener('click', () => {
+        document.getElementById('panelErrorCrearAvion').classList.add('hidden');
+        document.querySelectorAll('[id^="error-crear-"]').forEach(el => { el.classList.add('hidden'); el.textContent = ''; });
+        document.getElementById('modalCrearAvion').classList.replace('hidden', 'flex');
+    });
+    function cerrarModalCrear() { document.getElementById('modalCrearAvion').classList.replace('flex', 'hidden'); }
+
+    async function confirmarCrearAvion() {
+        const matricula = document.getElementById('inputMatriculaCrear').value.trim();
+        const modeloId = document.getElementById('selectModeloCrear').value;
+        const aeropuertoId = document.getElementById('selectAeropuertoCrear').value;
+
+        // Limpiar errores
+        document.getElementById('panelErrorCrearAvion').classList.add('hidden');
+        document.querySelectorAll('[id^="error-crear-"]').forEach(el => { el.classList.add('hidden'); el.textContent = ''; });
+
+        // Validación client-side
+        const erroresLocal = [];
+        if (!matricula) erroresLocal.push({ field: 'matricula', message: 'La matrícula es obligatoria.' });
+        if (!modeloId) erroresLocal.push({ field: 'modeloId', message: 'Debe seleccionar un modelo.' });
+        if (!aeropuertoId) erroresLocal.push({ field: 'aeropuertoId', message: 'Debe seleccionar un aeropuerto.' });
+        if (erroresLocal.length > 0) { mostrarErroresCrear(erroresLocal); return; }
+
+        const params = new URLSearchParams({ matricula, modeloId, aeropuertoId });
+        try {
+            const result = await (await fetch('/Flotas/Create', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params })).json();
+            if (result.success) {
+                cerrarModalCrear();
+                await Swal.fire({ icon: 'success', title: '¡Registrada!', text: result.message, confirmButtonColor: '#2563eb', timer: 2000, timerProgressBar: true });
+                window.location.reload();
+            } else {
+                mostrarErroresCrear(result.errors || [{ field: '', message: result.message || 'Error desconocido' }]);
+            }
+        } catch (e) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo conectar con el servidor.', confirmButtonColor: '#dc2626' });
+        }
+    }
+
+    function mostrarErroresCrear(errores) {
+        const panel = document.getElementById('panelErrorCrearAvion');
+        const lista = document.getElementById('listaErrorCrearAvion');
+        const normalizados = errores.map(e => typeof e === 'string' ? { field: '', message: e } : { field: e.field || e.Field || '', message: e.message || e.Message || 'Error' });
+        lista.innerHTML = normalizados.map(e => `<li>${e.message}</li>`).join('');
+        panel.classList.remove('hidden');
+        normalizados.forEach(e => {
+            if (e.field) {
+                const msg = document.getElementById(`error-crear-${e.field}`);
+                if (msg) { msg.textContent = e.message; msg.classList.remove('hidden'); }
+            }
+        });
+    }
+
+    // === MODAL EDITAR ===
+    function abrirEditarAvion(id, matricula, estadoId, codAeropuerto) {
+        document.getElementById('inputIdAvionEditar').value = id;
+        document.getElementById('lblMatriculaEditar').textContent = matricula;
+        document.getElementById('selectEstadoEditar').value = estadoId;
+
+        // Buscar el aeropuerto por código IATA en las opciones
+        const selAeropuerto = document.getElementById('selectAeropuertoEditar');
+        for (const opt of selAeropuerto.options) {
+            if (opt.text.startsWith(codAeropuerto + ' ')) { selAeropuerto.value = opt.value; break; }
+        }
+        document.getElementById('modalEditarAvion').classList.replace('hidden', 'flex');
+    }
+    function cerrarModalEditar() { document.getElementById('modalEditarAvion').classList.replace('flex', 'hidden'); }
+
+    async function confirmarEditarAvion() {
+        const params = new URLSearchParams({
+            idAvion: document.getElementById('inputIdAvionEditar').value,
+            estadoId: document.getElementById('selectEstadoEditar').value,
+            aeropuertoId: document.getElementById('selectAeropuertoEditar').value
+        });
+        try {
+            const result = await (await fetch('/Flotas/Update', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params })).json();
+            if (result.success) {
+                cerrarModalEditar();
+                await Swal.fire({ icon: 'success', title: '¡Actualizado!', text: result.message, confirmButtonColor: '#2563eb', timer: 2000, timerProgressBar: true });
+                window.location.reload();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: result.message, confirmButtonColor: '#dc2626' });
+            }
+        } catch (e) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo conectar.', confirmButtonColor: '#dc2626' });
+        }
+    }
+
+    // === ELIMINAR ===
+    async function eliminarAvion(id, matricula) {
+        const s = await Swal.fire({
+            title: `¿Eliminar ${matricula}?`,
+            text: 'Esta acción no se puede deshacer. No se eliminará si tiene vuelos activos.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+        if (!s.isConfirmed) return;
+        try {
+            const result = await (await fetch('/Flotas/Delete', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ idAvion: id }) })).json();
+            if (result.success) {
+                await Swal.fire({ icon: 'success', title: 'Eliminada', text: result.message, confirmButtonColor: '#2563eb', timer: 2000, timerProgressBar: true });
+                window.location.reload();
+            } else {
+                Swal.fire({ icon: 'error', title: 'No se pudo eliminar', text: result.message, confirmButtonColor: '#dc2626' });
+            }
+        } catch (e) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo conectar.', confirmButtonColor: '#dc2626' });
+        }
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { cerrarModalCrear(); cerrarModalEditar(); } });
 </script>
 }

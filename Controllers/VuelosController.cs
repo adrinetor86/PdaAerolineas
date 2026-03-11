@@ -1,13 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using PdaAerolineas.Extensions;
+using PdaAerolineas.Helpers;
 using PdaAerolineas.Models;
 using PdaAerolineas.Models.FormViews;
 using PdaAerolineas.Models.Views;
 using PdaAerolineas.Repositories;
 
 namespace PdaAerolineas.Controllers;
-[HighRoles]
+[Authorize(Roles="Administrador,Gerente")]
 public class VuelosController : Controller
 {
     private RepositoryVuelos _repoVuelos;
@@ -40,15 +42,16 @@ public class VuelosController : Controller
         if (numFilas < 1) numFilas = 10;
         
         
-        int idAero=HttpContext.Session.GetObject<int>("AEROLINEA");
-        
+        // int idAero=HttpContext.Session.GetObject<int>("AEROLINEA");
+        int idAero= ClaimsExtensions.GetAerolineaId(User);
+
         
         var (vuelos, total) = await _repoVuelos.GetVuelosPaginadosConTotalAsync(numPag, numFilas, idEstado, idAero, fechaSalida, busqueda);
         ViewData["TOTAL_REGISTROS"] = total;
 
         ViewData["ESTADOS"] = await _repoVuelos.GetEstadosVuelosAync();
         
-        ViewData["AVIONES"] = await _repoVuelos.GetAvionesByDisponiblesAsync(idAero);
+        ViewData["AVIONES"] = await _repoVuelos.GetAvionesConRutasDisponiblesAsync(idAero);
         ViewData["NUMEROVUELOS"] = await _repoVuelos.GetNumeroVueloByAerolineaAsync(idAero);
 
         return View(vuelos);

@@ -14,19 +14,20 @@ public class AvionesController : Controller
         _repoAviones = repoAviones;
     }
     
-    
-    // public async Task<IActionResult> Historial(int id)
-    // {
-    //     var historial = await _repoAvion.GetHistorialAsync(id);
-    //     var estadisticas = await _repoAvion.GetEstadisticasAsync(id);
-    //         
-    //     var viewModel = new HistorialAvionViewModel
-    //     {
-    //         Historial = historial,
-    //         Estadisticas = estadisticas,
-    //         TopRutas = await _repoAvion.GetTopRutasAsync(id)
-    //     };
-    //         
-    //     return View(viewModel);
-    // }
+    public async Task<IActionResult> Historial(int id)
+    {
+        List<VistaHistorialVuelo> historial = await _repoAviones.GetHistorialByAvionIdAsync(id);
+
+        if (historial.Count == 0)
+        {
+            ViewData["AVION_INFO"] = "Sin datos";
+            return View(new List<VistaHistorialVuelo>());
+        }
+
+        var vuelo = historial.First();
+        ViewData["AVION_INFO"] = $"{vuelo.Matricula} — {vuelo.Fabricante} {vuelo.NombreModelo}";
+        ViewData["AVION_ID"] = id;
+
+        return View(historial);
+    }
 }

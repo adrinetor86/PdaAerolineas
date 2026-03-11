@@ -1,93 +1,318 @@
-﻿@using System.Runtime.InteropServices.JavaScript
-@model List<VistaRuta>
+﻿@using PdaAerolineas.Models.Views
+@model List<VistaRutaAerolinea>
 
 @{
-    
-    ViewData["Title"] = "Mapa 3D";
+    ViewData["Title"] = "Rutas";
+    var rutasMapa = ViewData["RUTAS_MAPA"] as List<VistaRuta> ?? new List<VistaRuta>();
+    var rutasDisponibles = ViewData["RUTAS_DISPONIBLES"] as List<VistaRuta> ?? new List<VistaRuta>();
 }
 
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<div id="map" style="height: 1500px; width: 100%"
-     class="rounded-xl borderborder-gray-200 shadow-sm overflow-hidden">
+    <!-- HEADER -->
+    <div class="flex items-end justify-between">
+        <div>
+            <h2 class="text-3xl font-extrabold tracking-tight text-gray-900">Gestión de Rutas</h2>
+            <p class="mt-0.5 text-xs font-mono text-gray-400">
+                @Model.Count rutas operadas &nbsp;·&nbsp; @Model.Count(r => r.Activa) activas
+            </p>
+        </div>
+        <button id="btnAsignarRuta"
+                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Asignar Nueva Ruta
+        </button>
+    </div>
+
+    <!-- MAPA (z-index bajo para que modales pasen por encima) -->
+    <div class="rounded-xl border border-gray-200 shadow-sm overflow-hidden relative" style="z-index: 1;">
+        <div id="map" style="height: 400px; width: 100%"></div>
+    </div>
+
+    <!-- BUSCADOR -->
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/40">
+            <div class="flex items-center gap-4">
+                <div class="flex-1 relative">
+                    <input type="text" id="inputBusquedaRutas" placeholder="Buscar por código, ciudad, aeropuerto..."
+                           class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                           oninput="filtrarTablaRutas(this.value)"/>
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+                <span id="contadorResultados" class="text-xs font-mono text-gray-400 whitespace-nowrap"></span>
+            </div>
+        </div>
+
+        <!-- TABLA DE RUTAS -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm" id="tablaRutas">
+                <thead class="border-b border-gray-200 bg-gray-50/40">
+                <tr>
+                    <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Ruta</th>
+                    <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Origen</th>
+                    <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Destino</th>
+                    <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Distancia</th>
+                    <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Precio Base</th>
+                    <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Freq/Sem</th>
+                    <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Vuelos</th>
+                    <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Estado</th>
+                    <th class="px-5 py-3 text-right text-xs font-bold uppercase tracking-wider text-gray-500">Acciones</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100" id="tbodyRutas">
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="9" class="px-5 py-16 text-center">
+                            <div class="text-4xl opacity-20">🛫</div>
+                            <p class="mt-2 text-sm text-gray-400">No hay rutas asignadas a tu aerolínea.</p>
+                        </td>
+                    </tr>
+                }
+                @foreach (var ruta in Model)
+                {
+                    <tr class="group transition-colors hover:bg-gray-50/70 fila-ruta"
+                        data-search="@ruta.CodigoRuta @ruta.CodigoOrigen @ruta.CodigoDestino @ruta.CiudadOrigen @ruta.CiudadDestino @ruta.AeropuertoOrigen @ruta.AeropuertoDestino">
+                        <td class="px-5 py-3.5">
+                            <span class="font-mono text-sm font-semibold text-gray-900">@ruta.CodigoRuta</span>
+                        </td>
+                        <td class="px-5 py-3.5">
+                            <div class="text-sm font-bold text-gray-800">@ruta.CodigoOrigen</div>
+                            <div class="text-xs text-gray-500">@ruta.CiudadOrigen</div>
+                        </td>
+                        <td class="px-5 py-3.5">
+                            <div class="text-sm font-bold text-gray-800">@ruta.CodigoDestino</div>
+                            <div class="text-xs text-gray-500">@ruta.CiudadDestino</div>
+                        </td>
+                        <td class="px-5 py-3.5">
+                            <span class="font-mono text-xs text-gray-500">@ruta.DistanciaKm km</span>
+                        </td>
+                        <td class="px-5 py-3.5">
+                            <span class="font-mono text-xs text-gray-500">@(ruta.PrecioBase.HasValue ? ruta.PrecioBase.Value.ToString("N2") + " €" : "—")</span>
+                        </td>
+                        <td class="px-5 py-3.5">
+                            <span class="font-mono text-xs text-gray-500">@(ruta.FrecuenciaSemanal?.ToString() ?? "—")</span>
+                        </td>
+                        <td class="px-5 py-3.5">
+                            <span class="font-mono text-xs text-gray-700 font-bold">@ruta.VuelosCompletados/@ruta.TotalVuelos</span>
+                        </td>
+                        <td class="px-5 py-3.5">
+                            @if (ruta.Activa)
+                            {
+                                <span class="inline-block rounded-md px-2.5 py-0.5 text-xs font-bold bg-green-50 text-green-700 ring-1 ring-inset ring-green-200">Activa</span>
+                            }
+                            else
+                            {
+                                <span class="inline-block rounded-md px-2.5 py-0.5 text-xs font-bold bg-red-50 text-red-700 ring-1 ring-inset ring-red-200">Inactiva</span>
+                            }
+                        </td>
+                        <td class="px-5 py-3.5 text-right">
+                            <div class="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                                <button onclick="abrirEditar(@ruta.RutaId, '@ruta.CodigoRuta', @(ruta.PrecioBase?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null"), @(ruta.FrecuenciaSemanal?.ToString() ?? "null"))"
+                                        class="px-3 py-1.5 rounded-lg bg-blue-600 text-xs font-bold text-white hover:bg-blue-700 transition-all">
+                                    Editar
+                                </button>
+                                @if (ruta.Activa)
+                                {
+                                    <button onclick="desactivarRuta(@ruta.RutaId, '@ruta.CodigoRuta')"
+                                            class="px-3 py-1.5 rounded-lg bg-red-600 text-xs font-bold text-white hover:bg-red-700 transition-all">
+                                        Desactivar
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button onclick="reactivarRuta(@ruta.RutaId, '@ruta.CodigoRuta')"
+                                            class="px-3 py-1.5 rounded-lg bg-green-600 text-xs font-bold text-white hover:bg-green-700 transition-all">
+                                        Reactivar
+                                    </button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<div id="modalAsignar" class="fixed inset-0 hidden items-center justify-center bg-black/40 backdrop-blur-sm" style="z-index: 60;">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-8 relative m-4">
+        <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+            <h2 class="text-xl font-bold text-gray-800">Asignar Nueva Ruta</h2>
+            <button onclick="cerrarModalAsignar()" class="text-gray-400 hover:text-gray-700 text-2xl bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center">&times;</button>
+        </div>
+        <div id="panelErrorAsignar" class="hidden rounded-xl border-2 border-red-200 bg-red-50 px-5 py-3 mb-4">
+            <p id="msgErrorAsignar" class="text-sm text-red-700 font-bold"></p>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Ruta *</label>
+                <select id="selectRutaAsignar" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                    <option value="" disabled selected>Seleccionar ruta...</option>
+                    @foreach (var r in rutasDisponibles)
+                    {
+                        <option value="@r.Id">@r.CodOrigen → @r.CodDestino (@r.CiudadOrigen → @r.CiudadDestino · @r.Distancia km)</option>
+                    }
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Precio Base (€)</label>
+                    <input type="number" id="inputPrecioAsignar" step="0.01" min="0" placeholder="Ej: 120.50"
+                           class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Frecuencia Semanal</label>
+                    <input type="number" id="inputFrecuenciaAsignar" min="0" placeholder="Ej: 7"
+                           class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition"/>
+                </div>
+            </div>
+        </div>
+        <div class="flex justify-end space-x-3 pt-6 border-t border-gray-100 mt-6">
+            <button onclick="cerrarModalAsignar()" class="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 transition">Cancelar</button>
+            <button onclick="confirmarAsignar()" class="px-8 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">Asignar Ruta</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL EDITAR -->
+<div id="modalEditar" class="fixed inset-0 hidden items-center justify-center bg-black/40 backdrop-blur-sm" style="z-index: 60;">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-8 relative m-4">
+        <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+            <h2 class="text-xl font-bold text-gray-800">Editar Ruta <span id="lblRutaEditar" class="text-blue-600"></span></h2>
+            <button onclick="cerrarModalEditar()" class="text-gray-400 hover:text-gray-700 text-2xl bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center">&times;</button>
+        </div>
+        <input type="hidden" id="inputIdRutaEditar"/>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Precio Base (€)</label>
+                <input type="number" id="inputPrecioEditar" step="0.01" min="0"
+                       class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition"/>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Frecuencia Semanal</label>
+                <input type="number" id="inputFrecuenciaEditar" min="0"
+                       class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition"/>
+            </div>
+        </div>
+        <div class="flex justify-end space-x-3 pt-6 border-t border-gray-100 mt-6">
+            <button onclick="cerrarModalEditar()" class="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 transition">Cancelar</button>
+            <button onclick="confirmarEditar()" class="px-8 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">Guardar Cambios</button>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-//  Datos de rutas serializados desde el servidor
-const rutas = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
-
-// Inicializar mapa centrado en España
-const map = L.map('map').setView([40.4, -3.7], 5);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
-}).addTo(map);
-
-// Iconos personalizados
-const iconoAeropuerto = L.divIcon({
-    className: '',
-    html: `<div style="
-        background:#2563eb;color:white;border-radius:50%;
-        width:28px;height:28px;display:flex;align-items:center;
-        justify-content:center;font-size:13px;font-weight:700;
-        border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">
-        ✈</div>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14]
-});
-
-// Evitar marcadores duplicados (mismo aeropuerto en varias rutas)
-const aeropuertosVistos = new Set();
-
-rutas.forEach(ruta => {
-    const origen  = [parseFloat(ruta.LatitudOrigen),  parseFloat(ruta.LongitudOrigen)];
-    const destino = [parseFloat(ruta.LatitudDestino), parseFloat(ruta.LongitudDestino)];
-
-    // Línea de la ruta
-    const linea = L.polyline([origen, destino], {
-        color: '#3b82f6',
-        weight: 2,
-        opacity: 0.6,
-        dashArray: '6 4'
-    }).addTo(map);
-
-    linea.bindTooltip(`
-        ${ruta.CiudadOrigen} (${ruta.CodOrigen}) → ${ruta.CiudadDestino} (${ruta.CodDestino})<br>
-        ${ruta.Distancia} km · ${ruta.DuracionFomateada}
-    `, { sticky: true });
-
-    // Marcador origen
-    if (!aeropuertosVistos.has(ruta.CodOrigen)) {
-        aeropuertosVistos.add(ruta.CodOrigen);
-        L.marker(origen, { icon: iconoAeropuerto })
-            .addTo(map)
-            .bindPopup(`
-                <b>${ruta.CodOrigen}</b> — ${ruta.NombreOrigen}<br>
-                <span class="text-gray-500">${ruta.CiudadOrigen}</span>
-            `);
+    // === BÚSQUEDA CLIENT-SIDE ===
+    function filtrarTablaRutas(query) {
+        const q = (query || '').toLowerCase().trim();
+        const filas = document.querySelectorAll('.fila-ruta');
+        let visibles = 0;
+        filas.forEach(fila => {
+            const texto = (fila.getAttribute('data-search') || '').toLowerCase();
+            const mostrar = !q || texto.includes(q);
+            fila.style.display = mostrar ? '' : 'none';
+            if (mostrar) visibles++;
+        });
+        document.getElementById('contadorResultados').textContent = q ? `${visibles} resultado${visibles !== 1 ? 's' : ''}` : '';
     }
 
-    // Marcador destino
-    if (!aeropuertosVistos.has(ruta.CodDestino)) {
-        aeropuertosVistos.add(ruta.CodDestino);
-        L.marker(destino, { icon: iconoAeropuerto })
-            .addTo(map)
-            .bindPopup(`
-                <b>${ruta.CodDestino}</b> — ${ruta.NombreDestino}<br>
-                <span class="text-gray-500">${ruta.CiudadDestino}</span>
-            `);
-    }
-});
+    // === MAPA ===
+    const rutasMapa = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(rutasMapa));
+    const map = L.map('map').setView([40.4, -3.7], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
-// Ajustar zoom para que entren todos los puntos
-if (rutas.length > 0) {
-    const puntos = rutas.flatMap(r => [
-        [parseFloat(r.LatitudOrigen),  parseFloat(r.LongitudOrigen)],
-        [parseFloat(r.LatitudDestino), parseFloat(r.LongitudDestino)]
-    ]);
-    map.fitBounds(puntos, { padding: [40, 40] });
-}
+    const iconoAeropuerto = L.divIcon({
+        className: '',
+        html: `<div style="background:#2563eb;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">✈</div>`,
+        iconSize: [28, 28], iconAnchor: [14, 14]
+    });
+    const aeropuertosVistos = new Set();
+    rutasMapa.forEach(ruta => {
+        const origen = [parseFloat(ruta.LatitudOrigen), parseFloat(ruta.LongitudOrigen)];
+        const destino = [parseFloat(ruta.LatitudDestino), parseFloat(ruta.LongitudDestino)];
+        L.polyline([origen, destino], { color: '#3b82f6', weight: 2, opacity: 0.6, dashArray: '6 4' }).addTo(map)
+            .bindTooltip(`${ruta.CiudadOrigen} (${ruta.CodOrigen}) → ${ruta.CiudadDestino} (${ruta.CodDestino})<br>${ruta.Distancia} km`, { sticky: true });
+        if (!aeropuertosVistos.has(ruta.CodOrigen)) { aeropuertosVistos.add(ruta.CodOrigen); L.marker(origen, { icon: iconoAeropuerto }).addTo(map).bindPopup(`<b>${ruta.CodOrigen}</b> — ${ruta.NombreOrigen}<br>${ruta.CiudadOrigen}`); }
+        if (!aeropuertosVistos.has(ruta.CodDestino)) { aeropuertosVistos.add(ruta.CodDestino); L.marker(destino, { icon: iconoAeropuerto }).addTo(map).bindPopup(`<b>${ruta.CodDestino}</b> — ${ruta.NombreDestino}<br>${ruta.CiudadDestino}`); }
+    });
+    if (rutasMapa.length > 0) { map.fitBounds(rutasMapa.flatMap(r => [[parseFloat(r.LatitudOrigen), parseFloat(r.LongitudOrigen)], [parseFloat(r.LatitudDestino), parseFloat(r.LongitudDestino)]]), { padding: [40, 40] }); }
+
+
+    document.getElementById('btnAsignarRuta').addEventListener('click', () => { 
+        document.getElementById('panelErrorAsignar').classList.add('hidden');
+        document.getElementById('modalAsignar').classList.replace('hidden', 'flex'); 
+    });
+    
+    function cerrarModalAsignar() { document.getElementById('modalAsignar').classList.replace('flex', 'hidden'); }
+    function cerrarModalEditar() { document.getElementById('modalEditar').classList.replace('flex', 'hidden'); }
+    function abrirEditar(idRuta, codigo, precio, freq) {
+        document.getElementById('inputIdRutaEditar').value = idRuta;
+        document.getElementById('lblRutaEditar').textContent = codigo;
+        document.getElementById('inputPrecioEditar').value = precio !== null ? precio : '';
+        document.getElementById('inputFrecuenciaEditar').value = freq !== null ? freq : '';
+        document.getElementById('modalEditar').classList.replace('hidden', 'flex');
+    }
+
+    async function confirmarAsignar() {
+        const ruta = document.getElementById('selectRutaAsignar').value;
+        if (!ruta) { document.getElementById('msgErrorAsignar').textContent = 'Debe seleccionar una ruta.'; document.getElementById('panelErrorAsignar').classList.remove('hidden'); return; }
+        const params = new URLSearchParams({ idRuta: ruta });
+        const precio = document.getElementById('inputPrecioAsignar').value; if (precio) params.append('precioBase', precio);
+        const freq = document.getElementById('inputFrecuenciaAsignar').value; if (freq) params.append('frecuenciaSemanal', freq);
+        try {
+            const result = await (
+                await fetch('/Rutas/Asignar',
+                    { method: 'POST', 
+                      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                      body: params })
+            ).json();
+            
+            if (result.success) { cerrarModalAsignar(); await Swal.fire({ icon: 'success', title: '¡Ruta asignada!', text: result.message, confirmButtonColor: '#2563eb', timer: 2000, timerProgressBar: true }); window.location.reload(); }
+            else { document.getElementById('msgErrorAsignar').textContent = result.message || 'Error'; document.getElementById('panelErrorAsignar').classList.remove('hidden'); }
+        } catch (e) { Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo conectar.', confirmButtonColor: '#dc2626' }); }
+    }
+
+    async function confirmarEditar() {
+        const params = new URLSearchParams({ idRuta: document.getElementById('inputIdRutaEditar').value });
+        const p = document.getElementById('inputPrecioEditar').value; if (p) params.append('precioBase', p);
+        const f = document.getElementById('inputFrecuenciaEditar').value; if (f) params.append('frecuenciaSemanal', f);
+        try {
+            const result = await (await fetch('/Rutas/Actualizar', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params })).json();
+            if (result.success) { cerrarModalEditar(); await Swal.fire({ icon: 'success', title: '¡Actualizado!', text: result.message, confirmButtonColor: '#2563eb', timer: 2000, timerProgressBar: true }); window.location.reload(); }
+            else { Swal.fire({ icon: 'error', title: 'Error', text: result.message, confirmButtonColor: '#dc2626' }); }
+        } catch (e) { Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo conectar.', confirmButtonColor: '#dc2626' }); }
+    }
+
+    async function desactivarRuta(idRuta, codigo) {
+        const s = await Swal.fire({ title: `¿Desactivar ruta ${codigo}?`, text: 'No se podrán crear nuevos vuelos con esta ruta.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', cancelButtonColor: '#6b7280', confirmButtonText: 'Sí, desactivar', cancelButtonText: 'Cancelar' });
+        if (!s.isConfirmed) return;
+        try {
+            const result = await (await fetch('/Rutas/Desactivar', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ idRuta }) })).json();
+            if (result.success) { await Swal.fire({ icon: 'success', title: 'Desactivada', text: result.message, confirmButtonColor: '#2563eb', timer: 2000, timerProgressBar: true }); window.location.reload(); }
+            else { Swal.fire({ icon: 'error', title: 'Error', text: result.message, confirmButtonColor: '#dc2626' }); }
+        } catch (e) { Swal.fire({ icon: 'error', title: 'Error', confirmButtonColor: '#dc2626' }); }
+    }
+
+    async function reactivarRuta(idRuta, codigo) {
+        const s = await Swal.fire({ title: `¿Reactivar ruta ${codigo}?`, text: 'La ruta volverá a estar disponible para programar vuelos.', icon: 'question', showCancelButton: true, confirmButtonColor: '#16a34a', cancelButtonColor: '#6b7280', confirmButtonText: 'Sí, reactivar', cancelButtonText: 'Cancelar' });
+        if (!s.isConfirmed) return;
+        try {
+            const result = await (await fetch('/Rutas/Reactivar', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ idRuta }) })).json();
+            if (result.success) { await Swal.fire({ icon: 'success', title: '¡Reactivada!', text: result.message, confirmButtonColor: '#2563eb', timer: 2000, timerProgressBar: true }); window.location.reload(); }
+            else { Swal.fire({ icon: 'error', title: 'Error', text: result.message, confirmButtonColor: '#dc2626' }); }
+        } catch (e) { Swal.fire({ icon: 'error', title: 'Error', confirmButtonColor: '#dc2626' }); }
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { cerrarModalAsignar(); cerrarModalEditar(); } });
 </script>
 }

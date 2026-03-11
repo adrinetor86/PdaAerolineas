@@ -23,12 +23,15 @@ public class DataContext:DbContext
     
     public DbSet<Avion> Aviones { get; set; }
     public DbSet<VistaAvion> VistaAviones { get; set; }
+    public DbSet<ModeloAvion> ModelosAvion { get; set; }
     public DbSet<EstadoAvion> EstadosAviones { get; set; }
     
     public DbSet<VistaDashboard> VistaDashboard { get; set; }
     
     public DbSet<Ruta> Rutas { get; set; }
     public DbSet<VistaRuta> VistaRutas { get; set; }
+    public DbSet<RutaAerolinea> RutasAerolinea { get; set; }
+    public DbSet<VistaRutaAerolinea> VistaRutasAerolinea { get; set; }
     public DbSet<RolUsuario> RolesUsuario { get; set; }
     
     public DbSet<Tripulante> Tripulantes { get; set; }
@@ -45,7 +48,7 @@ public class DataContext:DbContext
     public DbSet<VistaUsuarios> VistaUsuarios { get; set; }
     public DbSet<VistaAdministracionUsuarios> VistaAdministracionUsuarios { get; set; }
     
-    public DbSet<VistaLogedUser> VistaLogedUser { get; set; }
+    public DbSet<VistaLoggedUser> VistaLogedUser { get; set; }
     public DbSet<RetrasoVuelo> RetrasosVuelos { get; set; }
     
     public DbSet<VistaRetraso> VistaRetrasos { get; set; }
@@ -74,6 +77,10 @@ public class DataContext:DbContext
         modelBuilder.Entity<ProximoVueloDto>().HasNoKey().ToView(null);
         modelBuilder.Entity<VueloRecienteDto>().HasNoKey().ToView(null);
         modelBuilder.Entity<TopRutaDto>().HasNoKey().ToView(null);
+        
+        // VistaRutaAerolinea tiene clave compuesta (ruta_id + aerolinea_id)
+        modelBuilder.Entity<VistaRutaAerolinea>()
+            .HasKey(v => new { v.RutaId, v.AerolineaId });
         
         base.OnModelCreating(modelBuilder);
     }

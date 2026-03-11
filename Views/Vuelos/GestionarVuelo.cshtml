@@ -437,13 +437,14 @@
                         message: 'Los pasajeros confirmados deben ser mayor a 0.'
                     });
                     
-                    if (datos.PasajerosConfirmados > Model.Capacidad ) errores.push({
+                    const maxPlazas = parseInt(document.getElementById('plazasAvion')?.getAttribute('value')) || 0;
+                    if (datos.PasajerosConfirmados > maxPlazas) errores.push({
                         field: 'PasajerosConfirmados',
-                        message: 'Los pasajeros confirmados deben ser mayor a 0.'
+                        message: `Los pasajeros confirmados (${datos.PasajerosConfirmados}) no pueden superar la capacidad del avión (${maxPlazas}).`
                     });
                     if (datos.PasajerosEmbarcados > datos.PasajerosConfirmados) errores.push({
                         field: 'PasajerosEmbarcados',
-                        message: 'Los pasajeros embarcados no pueden superar a los confirmados.'
+                        message: 'El combustible cargado no puede superar al confirmado.'
                     });
                 }
 
@@ -475,13 +476,18 @@
                         field: 'Puerta',
                         message: 'Debe asignar una puerta de embarque.'
                     });
+                    const maxPlazas = parseInt(document.getElementById('plazasAvion')?.getAttribute('value')) || 0;
                     if (datos.PasajerosConfirmados <= 0) errores.push({
                         field: 'PasajerosConfirmados',
                         message: 'Los pasajeros confirmados deben ser mayor a 0.'
                     });
+                    if (maxPlazas > 0 && datos.PasajerosConfirmados > maxPlazas) errores.push({
+                        field: 'PasajerosConfirmados',
+                        message: `Los pasajeros confirmados (${datos.PasajerosConfirmados}) no pueden superar la capacidad del avión (${maxPlazas}).`
+                    });
                     if (datos.PasajerosEmbarcados > datos.PasajerosConfirmados) errores.push({
                         field: 'PasajerosEmbarcados',
-                        message: 'Los pasajeros embarcados no pueden superar a los confirmados.'
+                        message: 'El combustible cargado no puede superar al confirmado.'
                     });
                 }
 

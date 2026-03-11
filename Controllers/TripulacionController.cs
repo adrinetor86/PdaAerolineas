@@ -1,13 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PdaAerolineas.Models;
 using PdaAerolineas.Repositories;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using PdaAerolineas.Extensions;
+using PdaAerolineas.Helpers;
 
 namespace PdaAerolineas.Controllers;
 
 // TODO PASAR LOS ROLES TAMBIEN COMO AEROLINEAS
-[HighRoles]
+[Authorize(Roles="Administrador,Gerente")]
 public class TripulacionController : Controller
 {
     private RepositoryTripulantes _repoTripulantes;
@@ -27,7 +29,9 @@ public class TripulacionController : Controller
         [FromQuery] bool? activo = null,
         [FromQuery] string? busqueda = null)
     {
-        int idAerolinea = HttpContext.Session.GetObject<int>("AEROLINEA");
+        // int idAerolinea = HttpContext.Session.GetObject<int>("AEROLINEA");
+        int idAerolinea= ClaimsExtensions.GetAerolineaId(User);
+
         var resultado = await _repoTripulantes.GetTripulantesPaginadosAsync(numPag, numFilas, rol, idAerolinea, activo, busqueda);
 
         ViewBag.Roles = await _repoTripulantes.GetRolesAsync();
@@ -82,7 +86,7 @@ public class TripulacionController : Controller
     }
 
 
-
+    [Authorize(Roles="Administrador,Gerente")]
     public async Task<IActionResult> Create()
     {
         ViewBag.Roles = await _repoTripulantes.GetRolesAsync();
@@ -99,6 +103,7 @@ public class TripulacionController : Controller
     
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles="Administrador,Gerente")]
     public async Task<IActionResult> Create(int idAerolinea,string nombre,string apellido,string rol,bool activo)
     {
         

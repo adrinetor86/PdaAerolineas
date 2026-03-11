@@ -551,24 +551,92 @@
     
     $(document).ready(function () {
 
-        $("#selectNumeroVuelo").select2({
-            placeholder: "Buscar número de vuelo...",
+        // Estilos personalizados para Select2 que coincidan con el diseño del formulario
+        const select2Config = {
             width: "100%",
+            dropdownCssClass: "select2-dropdown-custom"
+        };
+
+        $("#selectNumeroVuelo").select2({
+            ...select2Config,
+            placeholder: "Buscar número de vuelo...",
             allowClear: true
         });
 
         $("#selectAvion").select2({
-            placeholder: "Buscar aeronave...",
-            width: "100%"
+            ...select2Config,
+            placeholder: "Buscar aeronave..."
         });
 
         $("#selectDestino").select2({
-            placeholder: "Buscar destino...",
-            width: "100%"
+            ...select2Config,
+            placeholder: "Buscar destino..."
         });
 
+        // Aplicar estilos personalizados a Select2 tras inicialización
+        function applySelect2Styles() {
+            $('.select2-container--default .select2-selection--single').css({
+                'height': '48px',
+                'border-radius': '12px',
+                'border': '1px solid #e5e7eb',
+                'background': '#f9fafb',
+                'padding': '0 16px',
+                'font-size': '14px',
+                'font-weight': '600',
+                'display': 'flex',
+                'align-items': 'center',
+                'transition': 'all 0.15s ease'
+            });
+            $('.select2-container--default .select2-selection--single .select2-selection__rendered').css({
+                'line-height': '48px',
+                'padding-left': '0',
+                'color': '#374151'
+            });
+            $('.select2-container--default .select2-selection--single .select2-selection__arrow').css({
+                'height': '48px',
+                'right': '12px'
+            });
+        }
+        applySelect2Styles();
+
+        // Refrescar estilos cuando se abre el modal
+        $("#btnOpenModal").on("click", function() {
+            setTimeout(applySelect2Styles, 50);
+        });
     });
 </script>
+
+<style>
+    /* Select2 custom dropdown styling */
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #2563eb !important;
+        border-radius: 6px;
+    }
+    .select2-dropdown {
+        border-radius: 12px !important;
+        border: 1px solid #e5e7eb !important;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+        overflow: hidden;
+        margin-top: 4px;
+    }
+    .select2-search--dropdown .select2-search__field {
+        border-radius: 8px !important;
+        border: 1px solid #e5e7eb !important;
+        padding: 8px 12px !important;
+        font-size: 13px !important;
+    }
+    .select2-results__option {
+        padding: 10px 14px !important;
+        font-size: 13px !important;
+        font-weight: 500;
+    }
+    .select2-container--default .select2-selection--single:focus,
+    .select2-container--default.select2-container--open .select2-selection--single {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 2px rgba(59,130,246,0.2) !important;
+        background: white !important;
+    }
+</style>
 
 
 <script>
@@ -694,16 +762,31 @@
                 }))
                 .then(rutas => {
                     const sel = document.getElementById("selectDestino");
-                    sel.innerHTML = '<option disabled selected>Seleccionar destino</option>';
+                    // Destroy existing select2 before modifying options
+                    if ($.fn.select2 && $('#selectDestino').data('select2')) {
+                        $('#selectDestino').select2('destroy');
+                    }
+                    sel.innerHTML = '<option value="" disabled selected>Seleccionar destino</option>';
                     if (rutas.length > 0) {
                         document.getElementById("rutaContainer").classList.remove("hidden");
-                        document.getElementById("inputOrigen").value = rutas[0].codOrigen;
-                        rutas.forEach(r => sel.innerHTML += `<option value="${r.id}">${r.codDestino} (${r.distancia} km)</option>`);
+                        document.getElementById("inputOrigen").value = rutas[0].codOrigen + ' — ' + (rutas[0].ciudadOrigen || '');
+                        rutas.forEach(r => sel.innerHTML += `<option value="${r.id}">${r.codDestino} — ${r.ciudadDestino || ''} (${r.distancia} km)</option>`);
                     } else {
                         document.getElementById("rutaContainer").classList.remove("hidden");
                         document.getElementById("inputOrigen").value = '';
-                        sel.innerHTML = '<option disabled selected>No hay rutas disponibles para esta aeronave</option>';
+                        sel.innerHTML = '<option value="" disabled selected>No hay rutas disponibles para esta aeronave</option>';
                     }
+                    // Reinit select2
+                    $('#selectDestino').select2({ width: '100%', placeholder: 'Buscar destino...' });
+                    setTimeout(function() {
+                        $('.select2-container--default .select2-selection--single').css({
+                            'height': '48px', 'border-radius': '12px', 'border': '1px solid #e5e7eb',
+                            'background': '#f9fafb', 'padding': '0 16px', 'font-size': '14px',
+                            'font-weight': '600', 'display': 'flex', 'align-items': 'center'
+                        });
+                        $('.select2-container--default .select2-selection--single .select2-selection__rendered').css({ 'line-height': '48px', 'padding-left': '0', 'color': '#374151' });
+                        $('.select2-container--default .select2-selection--single .select2-selection__arrow').css({ 'height': '48px', 'right': '12px' });
+                    }, 50);
                 });
         });
     });

@@ -19,9 +19,8 @@ public class RepositoryUsuarios
     }
 
     
-    public async Task<Usuario> LogInUserAsync(string email, string password)
+    public async Task<VistaLoggedUser> LogInUserAsync(string email, string password)
     {
-        //BUSCAMOS SI EXISTE EL REGISTRO POR SU CAMPO UNICO
         
         var consulta= from datos in _context.VistaUsuarios
             where datos.Email == email
@@ -41,11 +40,13 @@ public class RepositoryUsuarios
             bool response= HelperTools.CompareArrays(temp, passBytes);
             if (response)
             {
-                var usuarioValido = from datos in _context.Usuarios
-                    where datos.Email == email
-                    select datos;
+                // var usuarioValido = from datos in _context.Usuarios
+                //     where datos.Email == email
+                //     select datos;
                 
-                return await usuarioValido.FirstOrDefaultAsync();
+                return  await _context.VistaLogedUser.FirstOrDefaultAsync(z =>z.Email==email);
+                // return  await _context.Usuarios.FirstOrDefaultAsync(x =>x.Email==email);
+             
             }
         }
         return null;
@@ -74,7 +75,7 @@ public class RepositoryUsuarios
     }
 
 
-    public async Task<VistaLogedUser> GetLoggedUserData(int idUser)
+    public async Task<VistaLoggedUser> GetLoggedUserData(int idUser)
     {
         var consulta= from datos in _context.VistaLogedUser
             where datos.IdUsuario==idUser

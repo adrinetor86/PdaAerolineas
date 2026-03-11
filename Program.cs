@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using PdaAerolineas.Data;
 using PdaAerolineas.Helpers;
@@ -8,9 +9,42 @@ using PdaAerolineas.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
-// builder.Services.AddDistributedMemoryCache();
+
+builder.Services.AddControllersWithViews
+    (options=> options.EnableEndpointRouting=false);
+
+builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession();
+
+builder.Services.AddAuthentication
+    (options =>
+    {
+        options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+     
+    }).AddCookie(options =>
+        {
+            options.LoginPath = "/Usuarios/Login";           // Ruta de login
+            options.LogoutPath = "/Usuarios/Logout";         // Ruta de logout
+            options.AccessDeniedPath = "/Usuarios/AccessDenied"; // Sin permisos
+            options.SlidingExpiration = true; 
+        });
+    builder.Services.AddAuthorization(options =>
+    {
+        //ADMINISTRADOR
+        options.AddPolicy("AdminOnly", policy => policy.RequireRole("Administrador"));
+        
+        options.AddPolicy("GestorOnly", policy => policy.RequireRole("Gestor"));
+        
+        options.AddPolicy("MecanicoOnly", policy => policy.RequireRole("Mecanico"));
+        
+        options.AddPolicy("AdminOrGestor", policy => policy.RequireRole("Administrador","Gestor"));
+        
+    });
+
+
+
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<HelperPathProvider>();
 
@@ -50,25 +84,31 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-app.MapControllers();
+
+// app.MapControllers();
 
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
-app.UseRouting();
-
+// app.UseRouting();
+app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();
+// app.MapStaticAssets();
 
 app.MapHub<VueloHub>("/hubs/vuelos");
 
 app.UseSession();
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Usuarios}/{action=LogIn}/{id?}")
-    .WithStaticAssets();
 
+app.UseMvc(routes =>
+    routes.MapRoute(name : "default",
+        template: "{controller=Dashboard}/{action=Index}/{id?}"));
+
+// app.MapControllerRoute(
+//     name: "default",
+//     pattern: "{controller=Usuarios}/{action=LogIn}/{id?}")
+//     .WithStaticAssets();
+//
 
 app.Run();

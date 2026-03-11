@@ -1,11 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PdaAerolineas.Extensions;
+using PdaAerolineas.Helpers;
 using PdaAerolineas.Models;
 using PdaAerolineas.Repositories;
 
 namespace PdaAerolineas.Controllers;
 
-[SessionCheck]
+[Authorize]
 public class MantenimientosController : Controller
 {
 
@@ -32,10 +34,10 @@ public class MantenimientosController : Controller
         )
     {
 
-       int idAero= HttpContext.Session.GetObject<int>("AEROLINEA");
-        
+       // int idAero= HttpContext.Session.GetObject<int>("AEROLINEA");
+       int idAerolinea= ClaimsExtensions.GetAerolineaId(User);
         var (mantenimientos, total) =
-            await _repoMantenimientos.GetMantenimientosPaginadosAsync(numPag, numFilas, idAero,estado, fechaProgramada, busqueda);
+            await _repoMantenimientos.GetMantenimientosPaginadosAsync(numPag, numFilas, idAerolinea,estado, fechaProgramada, busqueda);
         ViewData["TOTAL_REGISTROS"] = total;
         
         return View(mantenimientos);
@@ -46,7 +48,9 @@ public class MantenimientosController : Controller
     public async Task<IActionResult> Programar()
     {
         
-        int idAerolinea=HttpContext.Session.GetObject<int>("AEROLINEA");
+        // int idAerolinea=HttpContext.Session.GetObject<int>("AEROLINEA");
+        int idAerolinea= ClaimsExtensions.GetAerolineaId(User);
+
         ViewData["AVIONES"] = await _repoAviones.GetVistaAvionesAsync(idAerolinea);
         ViewData["TIPOSMANTENIMIENTO"] = await _repoMantenimientos.GetTiposMantenimientoAsync();
         return View();
@@ -57,7 +61,9 @@ public class MantenimientosController : Controller
     public async Task<IActionResult> Programar(int avion,int tipoMantenimiento,DateTime fechaProgramada)
     {
         
-        int idAerolinea=HttpContext.Session.GetObject<int>("AEROLINEA");
+        // int idAerolinea=HttpContext.Session.GetObject<int>("AEROLINEA");
+        int idAerolinea= ClaimsExtensions.GetAerolineaId(User);
+
         ViewData["AVIONES"] = await _repoAviones.GetVistaAvionesAsync(idAerolinea);
         ViewData["TIPOSMANTENIMIENTO"] = await _repoMantenimientos.GetTiposMantenimientoAsync();
         
