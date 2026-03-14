@@ -25,14 +25,15 @@ builder.Services.AddAuthentication
      
     }).AddCookie(options =>
         {
-            options.LoginPath = "/Usuarios/Login";           // Ruta de login
-            options.LogoutPath = "/Usuarios/Logout";         // Ruta de logout
-            options.AccessDeniedPath = "/Usuarios/AccessDenied"; // Sin permisos
+            options.LoginPath = "/Usuarios/Login";
+            options.LogoutPath = "/Usuarios/Logout";         
+            options.AccessDeniedPath = "/Usuarios/AccessDenied"; 
             options.SlidingExpiration = true; 
         });
+
     builder.Services.AddAuthorization(options =>
     {
-        //ADMINISTRADOR
+     
         options.AddPolicy("AdminOnly", policy => policy.RequireRole("Administrador"));
         
         options.AddPolicy("GestorOnly", policy => policy.RequireRole("Gestor"));

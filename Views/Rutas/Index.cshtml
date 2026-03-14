@@ -2,7 +2,7 @@
 @model List<VistaRutaAerolinea>
 
 @{
-    ViewData["Title"] = "Rutas";
+    // ViewData["Title"] = "Rutas";
     var rutasMapa = ViewData["RUTAS_MAPA"] as List<VistaRuta> ?? new List<VistaRuta>();
     var rutasDisponibles = ViewData["RUTAS_DISPONIBLES"] as List<VistaRuta> ?? new List<VistaRuta>();
 }
@@ -26,9 +26,9 @@
         </button>
     </div>
 
-    <!-- MAPA (z-index bajo para que modales pasen por encima) -->
+
     <div class="rounded-xl border border-gray-200 shadow-sm overflow-hidden relative" style="z-index: 1;">
-        <div id="map" style="height: 400px; width: 100%"></div>
+        <div id="map" style="height: 600px; width: 100%"></div>
     </div>
 
     <!-- BUSCADOR -->
@@ -226,26 +226,120 @@
         document.getElementById('contadorResultados').textContent = q ? `${visibles} resultado${visibles !== 1 ? 's' : ''}` : '';
     }
 
-    // === MAPA ===
+    
     const rutasMapa = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(rutasMapa));
     const map = L.map('map').setView([40.4, -3.7], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        attribution: '&copy; CartoDB &copy; OSM'
+    }).addTo(map);
 
-    const iconoAeropuerto = L.divIcon({
-        className: '',
-        html: `<div style="background:#2563eb;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">✈</div>`,
-        iconSize: [28, 28], iconAnchor: [14, 14]
-    });
+    function crearIconoAeropuerto(codigo, resaltado) {
+        const bg = resaltado
+            ? 'background:linear-gradient(135deg,#dc2626,#f87171);box-shadow:0 0 16px rgba(220,38,38,0.6);'
+            : 'background:linear-gradient(135deg,#1e40af,#3b82f6);box-shadow:0 2px 8px rgba(30,64,175,0.35);';
+        const labelBg = resaltado ? 'rgba(220,38,38,0.95)' : 'rgba(30,64,175,0.9)';
+        const scale = resaltado ? 'transform:scale(1.2);' : '';
+        return L.divIcon({
+            className: '',
+            html: `<div style="display:flex;flex-direction:column;align-items:center;${scale}transition:transform .25s ease;">
+                       <div style="${bg}color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid white;transition:all .25s ease;">
+                           <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>
+                       </div>
+                       <div style="margin-top:1px;background:${labelBg};color:white;font-size:8px;font-weight:800;padding:1px 5px;border-radius:3px;letter-spacing:.5px;white-space:nowrap;">${codigo}</div>
+                   </div>`,
+            iconSize: [36, 44],
+            iconAnchor: [18, 28],
+            popupAnchor: [0, -28]
+        });
+    }
+
+    // Almacenes para interactividad
+    const polylines = [];       // { line, codOrigen, codDestino, color }
+    const aeropuertoMarkers = {}; // codigo -> marker
+    let highlightedCodigo = null;
+
     const aeropuertosVistos = new Set();
     rutasMapa.forEach(ruta => {
         const origen = [parseFloat(ruta.LatitudOrigen), parseFloat(ruta.LongitudOrigen)];
         const destino = [parseFloat(ruta.LatitudDestino), parseFloat(ruta.LongitudDestino)];
-        L.polyline([origen, destino], { color: '#3b82f6', weight: 2, opacity: 0.6, dashArray: '6 4' }).addTo(map)
-            .bindTooltip(`${ruta.CiudadOrigen} (${ruta.CodOrigen}) → ${ruta.CiudadDestino} (${ruta.CodDestino})<br>${ruta.Distancia} km`, { sticky: true });
-        if (!aeropuertosVistos.has(ruta.CodOrigen)) { aeropuertosVistos.add(ruta.CodOrigen); L.marker(origen, { icon: iconoAeropuerto }).addTo(map).bindPopup(`<b>${ruta.CodOrigen}</b> — ${ruta.NombreOrigen}<br>${ruta.CiudadOrigen}`); }
-        if (!aeropuertosVistos.has(ruta.CodDestino)) { aeropuertosVistos.add(ruta.CodDestino); L.marker(destino, { icon: iconoAeropuerto }).addTo(map).bindPopup(`<b>${ruta.CodDestino}</b> — ${ruta.NombreDestino}<br>${ruta.CiudadDestino}`); }
+
+        // Línea recta fina
+        const line = L.polyline([origen, destino], {
+            color: '#94a3b8',
+            weight: 1.5,
+            opacity: 0.4
+        }).addTo(map);
+
+        line.bindTooltip(`
+            <div style="font-size:11px;">
+                <b>${ruta.CodOrigen}</b> → <b>${ruta.CodDestino}</b>
+                <br><span style="color:#6b7280;font-size:10px;">${ruta.CiudadOrigen} → ${ruta.CiudadDestino} · ${ruta.Distancia} km</span>
+            </div>`, { sticky: true });
+
+        polylines.push({ line, codOrigen: ruta.CodOrigen, codDestino: ruta.CodDestino, color: '#94a3b8' });
+
+        // Aeropuertos
+        if (!aeropuertosVistos.has(ruta.CodOrigen)) {
+            aeropuertosVistos.add(ruta.CodOrigen);
+            const m = L.marker(origen, { icon: crearIconoAeropuerto(ruta.CodOrigen, false) }).addTo(map)
+                .bindPopup(`<div style="font-size:12px;"><b style="color:#1e40af;">${ruta.CodOrigen}</b> — ${ruta.NombreOrigen}<br><span style="color:#6b7280;">${ruta.CiudadOrigen}</span></div>`);
+            aeropuertoMarkers[ruta.CodOrigen] = { marker: m, coords: origen, nombre: ruta.NombreOrigen, ciudad: ruta.CiudadOrigen };
+        }
+        if (!aeropuertosVistos.has(ruta.CodDestino)) {
+            aeropuertosVistos.add(ruta.CodDestino);
+            const m = L.marker(destino, { icon: crearIconoAeropuerto(ruta.CodDestino, false) }).addTo(map)
+                .bindPopup(`<div style="font-size:12px;"><b style="color:#1e40af;">${ruta.CodDestino}</b> — ${ruta.NombreDestino}<br><span style="color:#6b7280;">${ruta.CiudadDestino}</span></div>`);
+            aeropuertoMarkers[ruta.CodDestino] = { marker: m, coords: destino, nombre: ruta.NombreDestino, ciudad: ruta.CiudadDestino };
+        }
     });
-    if (rutasMapa.length > 0) { map.fitBounds(rutasMapa.flatMap(r => [[parseFloat(r.LatitudOrigen), parseFloat(r.LongitudOrigen)], [parseFloat(r.LatitudDestino), parseFloat(r.LongitudDestino)]]), { padding: [40, 40] }); }
+
+    // ── Hover en aeropuertos: resaltar sus rutas ──
+    function resaltarAeropuerto(codigo) {
+        if (highlightedCodigo === codigo) return;
+        highlightedCodigo = codigo;
+
+        // Resaltar icono del aeropuerto
+        Object.keys(aeropuertoMarkers).forEach(cod => {
+            const am = aeropuertoMarkers[cod];
+            am.marker.setIcon(crearIconoAeropuerto(cod, cod === codigo));
+        });
+
+        // Resaltar líneas conectadas y atenuar las demás
+        polylines.forEach(p => {
+            const conectada = (p.codOrigen === codigo || p.codDestino === codigo);
+            if (conectada) {
+                p.line.setStyle({ color: '#3b82f6', weight: 3.5, opacity: 0.9 });
+                p.line.bringToFront();
+            } else {
+                p.line.setStyle({ color: '#e2e8f0', weight: 1, opacity: 0.25 });
+            }
+        });
+    }
+
+    function resetearResaltado() {
+        if (!highlightedCodigo) return;
+        highlightedCodigo = null;
+
+        Object.keys(aeropuertoMarkers).forEach(cod => {
+            aeropuertoMarkers[cod].marker.setIcon(crearIconoAeropuerto(cod, false));
+        });
+
+        polylines.forEach(p => {
+            p.line.setStyle({ color: '#94a3b8', weight: 1.5, opacity: 0.4 });
+        });
+    }
+
+    // Asignar eventos de hover a cada marker de aeropuerto
+    Object.keys(aeropuertoMarkers).forEach(codigo => {
+        const m = aeropuertoMarkers[codigo].marker;
+        m.on('mouseover', () => resaltarAeropuerto(codigo));
+        m.on('mouseout', () => resetearResaltado());
+    });
+
+    if (rutasMapa.length > 0) {
+        map.fitBounds(rutasMapa.flatMap(r => [[parseFloat(r.LatitudOrigen), parseFloat(r.LongitudOrigen)], [parseFloat(r.LatitudDestino), parseFloat(r.LongitudDestino)]]), { padding: [40, 40] });
+    }
 
 
     document.getElementById('btnAsignarRuta').addEventListener('click', () => { 

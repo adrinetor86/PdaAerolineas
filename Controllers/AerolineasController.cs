@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using PdaAerolineas.Extensions;
 using PdaAerolineas.Models;
@@ -23,13 +24,13 @@ public class AerolineasController : Controller
         return View();
     }
 
-    [OnlyAdmin]
+    [Authorize("AdminOnly")]
     public async Task<IActionResult> Register()
     {
         return View();
     }   
     
-    [OnlyAdmin]
+    [Authorize("AdminOnly")]
     [HttpPost]
     [ValidateAntiForgeryToken]
       public async Task<IActionResult> Register(string nombre,IFormFile? logo,string codIata)
@@ -72,7 +73,7 @@ public class AerolineasController : Controller
           
     }
 
-
+    [Authorize("AdminOnly")]
     public async Task<IActionResult> Update(int idAerolinea)
     {
         Aerolinea aerolinea = await _repoAerolineas.FindAerolineaAsync(idAerolinea);
@@ -82,6 +83,7 @@ public class AerolineasController : Controller
     
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize("AdminOnly")]
     public async Task<IActionResult> Update(int idAerolinea,string nombre,IFormFile? logo, string Cod_Iata)
     {
         if (logo != null)

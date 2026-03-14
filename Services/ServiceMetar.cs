@@ -21,13 +21,10 @@ public class ServiceMetar
 
     public async Task<MetarData?> GetMetarAsync(string iata)
     {
-        // Limpiamos la cabecera por si acaso y añadimos la Key
-        _client.DefaultRequestHeaders.Clear();
+          _client.DefaultRequestHeaders.Clear();
           _client.DefaultRequestHeaders.Add("X-API-Key", _apiKey);
         
-
         
-        // Construimos la URL: Base + endpoint + IATA + formato
         string url = $"{_baseUrl}metar/{iata}/decoded";
 
         try 
@@ -42,7 +39,6 @@ public class ServiceMetar
         }
         catch (Exception ex)
         {
-            // Aquí podrías loguear el error si la API no responde
             Console.WriteLine($"Error API CheckWX: {ex.Message}");
         }
         

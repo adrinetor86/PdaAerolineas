@@ -118,8 +118,7 @@ public class TelemetriaController : Controller
     [HttpGet("GetAllTracking")]
     public async Task<IActionResult> GetAllTracking()
     {
-        // 1. Traemos todos los vuelos que están "En Aire" (Estado 3)
-        // Usamos AsNoTracking para que sea mucho más rápido (solo lectura)
+
         var lista = await _context.VuelosTracking
             .AsNoTracking()
             .Where(v => v.EstadoId == 3) 
@@ -135,13 +134,19 @@ public class TelemetriaController : Controller
         {
             vueloId = t.VueloId,
             numeroVuelo = t.NumeroVuelo,
-            // Convertimos decimal a double para compatibilidad con Leaflet
+            matricula = t.Matricula,
             lat = (double?)t.LatitudActual, 
             lng = (double?)t.LongitudActual,
             info = new
             {
                 origen = t.CodigoOrigen,
                 destino = t.CodigoDestino,
+                ciudadOrigen = t.CiudadOrigen,
+                ciudadDestino = t.CiudadDestino,
+                latOrigen = (double?)t.LatOrigen,
+                lngOrigen = (double?)t.LngOrigen,
+                latDestino = (double?)t.LatDestino,
+                lngDestino = (double?)t.LngDestino,
                 altitud = t.AltitudPies,
                 progreso = t.Progreso ?? 0
             }

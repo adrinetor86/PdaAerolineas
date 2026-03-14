@@ -9,6 +9,7 @@ using PdaAerolineas.Models.Views;
 using PdaAerolineas.Repositories;
 
 namespace PdaAerolineas.Controllers;
+
 [Authorize(Roles="Administrador,Gerente")]
 public class VuelosController : Controller
 {
@@ -27,9 +28,7 @@ public class VuelosController : Controller
         _repoAviones = repoAviones;
         _memoryCache = memoryCache;
     }
-
-
-    [SessionCheck]
+    
     public async Task<IActionResult> Index(
         int numPag = 1,
         int numFilas = 10,
@@ -41,8 +40,6 @@ public class VuelosController : Controller
         if (numPag < 1) numPag = 1;
         if (numFilas < 1) numFilas = 10;
         
-        
-        // int idAero=HttpContext.Session.GetObject<int>("AEROLINEA");
         int idAero= ClaimsExtensions.GetAerolineaId(User);
 
         
@@ -60,6 +57,7 @@ public class VuelosController : Controller
     [HttpPost]
     [ActionName("Index")]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles="Administrador,Gerente")]
     public IActionResult IndexPost(int numPag, int numFilas, int? idEstado, int? idAerolinea, DateTime? fechaSalida, string? busqueda)
     {
         return RedirectToAction("Index", new { numPag, numFilas, idEstado, idAerolinea, fechaSalida, busqueda });
@@ -77,6 +75,7 @@ public class VuelosController : Controller
     
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles="Administrador,Gerente")]
     public async Task<IActionResult> Create(string numeroVuelo, int idRuta, int avion, DateTime fechaSalida,
         string puerta)
     {
@@ -93,8 +92,9 @@ public class VuelosController : Controller
 
         if (errores.Count > 0)
             return Json(new { success = false, errors = errores });
-
-        int idAerolinea = HttpContext.Session.GetObject<int>("AEROLINEA");
+        
+        
+        int idAerolinea = ClaimsExtensions.GetAerolineaId(User);    
 
         try
         {
@@ -146,7 +146,7 @@ public class VuelosController : Controller
     }
     
 
-    [HighRoles]
+    [Authorize("AdminOrGestor")]
     public async Task<IActionResult> GestionarVuelo(int idVuelo)
     {
         VistaVuelo vuelo = await _repoVuelos.GetDatosVueloByIdAsync(idVuelo);
@@ -175,8 +175,8 @@ public class VuelosController : Controller
             _repoVuelos.SaveVueloCache(cache);
         }
         
-        int idAerolinea = HttpContext.Session.GetObject<int>("AEROLINEA") ;
-        
+        int idAerolinea = ClaimsExtensions.GetAerolineaId(User);    
+
         var comandantes = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, idAerolinea,"Comandante");
         var copilotos = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, idAerolinea,"Primer Oficial");
         var tcps = await _repoTripulantes.GetTripulantesDisponiblesAsync(idVuelo, idAerolinea,"Tripulante de Cabina");
@@ -218,6 +218,7 @@ public class VuelosController : Controller
     }
     [HttpPost]
     // [ValidateAntiForgeryToken]
+    [Authorize(Roles="Administrador,Gerente")]
     public IActionResult ActualizarBorrador([FromBody] VueloCache datos)
     {
         if (datos == null) return BadRequest();
@@ -229,6 +230,7 @@ public class VuelosController : Controller
         return Json(new { success = true });
     }
     [HttpPost]
+    [Authorize(Roles="Administrador,Gerente")]
     public async Task<IActionResult> ConfirmarVueloFinal(int idVuelo)
     {
         var result = await _repoVuelos.CommitVueloAsync(idVuelo);

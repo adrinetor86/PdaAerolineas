@@ -23,7 +23,14 @@ public class RepositoryRutas
             .OrderBy(r => r.CodigoRuta)
             .ToListAsync();
     }
-
+    
+        public async Task<List<VistaRuta>> GetRutasAsync()
+    {
+        return await _context.VistaRutas.ToListAsync();
+    }
+    
+    
+    
     // Rutas para el mapa (VistaRuta) filtradas por aerolínea
     public async Task<List<VistaRuta>> GetRutasMapaAerolineaAsync(int idAerolinea)
     {
@@ -224,4 +231,78 @@ public class RepositoryRutas
     {
         return await GetRutasMapaAerolineaAsync(idAerolinea);
     }
+
+    public async Task<(List<VistaRuta> Rutas, int TotalRegistros)> GetRutasPaginadasAsync(int numPag, int numFilas, string? busqueda)
+    {
+        string sql = "EXEC SP_RUTAS_PAGINADO @PageNumber, @PageSize, @Busqueda, @TotalRegistros OUTPUT";
+
+        var pamNumPagina = new SqlParameter("@PageNumber", numPag);
+        var pamNumFilas = new SqlParameter("@PageSize", numFilas);
+        var pamBusqueda = new SqlParameter("@Busqueda", string.IsNullOrWhiteSpace(busqueda) ? DBNull.Value : busqueda.Trim());
+        var pamTotal = new SqlParameter("@TotalRegistros", System.Data.SqlDbType.Int) { Direction = System.Data.ParameterDirection.Output };
+
+        var lista = await _context.VistaRutas
+            .FromSqlRaw(sql, pamNumPagina, pamNumFilas, pamBusqueda, pamTotal)
+            .ToListAsync();
+
+        int total = 0;
+        if (pamTotal.Value != DBNull.Value && pamTotal.Value != null)
+        {
+            total = (int)pamTotal.Value;
+        }
+
+        return (lista, total);
+    }
+
+    public async Task<(bool Success, string Message)> CreateRutaAsync(int idOrigen, int idDestino, int distanciaKm)
+    {
+        if (idOrigen <= 0 || idDestino <= 0)
+            return (false, "Debe seleccionar aeropuertos válidos.");
+        if (idOrigen == idDestino)
+            return (false, "El origen y el destino no pueden ser el mismo aeropuerto.");
+        if (distanciaKm <= 0)
+            return (false, "La distancia debe ser mayor que cero.");
+
+        // Evitar duplicados exactos
+        bool existeRuta = await _context.Rutas.AnyAsync(r => r.IdAeropuertoOrigen == idOrigen && r.IdAeropuertoDestino == idDestino);
+        if (existeRuta)
+            return (false, "Ya existe una ruta con ese origen y destino.");
+
+        var ruta = new Ruta
+        {
+            IdAeropuertoOrigen = idOrigen,
+            IdAeropuertoDestino = idDestino,
+            Distancia = distanciaKm
+        };
+
+        await using var tx = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            _context.Rutas.Add(ruta);
+            await _context.SaveChangesAsync();
+
+            // Crear inversa si no existe
+            bool existeInversa = await _context.Rutas.AnyAsync(r => r.IdAeropuertoOrigen == idDestino && r.IdAeropuertoDestino == idOrigen);
+            if (!existeInversa)
+            {
+                var inversa = new Ruta
+                {
+                    IdAeropuertoOrigen = idDestino,
+                    IdAeropuertoDestino = idOrigen,
+                    Distancia = distanciaKm
+                };
+                _context.Rutas.Add(inversa);
+                await _context.SaveChangesAsync();
+            }
+
+            await tx.CommitAsync();
+            return (true, "Ruta creada correctamente (ida y vuelta).");
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync();
+            return (false, ex.Message);
+        }
+    }
+
 }

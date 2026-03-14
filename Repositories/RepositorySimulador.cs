@@ -278,7 +278,7 @@ public class RepositorySimulador : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("✈️ Servicio de simulación de vuelos iniciado");
+        _logger.LogInformation("Servicio de simulación de vuelos iniciado");
         await Task.Delay(5000, stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
@@ -302,10 +302,9 @@ public class RepositorySimulador : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error en simulación de vuelos");
+                _logger.LogError(ex, "Error en simulación de vuelos");
             }
-
-            // ⏱️ EMITIR CADA 3 SEGUNDOS (para fluidez)
+            
             await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
         }
 
@@ -400,12 +399,19 @@ public class RepositorySimulador : BackgroundService
                 {
                     vueloId = t.VueloId,
                     numeroVuelo = t.NumeroVuelo,
+                    matricula = t.Matricula,
                     lat = lat.Value,
                     lng = lng.Value,
                     info = new
                     {
                         origen = t.CodigoOrigen,
                         destino = t.CodigoDestino,
+                        ciudadOrigen = t.CiudadOrigen,
+                        ciudadDestino = t.CiudadDestino,
+                        latOrigen = t.LatOrigen.HasValue ? (double)t.LatOrigen.Value : (double?)null,
+                        lngOrigen = t.LngOrigen.HasValue ? (double)t.LngOrigen.Value : (double?)null,
+                        latDestino = t.LatDestino.HasValue ? (double)t.LatDestino.Value : (double?)null,
+                        lngDestino = t.LngDestino.HasValue ? (double)t.LngDestino.Value : (double?)null,
                         altitud = t.AltitudPies ?? 0,
                         progreso = progress
                     }

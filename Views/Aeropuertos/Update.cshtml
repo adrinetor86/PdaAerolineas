@@ -1,0 +1,204 @@
+﻿@model PdaAerolineas.Models.Aeropuerto
+@{
+    Layout = "_AdminLayout";
+}
+
+<div class="min-h-screen bg-slate-50 py-10 px-4">
+
+    <div class="max-w-2xl mx-auto mb-8">
+        <a asp-action="Aeropuertos" asp-controller="PanelAdmin"
+           class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition mb-4">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Volver a aeropuertos
+        </a>
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-blue-500 mb-1">Panel administrador</p>
+                <h1 class="text-3xl font-black text-slate-900">Editar aeropuerto</h1>
+                <p class="text-sm text-slate-400 mt-1">Modificando <span class="font-mono font-bold text-slate-600">@Model.Cod_Iata</span></p>
+            </div>
+            <span class="mt-1 rounded-lg bg-blue-50 border border-blue-200 px-3 py-1.5 text-lg font-black font-mono text-blue-700 tracking-widest">
+                @Model.Cod_Iata
+            </span>
+        </div>
+    </div>
+
+    @if (TempData["SUCCESS"] != null)
+    {
+        <div class="max-w-2xl mx-auto mb-5 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-sm">
+            <svg class="w-4 h-4 shrink-0 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+            @TempData["SUCCESS"]
+        </div>
+    }
+    
+
+    <form asp-action="Update" method="post" class="max-w-2xl mx-auto space-y-5">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="IdAeropuerto" />
+
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="border-b border-slate-100 px-5 py-3 bg-slate-50">
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Información general</p>
+            </div>
+            <div class="p-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                
+<div class="md:col-span-2">
+    <label asp-for="Nombre" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+        Nombre del aeropuerto *
+    </label>
+    <input asp-for="Nombre" placeholder="Ej: Adolfo Suárez Madrid–Barajas" maxlength="150"
+           class="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-medium text-slate-800
+                  placeholder:text-gray-300 outline-none transition focus:bg-white focus:ring-2
+                  @(ViewData.ModelState["Nombre"]?.Errors.Any() == true
+                      ? "border-red-400 focus:ring-red-100"
+                      : "border-gray-200 focus:border-blue-500 focus:ring-blue-500")" />
+    @if (ViewData.ModelState["Nombre"]?.Errors.Any() == true)
+    {
+        <p class="mt-1 text-xs font-bold text-red-600">
+            @ViewData.ModelState["Nombre"].Errors.First().ErrorMessage
+        </p>
+    }
+</div>
+
+<div>
+    <label asp-for="Ciudad" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+        Ciudad *
+    </label>
+    <input asp-for="Ciudad" placeholder="Ej: Madrid" maxlength="100"
+           class="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-medium text-slate-800
+                  placeholder:text-gray-300 outline-none transition focus:bg-white focus:ring-2
+                  @(ViewData.ModelState["Ciudad"]?.Errors.Any() == true
+                      ? "border-red-400 focus:ring-red-100"
+                      : "border-gray-200 focus:border-blue-500 focus:ring-blue-500")" />
+    @if (ViewData.ModelState["Ciudad"]?.Errors.Any() == true)
+    {
+        <p class="mt-1 text-xs font-bold text-red-600">
+            @ViewData.ModelState["Ciudad"].Errors.First().ErrorMessage
+        </p>
+    }
+</div>
+
+<div>
+    <label asp-for="IdPais" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+        País *
+    </label>
+    <select asp-for="IdPais" asp-items="ViewBag.Paises"
+            class="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-medium text-slate-800
+                   outline-none transition focus:bg-white focus:ring-2
+                   @(ViewData.ModelState["IdPais"]?.Errors.Any() == true
+                       ? "border-red-400 focus:ring-red-100"
+                       : "border-gray-200 focus:border-blue-500 focus:ring-blue-500")">
+        <option value="">Selecciona un país</option>
+    </select>
+    @if (ViewData.ModelState["IdPais"]?.Errors.Any() == true)
+    {
+        <p class="mt-1 text-xs font-bold text-red-600">
+            @ViewData.ModelState["IdPais"].Errors.First().ErrorMessage
+        </p>
+    }
+</div>
+
+<div>
+    <label asp-for="Cod_Iata" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+        IATA <span class="font-normal text-gray-300">(3 letras)</span>
+    </label>
+    <input asp-for="Cod_Iata" maxlength="3" placeholder="MAD"
+           oninput="this.value = this.value.toUpperCase()"
+           class="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-black font-mono
+                  uppercase tracking-[0.3em] text-slate-800 placeholder:text-gray-300
+                  outline-none transition focus:bg-white focus:ring-2
+                  @(ViewData.ModelState["Cod_Iata"]?.Errors.Any() == true
+                      ? "border-red-400 focus:ring-red-100"
+                      : "border-gray-200 focus:border-blue-500 focus:ring-blue-500")" />
+    @if (ViewData.ModelState["Cod_Iata"]?.Errors.Any() == true)
+    {
+        <p class="mt-1 text-xs font-bold text-red-600">
+            @ViewData.ModelState["Cod_Iata"].Errors.First().ErrorMessage
+        </p>
+    }
+</div>
+
+<div>
+    <label asp-for="Cod_Icao" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+        ICAO <span class="font-normal text-gray-300">(4 letras)</span>
+    </label>
+    <input asp-for="Cod_Icao" maxlength="4" placeholder="LEMD"
+           oninput="this.value = this.value.toUpperCase()"
+           class="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-black font-mono
+                  uppercase tracking-[0.3em] text-slate-800 placeholder:text-gray-300
+                  outline-none transition focus:bg-white focus:ring-2
+                  @(ViewData.ModelState["Cod_Icao"]?.Errors.Any() == true
+                      ? "border-red-400 focus:ring-red-100"
+                      : "border-gray-200 focus:border-blue-500 focus:ring-blue-500")" />
+    @if (ViewData.ModelState["Cod_Icao"]?.Errors.Any() == true)
+    {
+        <p class="mt-1 text-xs font-bold text-red-600">
+            @ViewData.ModelState["Cod_Icao"].Errors.First().ErrorMessage
+        </p>
+    }
+</div>
+
+<div>
+    <label asp-for="Latitud" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+        Latitud *
+    </label>
+    <div class="relative">
+        <input asp-for="Latitud" type="number" step="0.000001" min="-90" max="90" placeholder="40.471926"
+               class="w-full px-4 py-3 pr-9 bg-gray-50 border rounded-xl text-sm font-mono text-slate-800
+                      placeholder:text-gray-300 outline-none transition focus:bg-white focus:ring-2
+                      @(ViewData.ModelState["Latitud"]?.Errors.Any() == true
+                          ? "border-red-400 focus:ring-red-100"
+                          : "border-gray-200 focus:border-blue-500 focus:ring-blue-500")" />
+        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-300">°N</span>
+    </div>
+    @if (ViewData.ModelState["Latitud"]?.Errors.Any() == true)
+    {
+        <p class="mt-1 text-xs font-bold text-red-600">
+            @ViewData.ModelState["Latitud"].Errors.First().ErrorMessage
+        </p>
+    }
+</div>
+
+<div>
+    <label asp-for="Longitud" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+        Longitud *
+    </label>
+    <div class="relative">
+        <input asp-for="Longitud" type="number" step="0.000001" min="-180" max="180" placeholder="-3.563568"
+               class="w-full px-4 py-3 pr-9 bg-gray-50 border rounded-xl text-sm font-mono text-slate-800
+                      placeholder:text-gray-300 outline-none transition focus:bg-white focus:ring-2
+                      @(ViewData.ModelState["Longitud"]?.Errors.Any() == true
+                          ? "border-red-400 focus:ring-red-100"
+                          : "border-gray-200 focus:border-blue-500 focus:ring-blue-500")" />
+        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-300">°E</span>
+    </div>
+    @if (ViewData.ModelState["Longitud"]?.Errors.Any() == true)
+    {
+        <p class="mt-1 text-xs font-bold text-red-600">
+            @ViewData.ModelState["Longitud"].Errors.First().ErrorMessage
+        </p>
+    }
+</div>
+                
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-1 pb-8">
+            <a asp-action="Aeropuertos" asp-controller="PanelAdmin"
+               class="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition shadow-sm">
+                Cancelar
+            </a>
+            <button type="submit"
+                    class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:scale-95 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                Guardar cambios
+            </button>
+        </div>
+    </form>
+</div>

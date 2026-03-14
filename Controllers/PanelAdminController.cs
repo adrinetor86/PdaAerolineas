@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PdaAerolineas.Extensions;
 using PdaAerolineas.Models;
@@ -8,17 +9,21 @@ using PdaAerolineas.Repositories;
 namespace PdaAerolineas.Controllers;
 
 
-[Authorize(Roles="Administrador")]
+[Authorize("AdminOnly")]
 public class PanelAdminController : Controller
 {
     
     private RepositoryUsuarios _repoUsuarios;
     private RepositoryAerolineas _repoAerolineas;
+    private RepositoryRutas _repoRutas;
+    private RepositoryAeropuertos _repoAeropuertos;
     
-    public PanelAdminController(RepositoryUsuarios repositoryUsuarios,RepositoryAerolineas repoAerolineas)
+    public PanelAdminController(RepositoryUsuarios repositoryUsuarios,RepositoryAerolineas repoAerolineas,RepositoryRutas repoRutas, RepositoryAeropuertos repoAeropuertos)
     {
         _repoUsuarios = repositoryUsuarios;
         _repoAerolineas = repoAerolineas;
+        _repoRutas = repoRutas;
+        _repoAeropuertos = repoAeropuertos;
     }
     public IActionResult Index()
     {
@@ -39,4 +44,38 @@ public class PanelAdminController : Controller
         return View(aerolineas);
     }
     
+  
+    public async Task<IActionResult> Rutas(int numPag = 1, int numFilas = 10, string? busqueda = null)
+    {
+        if (numPag < 1) numPag = 1;
+        if (numFilas < 1) numFilas = 10;
+
+        var (rutas, total) = await _repoRutas.GetRutasPaginadasAsync(numPag, numFilas, busqueda);
+        int totalPaginas = (int)Math.Ceiling(total / (double)numFilas);
+
+        ViewData["TOTAL_REGISTROS"] = total;
+        ViewData["PAGINA_ACTUAL"] = numPag;
+        ViewData["TOTAL_PAGINAS"] = totalPaginas;
+        ViewData["REGISTROS_PAG"] = numFilas;
+        ViewData["BUSQUEDA"] = busqueda;
+
+        return View(rutas);
+    }
+    
+    public async Task<IActionResult> Aeropuertos(int numPag = 1, int numFilas = 10, string? busqueda = null)
+    {
+        if (numPag < 1) numPag = 1;
+        if (numFilas < 1) numFilas = 10;
+
+        var (lista, total) = await _repoAeropuertos.GetAeropuertosPaginadosAsync(numPag, numFilas, busqueda ?? string.Empty);
+        int totalPaginas = (int)Math.Ceiling(total / (double)numFilas);
+
+        ViewData["TOTAL_REGISTROS"] = total;
+        ViewData["PAGINA_ACTUAL"] = numPag;
+        ViewData["TOTAL_PAGINAS"] = totalPaginas;
+        ViewData["REGISTROS_PAG"] = numFilas;
+        ViewData["BUSQUEDA"] = busqueda;
+
+        return View(lista);
+    }
 }

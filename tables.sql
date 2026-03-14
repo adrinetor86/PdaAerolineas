@@ -1,4 +1,31 @@
-﻿create table dbo.aerolinea
+﻿DROP TABLE IF EXISTS registro_estado_avion;
+DROP TABLE IF EXISTS usuario_rol;
+DROP TABLE IF EXISTS asignacion_tripulacion;
+DROP TABLE IF EXISTS rol_tripulacion;
+DROP TABLE IF EXISTS ruta_waypoint;
+DROP TABLE IF EXISTS waypoint;
+DROP TABLE IF EXISTS retraso_vuelo;
+DROP TABLE IF EXISTS mantenimiento;
+DROP TABLE IF EXISTS mantenimiento_programado;
+DROP TABLE IF EXISTS mantenimiento_evento;
+DROP TABLE IF EXISTS users_security;
+DROP TABLE IF EXISTS usuario;
+DROP TABLE IF EXISTS tripulante;
+DROP TABLE IF EXISTS vuelo;
+DROP TABLE IF EXISTS mantenimiento_tipo;
+DROP TABLE IF EXISTS aerolinea_ruta;             -- ← tiene FK hacia ruta y aerolinea
+DROP TABLE IF EXISTS avion;
+DROP TABLE IF EXISTS estado_vuelo;
+DROP TABLE IF EXISTS rol;
+DROP TABLE IF EXISTS estado_avion;
+DROP TABLE IF EXISTS modelo_avion;
+DROP TABLE IF EXISTS codigo_retraso_iata;
+DROP TABLE IF EXISTS aerolinea;
+DROP TABLE IF EXISTS ruta;                       -- ← ahora puede borrarse
+DROP TABLE IF EXISTS aeropuerto;
+DROP TABLE IF EXISTS pais;
+
+create table dbo.aerolinea
 (
     id          int identity
         primary key,

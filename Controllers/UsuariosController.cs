@@ -27,30 +27,10 @@ public class UsuariosController : Controller
         _repoAerolineas = repoAerolineas;
     }
 
-
     public async Task<IActionResult> Index()
     {
         return View();
     }
-    
-    // [HttpPost]
-    // [ValidateAntiForgeryToken]
-    // public async Task<IActionResult> LogIn(string email,string password)
-    // {
-    //     HttpContext.Session.Clear();
-    //     Usuario user=  await _repoUsuarios.LogInUserAsync(email, password);
-    //   
-    //   if (user != null)
-    //   {
-    //       await CargarSession(user.IdUsusario);
-    //       return RedirectToAction("Index","Dashboard"); 
-    //   }
-    //   
-    //   ModelState.AddModelError("", "Credenciales incorrectas. Revise su email y contraseña.");
-    //   return View();
-    // }
-    //
-    
     
     [AllowAnonymous]
     public async Task<IActionResult> LogIn()
@@ -83,7 +63,10 @@ public class UsuariosController : Controller
           identity.AddClaim(claimEmail);
           
           Claim claimId = new Claim(ClaimTypes.NameIdentifier, user.IdUsuario.ToString()); 
-          identity.AddClaim(claimId);         
+          identity.AddClaim(claimId);       
+          
+          Claim claimNombre = new Claim(ClaimTypes.Name, user.Nombre); 
+          identity.AddClaim(claimNombre);         
           
           Claim claimAerolinea= new Claim("Aerolinea", user.IdAerolinea.ToString()); 
           identity.AddClaim(claimAerolinea);  
@@ -205,18 +188,9 @@ public class UsuariosController : Controller
         ViewData["ROLES"] = roles;
         return View("Register", aerolineas);
     }
-
     
-    // [SessionCheck]
-    // public async Task<IActionResult> LogOut()
-    // {
-    //
-    //     await BorrarSession();
-    //         return RedirectToAction("LogIn","Usuarios");             
-    // }
-
     [HttpGet]
-    [Authorize(Roles="Administrador")]
+    [Authorize("AdminOnly")]
     public async Task<IActionResult> Update(int idUsuario)
     {
         await CargarSelects();
@@ -226,7 +200,7 @@ public class UsuariosController : Controller
     
     
     [HttpPost]
-    [Authorize(Roles="Administrador")]
+    [Authorize("AdminOnly")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Update(VistaAdministracionUsuarios usuario)
     {

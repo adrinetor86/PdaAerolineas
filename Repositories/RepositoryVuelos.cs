@@ -203,22 +203,14 @@ public class RepositoryVuelos
     // Obtener solo aviones que están en aeropuertos desde donde la aerolínea tiene rutas activas
     public async Task<List<Avion>> GetAvionesConRutasDisponiblesAsync(int idAerolinea)
     {
-        // Obtener aeropuertos de origen de las rutas activas de la aerolínea
-        var aeropuertosConRutas = await (
-            from ra in _context.RutasAerolinea
-            join r in _context.Rutas on ra.RutaId equals r.IdRuta
-            where ra.AerolineaId == idAerolinea && ra.Activa
-            select r.IdAeropuertoOrigen
-        ).Distinct().ToListAsync();
 
-        // Solo aviones disponibles que están en esos aeropuertos
-        var aviones = await _context.Aviones
-            .Where(a => a.IdAerolinea == idAerolinea
-                        && a.IdEstado == 1
-                        && aeropuertosConRutas.Contains(a.IdAeropuertoActual))
-            .ToListAsync();
+        string sql = "SP_AVIONES_CON_RUTAS_DISPONIBLES @AerolineaId";
+        
+        SqlParameter pamAerolinea = new SqlParameter("@AerolineaId", idAerolinea);
+        
+        
 
-        return aviones;
+        return await _context.Aviones.FromSqlRaw(sql, pamAerolinea).ToListAsync();
     }
 
     

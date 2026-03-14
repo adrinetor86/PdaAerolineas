@@ -13,6 +13,7 @@ public class DataContext:DbContext
     
 
     public DbSet<Aeropuerto> Aeropuertos { get; set; }
+    public DbSet<Pais> Paises { get; set; }
     public DbSet<VistaFlota> Flotas { get; set; }
     public DbSet<VistaVuelo> VistaVuelos { get; set; }
     public DbSet<Vuelo> Vuelos { get; set; }
