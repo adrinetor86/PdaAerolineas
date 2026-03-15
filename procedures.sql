@@ -660,6 +660,52 @@ BEGIN
 END;
 go
 
+CREATE   PROCEDURE SP_AEROPUERTOS_PAGINADO
+    @PageNumber     INT           = 1,
+    @PageSize       INT           = 10,
+    @Busqueda       NVARCHAR(100) = NULL,
+    @TotalRegistros INT           OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @PageNumber < 1  SET @PageNumber = 1;
+    IF @PageSize   < 1  SET @PageSize   = 10;
+    IF @PageSize   > 200 SET @PageSize  = 200;
+
+    SELECT @TotalRegistros = COUNT(*)
+    FROM AEROPUERTO
+    WHERE (@Busqueda IS NULL OR
+           NOMBRE      LIKE '%' + @Busqueda + '%' OR
+           CODIGO_IATA LIKE '%' + @Busqueda + '%' OR
+           CODIGO_ICAO LIKE '%' + @Busqueda + '%' OR
+           CIUDAD      LIKE '%' + @Busqueda + '%');
+
+    SELECT
+        ID,
+        NOMBRE,
+        CODIGO_IATA,
+        CODIGO_ICAO,
+        CIUDAD,
+        PAIS_ID,
+        LATITUD,
+        LONGITUD,
+        @TotalRegistros                                      AS total_registros,
+        @PageNumber                                          AS pagina_actual,
+        @PageSize                                            AS registros_por_pagina,
+        CEILING(CAST(@TotalRegistros AS FLOAT) / @PageSize) AS total_paginas
+    FROM AEROPUERTO
+    WHERE (@Busqueda IS NULL OR
+           NOMBRE      LIKE '%' + @Busqueda + '%' OR
+           CODIGO_IATA LIKE '%' + @Busqueda + '%' OR
+           CODIGO_ICAO LIKE '%' + @Busqueda + '%' OR
+           CIUDAD      LIKE '%' + @Busqueda + '%')
+    ORDER BY CIUDAD, NOMBRE
+    OFFSET (@PageNumber - 1) * @PageSize ROWS
+        FETCH NEXT @PageSize ROWS ONLY;
+END
+go
+
 -- ============================================
 -- SP_ASIGNAR_RUTA_AEROLINEA
 -- ============================================
@@ -769,6 +815,33 @@ BEGIN
 END;
 go
 
+CREATE   PROCEDURE SP_AVIONES_CON_RUTAS_DISPONIBLES
+@AerolineaId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT a.*
+    FROM dbo.avion AS a
+    WHERE a.aerolinea_id = @AerolineaId
+      AND a.estado_id = 1
+      AND a.aeropuerto_actual_id IN (
+        SELECT DISTINCT r.aeropuerto_origen_id
+        FROM dbo.ruta_aerolinea AS ra
+                 INNER JOIN dbo.ruta AS r ON r.id = ra.ruta_id
+        WHERE ra.aerolinea_id = @AerolineaId
+          AND ra.activa = 1
+    )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM dbo.mantenimiento AS m
+        WHERE m.avion_id = a.id
+          AND m.estado IN ('Programado', 'En Curso', 'En Proceso')
+          AND (m.fecha_fin IS NULL OR m.fecha_fin >= GETDATE())
+    );
+END
+go
+
 CREATE   PROCEDURE SP_CREATE_AEROLINEA
     @nombre NVARCHAR(100),
     @logo NVARCHAR(250),
@@ -796,6 +869,27 @@ BEGIN
 END
 go
 
+CREATE   PROCEDURE SP_CREATE_AEROPUERTO
+    @Nombre  NVARCHAR(150),
+    @IATA    NVARCHAR(3),
+    @ICAO    NVARCHAR(4),
+    @Ciudad  NVARCHAR(100),
+    @PaisId  INT,
+    @Latitud DECIMAL(9,6),
+    @Longitud DECIMAL(9,6)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM AEROPUERTO WHERE CODIGO_IATA = @IATA)
+        THROW 51000, 'Ya existe un aeropuerto con ese código IATA.', 1;
+    IF EXISTS (SELECT 1 FROM AEROPUERTO WHERE CODIGO_ICAO = @ICAO)
+        THROW 51000, 'Ya existe un aeropuerto con ese código ICAO.', 1;
+
+    INSERT INTO AEROPUERTO (NOMBRE, CODIGO_IATA, CODIGO_ICAO, CIUDAD, PAIS_ID, LATITUD, LONGITUD)
+    VALUES (@Nombre, @IATA, @ICAO, @Ciudad, @PaisId, @Latitud, @Longitud);
+END
+go
+
 CREATE       PROCEDURE SP_CREATE_AVION
 (@matricula nvarchar(20),
  @modelo int,
@@ -813,6 +907,73 @@ INSERT INTO AVION (matricula, modelo_id, aerolinea_id, estado_id, aeropuerto_act
      @aeropuertoactual,
      @horasvuelo,
      @ciclos)
+go
+
+CREATE   PROCEDURE SP_CREATE_RUTA
+    @aeropuerto_origen_id  INT,
+    @aeropuerto_destino_id INT,
+    @distancia_km NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- ══════════════════════════════════════════
+    -- VALIDACIONES
+    -- ══════════════════════════════════════════
+
+    IF @aeropuerto_origen_id = @aeropuerto_destino_id
+        BEGIN
+            RAISERROR('El aeropuerto de origen y destino no pueden ser el mismo.', 16, 1);
+            RETURN;
+        END
+
+    IF @distancia_km <= 0
+        BEGIN
+            RAISERROR('La distancia debe ser mayor a 0 km.', 16, 1);
+            RETURN;
+        END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.aeropuerto WHERE id = @aeropuerto_origen_id)
+        BEGIN
+            RAISERROR('El aeropuerto de origen no existe.', 16, 1);
+            RETURN;
+        END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.aeropuerto WHERE id = @aeropuerto_destino_id)
+        BEGIN
+            RAISERROR('El aeropuerto de destino no existe.', 16, 1);
+            RETURN;
+        END
+
+    -- Evitar duplicados origen/destino
+    IF EXISTS (
+        SELECT 1 FROM dbo.ruta
+        WHERE aeropuerto_origen_id  = @aeropuerto_origen_id
+          AND aeropuerto_destino_id = @aeropuerto_destino_id
+    )
+        BEGIN
+            RAISERROR('Ya existe una ruta entre esos dos aeropuertos.', 16, 1);
+            RETURN;
+        END
+
+    -- ══════════════════════════════════════════
+    -- INSERT
+    -- ══════════════════════════════════════════
+    BEGIN TRANSACTION;
+    BEGIN TRY
+
+        INSERT INTO dbo.ruta (aeropuerto_origen_id, aeropuerto_destino_id, distancia_km)
+        VALUES (@aeropuerto_origen_id, @aeropuerto_destino_id, @distancia_km);
+
+        COMMIT TRANSACTION;
+
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+
+END
 go
 
 CREATE   PROCEDURE SP_CREATE_TRIPULACION
@@ -2006,6 +2167,64 @@ BEGIN
 END;
 go
 
+CREATE   PROCEDURE SP_RUTAS_PAGINADO
+    @PageNumber     INT           = 1,
+    @PageSize       INT           = 10,
+    @Busqueda       NVARCHAR(100) = NULL,
+    @TotalRegistros INT           OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @PageNumber < 1  SET @PageNumber = 1;
+    IF @PageSize   < 1  SET @PageSize   = 10;
+    IF @PageSize   > 200 SET @PageSize  = 200;
+
+    SELECT @TotalRegistros = COUNT(*)
+    FROM V_RUTAS_AVION
+    WHERE (@Busqueda IS NULL OR
+           CODIGO_ORIGEN   LIKE '%' + @Busqueda + '%' OR
+           CODIGO_DESTINO  LIKE '%' + @Busqueda + '%' OR
+           CIUDAD_ORIGEN   LIKE '%' + @Busqueda + '%' OR
+           CIUDAD_DESTINO  LIKE '%' + @Busqueda + '%' OR
+           NOMBRE_ORIGEN   LIKE '%' + @Busqueda + '%' OR
+           NOMBRE_DESTINO  LIKE '%' + @Busqueda + '%');
+
+    SELECT
+        RUTA_ID,
+        DISTANCIA_KM,
+        ID_ORIGEN,
+        CODIGO_ORIGEN,
+        NOMBRE_ORIGEN,
+        CIUDAD_ORIGEN,
+        LATITUD_ORIGEN,
+        LONGITUD_ORIGEN,
+        ID_DESTINO,
+        CODIGO_DESTINO,
+        NOMBRE_DESTINO,
+        CIUDAD_DESTINO,
+        LATITUD_DESTINO,
+        LONGITUD_DESTINO,
+        DURACION_MINUTOS,
+        DURACION_FORMATEADA,
+        @TotalRegistros                                      AS total_registros,
+        @PageNumber                                          AS pagina_actual,
+        @PageSize                                            AS registros_por_pagina,
+        CEILING(CAST(@TotalRegistros AS FLOAT) / @PageSize) AS total_paginas
+    FROM V_RUTAS_AVION
+    WHERE (@Busqueda IS NULL OR
+           CODIGO_ORIGEN   LIKE '%' + @Busqueda + '%' OR
+           CODIGO_DESTINO  LIKE '%' + @Busqueda + '%' OR
+           CIUDAD_ORIGEN   LIKE '%' + @Busqueda + '%' OR
+           CIUDAD_DESTINO  LIKE '%' + @Busqueda + '%' OR
+           NOMBRE_ORIGEN   LIKE '%' + @Busqueda + '%' OR
+           NOMBRE_DESTINO  LIKE '%' + @Busqueda + '%')
+    ORDER BY CODIGO_ORIGEN, CODIGO_DESTINO
+    OFFSET (@PageNumber - 1) * @PageSize ROWS
+        FETCH NEXT @PageSize ROWS ONLY;
+END
+go
+
 CREATE   PROCEDURE SP_REGISTRAR_USUARIO
     @Nombre       NVARCHAR(50),
     @Apellidos    NVARCHAR(50),
@@ -2124,6 +2343,37 @@ BEGIN
 
     UPDATE aerolinea SET nombre=@nombre,logo=@logo,codigo_iata=@codIata
     WHERE id=@idAerolinea
+END
+go
+
+CREATE   PROCEDURE SP_UPDATE_AEROPUERTO
+    @Id      INT,
+    @Nombre  NVARCHAR(150),
+    @IATA    NVARCHAR(3),
+    @ICAO    NVARCHAR(4),
+    @Ciudad  NVARCHAR(100),
+    @PaisId  INT,
+    @Latitud DECIMAL(9,6),
+    @Longitud DECIMAL(9,6)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF NOT EXISTS (SELECT 1 FROM AEROPUERTO WHERE ID = @Id)
+        THROW 51000, 'No existe el aeropuerto.', 1;
+    IF EXISTS (SELECT 1 FROM AEROPUERTO WHERE CODIGO_IATA = @IATA AND ID <> @Id)
+        THROW 51000, 'Ya existe un aeropuerto con ese código IATA.', 1;
+    IF EXISTS (SELECT 1 FROM AEROPUERTO WHERE CODIGO_ICAO = @ICAO AND ID <> @Id)
+        THROW 51000, 'Ya existe un aeropuerto con ese código ICAO.', 1;
+
+    UPDATE AEROPUERTO
+    SET NOMBRE      = @Nombre,
+        CODIGO_IATA = @IATA,
+        CODIGO_ICAO = @ICAO,
+        CIUDAD      = @Ciudad,
+        PAIS_ID     = @PaisId,
+        LATITUD     = @Latitud,
+        LONGITUD    = @Longitud
+    WHERE ID = @Id;
 END
 go
 
