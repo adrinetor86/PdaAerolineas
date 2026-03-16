@@ -9,7 +9,7 @@
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
 
-    <!-- HEADER -->
+
     <div class="flex items-end justify-between">
         <div>
             <h2 class="text-3xl font-extrabold tracking-tight text-gray-900">Gestión de Rutas</h2>
@@ -31,7 +31,7 @@
         <div id="map" style="height: 600px; width: 100%"></div>
     </div>
 
-    <!-- BUSCADOR -->
+
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/40">
             <div class="flex items-center gap-4">
@@ -243,11 +243,14 @@
         return L.divIcon({
             className: '',
             html: `<div style="display:flex;flex-direction:column;align-items:center;${scale}transition:transform .25s ease;">
-                       <div style="${bg}color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid white;transition:all .25s ease;">
-                           <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>
+                       <div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;;transition:all .25s ease;">
+                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="#EF4444"/>
+</svg>
                        </div>
                        <div style="margin-top:1px;background:${labelBg};color:white;font-size:8px;font-weight:800;padding:1px 5px;border-radius:3px;letter-spacing:.5px;white-space:nowrap;">${codigo}</div>
                    </div>`,
+            
             iconSize: [36, 44],
             iconAnchor: [18, 28],
             popupAnchor: [0, -28]
