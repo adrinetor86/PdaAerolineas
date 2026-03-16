@@ -1,0 +1,67 @@
+﻿@model PdaAerolineas.Models.ModeloAvion
+@{
+    Layout = "_AdminLayout";
+}
+
+<div class="min-h-screen bg-slate-50 py-10 px-4">
+    <div class="max-w-2xl mx-auto mb-8">
+        <a asp-action="ModeloAviones" asp-controller="PanelAdmin"
+           class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition mb-4">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Volver a modelos
+        </a>
+        <h1 class="text-3xl font-black text-slate-900">Nuevo modelo de avión</h1>
+        <p class="text-sm text-slate-400 mt-1">Define la ficha base que usarán las aeronaves.</p>
+    </div>
+
+    <form asp-action="CreateModeloAvion" method="post" class="max-w-2xl mx-auto space-y-5">
+        @Html.AntiForgeryToken()
+
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="border-b border-slate-100 px-5 py-3 bg-slate-50">
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Datos del modelo</p>
+            </div>
+            <div class="p-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                    <label asp-for="Fabricante" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fabricante *</label>
+                    <input asp-for="Fabricante" maxlength="100" placeholder="Ej: Airbus" required
+                           class="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-medium text-slate-800 placeholder:text-gray-300 outline-none transition focus:bg-white focus:ring-2 @(ViewData.ModelState[nameof(Model.Fabricante)]?.Errors.Any() == true ? "border-red-400 focus:ring-red-100" : "border-gray-200 focus:border-blue-500 focus:ring-blue-500")" />
+                    <p asp-validation-for="Fabricante" class="mt-1 text-xs font-bold text-red-600"></p>
+                </div>
+                <div>
+                    <label asp-for="Nombre" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Modelo *</label>
+                    <input asp-for="Nombre" maxlength="120" placeholder="Ej: A320neo" required
+                           class="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-medium text-slate-800 placeholder:text-gray-300 outline-none transition focus:bg-white focus:ring-2 @(ViewData.ModelState[nameof(Model.Nombre)]?.Errors.Any() == true ? "border-red-400 focus:ring-red-100" : "border-gray-200 focus:border-blue-500 focus:ring-blue-500")" />
+                    <p asp-validation-for="Nombre" class="mt-1 text-xs font-bold text-red-600"></p>
+                </div>
+                <div>
+                    <label asp-for="Capacidad" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Capacidad (asientos) *</label>
+                    <input asp-for="Capacidad" type="number" min="1" step="1" placeholder="180" required
+                           class="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-mono text-slate-800 placeholder:text-gray-300 outline-none transition focus:bg-white focus:ring-2 @(ViewData.ModelState[nameof(Model.Capacidad)]?.Errors.Any() == true ? "border-red-400 focus:ring-red-100" : "border-gray-200 focus:border-blue-500 focus:ring-blue-500")" />
+                    <p asp-validation-for="Capacidad" class="mt-1 text-xs font-bold text-red-600"></p>
+                </div>
+                <div>
+                    <label asp-for="Alcance" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Alcance máximo (km) *</label>
+                    <input asp-for="Alcance" type="number" min="1" step="1" placeholder="6300" required
+                           class="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-mono text-slate-800 placeholder:text-gray-300 outline-none transition focus:bg-white focus:ring-2 @(ViewData.ModelState[nameof(Model.Alcance)]?.Errors.Any() == true ? "border-red-400 focus:ring-red-100" : "border-gray-200 focus:border-blue-500 focus:ring-blue-500")" />
+                    <p asp-validation-for="Alcance" class="mt-1 text-xs font-bold text-red-600"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-1 pb-8">
+            <a asp-action="ModeloAviones" asp-controller="PanelAdmin"
+               class="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition shadow-sm">Cancelar</a>
+            <button type="submit"
+                    class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:scale-95 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Crear modelo
+            </button>
+        </div>
+    </form>
+</div>
+

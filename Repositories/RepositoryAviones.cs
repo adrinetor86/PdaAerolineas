@@ -32,6 +32,7 @@ public class RepositoryAviones
         return await _context.VistaHistorialVuelos
             .FirstOrDefaultAsync(v => v.VueloId == idVuelo);
     }
+    
 
     // Historial de vuelos por avión
     public async Task<List<VistaHistorialVuelo>> GetHistorialByAvionIdAsync(int idAvion)
@@ -122,6 +123,28 @@ public class RepositoryAviones
             _context.Aviones.Remove(avion);
             await _context.SaveChangesAsync();
             return (true, "Aeronave eliminada correctamente.");
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
+    public async Task<(bool Success, string Message)> CreateModeloAvionAsync(string fabricante, string nombre, int capacidad, int alcance)
+    {
+        try
+        {
+            var modelo = new ModeloAvion
+            {
+                Fabricante = fabricante,
+                Nombre = nombre,
+                Capacidad = capacidad,
+                Alcance = alcance
+            };
+
+            _context.ModelosAvion.Add(modelo);
+            await _context.SaveChangesAsync();
+            return (true, "Modelo registrado correctamente.");
         }
         catch (Exception ex)
         {

@@ -17,13 +17,16 @@ public class PanelAdminController : Controller
     private RepositoryAerolineas _repoAerolineas;
     private RepositoryRutas _repoRutas;
     private RepositoryAeropuertos _repoAeropuertos;
+    private RepositoryAviones _repoAviones;
     
-    public PanelAdminController(RepositoryUsuarios repositoryUsuarios,RepositoryAerolineas repoAerolineas,RepositoryRutas repoRutas, RepositoryAeropuertos repoAeropuertos)
+    public PanelAdminController(RepositoryUsuarios repositoryUsuarios,RepositoryAerolineas repoAerolineas,
+        RepositoryRutas repoRutas, RepositoryAeropuertos repoAeropuertos,RepositoryAviones repoAviones)
     {
         _repoUsuarios = repositoryUsuarios;
         _repoAerolineas = repoAerolineas;
         _repoRutas = repoRutas;
         _repoAeropuertos = repoAeropuertos;
+        _repoAviones = repoAviones;
     }
     public IActionResult Index()
     {
@@ -45,6 +48,51 @@ public class PanelAdminController : Controller
         ViewData["BUSQUEDA"]        = busqueda;
 
         return View(aerolineas);
+    }
+
+    public async Task<IActionResult> ModeloAviones()
+    {
+        List<ModeloAvion> modelos = await _repoAviones.GetModelosAvionAsync();
+
+        return View(modelos);
+    }
+
+    [HttpGet]
+    public IActionResult CreateModeloAvion()
+    {
+        return View(new ModeloAvion());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateModeloAvion(ModeloAvion modelo)
+    {
+        if (string.IsNullOrWhiteSpace(modelo.Fabricante))
+            ModelState.AddModelError(nameof(modelo.Fabricante), "El fabricante es obligatorio.");
+        if (string.IsNullOrWhiteSpace(modelo.Nombre))
+            ModelState.AddModelError(nameof(modelo.Nombre), "El modelo es obligatorio.");
+        if (modelo.Capacidad <= 0)
+            ModelState.AddModelError(nameof(modelo.Capacidad), "La capacidad debe ser mayor que cero.");
+        if (modelo.Alcance <= 0)
+            ModelState.AddModelError(nameof(modelo.Alcance), "El alcance debe ser mayor que cero.");
+
+        if (!ModelState.IsValid)
+            return View(modelo);
+
+        var (success, message) = await _repoAviones.CreateModeloAvionAsync(
+            modelo.Fabricante.Trim(),
+            modelo.Nombre.Trim(),
+            modelo.Capacidad,
+            modelo.Alcance);
+
+        if (!success)
+        {
+            ModelState.AddModelError(string.Empty, message);
+            return View(modelo);
+        }
+
+        TempData["SUCCESS"] = message;
+        return RedirectToAction("ModeloAviones");
     }
 
     public async Task<IActionResult> Usuarios(int numPag = 1, int numFilas = 10,

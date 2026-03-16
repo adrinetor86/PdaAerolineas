@@ -1,0 +1,64 @@
+﻿@model List<ModeloAvion>
+@{
+    Layout = "_AdminLayout";
+    var total = Model?.Count ?? 0;
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900">Modelos de avión</h1>
+            <p class="text-sm text-slate-500">Listado de configuraciones de aeronaves disponibles.</p>
+        </div>
+        <a asp-action="CreateModeloAvion" asp-controller="PanelAdmin"
+           class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
+            + Nuevo modelo
+        </a>
+    </div>
+
+    @if (TempData["SUCCESS"] is string okMessage)
+    {
+        <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">@okMessage</div>
+    }
+
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50/70 px-5 py-3">
+            <div class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Catálogo de modelos</div>
+            <span class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-mono text-slate-600">@total modelos</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-left text-sm text-slate-700">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                    <th class="px-4 py-3 font-semibold">Modelo</th>
+                    <th class="px-4 py-3 font-semibold">Fabricante</th>
+                    <th class="px-4 py-3 font-semibold">Capacidad</th>
+                    <th class="px-4 py-3 font-semibold">Alcance (km)</th>
+                    <th class="px-4 py-3 font-semibold text-right">ID</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                @if (Model == null || !Model.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="px-4 py-6 text-center text-sm text-slate-400">No hay modelos registrados.</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var m in Model.OrderBy(m => m.Fabricante).ThenBy(m => m.Nombre))
+                    {
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-4 py-3 text-sm font-bold text-slate-900">@m.Nombre</td>
+                            <td class="px-4 py-3 text-sm text-slate-800">@m.Fabricante</td>
+                            <td class="px-4 py-3 text-sm font-mono text-slate-700">@m.Capacidad asientos</td>
+                            <td class="px-4 py-3 text-sm font-mono text-slate-700">@m.Alcance km</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
