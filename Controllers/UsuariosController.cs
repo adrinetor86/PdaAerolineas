@@ -54,30 +54,11 @@ public class UsuariosController : Controller
       
       if (user != null)
       {
-
-          ClaimsIdentity identity = new ClaimsIdentity(
-              CookieAuthenticationDefaults.AuthenticationScheme,
-              ClaimTypes.Email, ClaimTypes.Role);
-
-          Claim claimEmail = new Claim(ClaimTypes.Email, email);
-          identity.AddClaim(claimEmail);
           
-          Claim claimId = new Claim(ClaimTypes.NameIdentifier, user.IdUsuario.ToString()); 
-          identity.AddClaim(claimId);       
-          
-          Claim claimNombre = new Claim(ClaimTypes.Name, user.Nombre); 
-          identity.AddClaim(claimNombre);         
-          
-          Claim claimAerolinea= new Claim("Aerolinea", user.IdAerolinea.ToString()); 
-          identity.AddClaim(claimAerolinea);  
-          
-          Claim claimRole= new Claim(ClaimTypes.Role, user.Rol); 
-          identity.AddClaim(claimRole);
-          
-          
-          ClaimsPrincipal userPrincipal= new ClaimsPrincipal(identity);
+          ClaimsPrincipal userPrincipal= await CargarClaims(user);
           await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, userPrincipal);
           await CargarSession(user.IdUsuario);
+          
           if (user.Rol == "Mecanico")
           {
               return RedirectToAction("Index", "Mantenimientos");
@@ -90,6 +71,33 @@ public class UsuariosController : Controller
          ModelState.AddModelError("", "Credenciales incorrectas. Revise su email y contraseña.");
           return View();      
           
+    }
+
+
+    private async Task<ClaimsPrincipal> CargarClaims(VistaLoggedUser user)
+    {
+        
+        ClaimsIdentity identity = new ClaimsIdentity(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            ClaimTypes.Email, ClaimTypes.Role);
+
+        Claim claimEmail = new Claim(ClaimTypes.Email, user.Email);
+        identity.AddClaim(claimEmail);
+          
+        Claim claimId = new Claim(ClaimTypes.NameIdentifier, user.IdUsuario.ToString()); 
+        identity.AddClaim(claimId);       
+          
+        Claim claimNombre = new Claim(ClaimTypes.Name, user.Nombre); 
+        identity.AddClaim(claimNombre);         
+          
+        Claim claimAerolinea= new Claim("Aerolinea", user.IdAerolinea.ToString()); 
+        identity.AddClaim(claimAerolinea);  
+          
+        Claim claimRole= new Claim(ClaimTypes.Role, user.Rol); 
+        identity.AddClaim(claimRole);
+          
+        ClaimsPrincipal userPrincipal= new ClaimsPrincipal(identity);
+        return userPrincipal;
     }
     
     [Authorize]
@@ -131,6 +139,12 @@ public class UsuariosController : Controller
 
     private async Task ResetSession(int idUsuario)
     {
+        VistaLoggedUser user=  await _repoUsuarios.GetLoggedUserData(idUsuario);
+        
+      ClaimsPrincipal userPrincipal= await CargarClaims(user);
+      
+      await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, userPrincipal);
+      
         VistaLoggedUser loggedUser= await _repoUsuarios.GetLoggedUserData(idUsuario);
 
         HttpContext.Session.Remove("ROL");
@@ -140,7 +154,7 @@ public class UsuariosController : Controller
     }
     
     
-    [Authorize(Roles = "Administrador")]
+    [Authorize("AdminOnly")]
     public async Task<IActionResult> Register()
     {
         List<Aerolinea> aerolineas = await _repoAerolineas.GetAerolineasAsync();
@@ -150,7 +164,7 @@ public class UsuariosController : Controller
         return View(aerolineas);
     }   
     [HttpPost]
-    [Authorize(Roles = "Administrador")]
+   [Authorize("AdminOnly")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(string nombre,string apellidos,string email,int idAerolinea,string password,int idRol)
     {

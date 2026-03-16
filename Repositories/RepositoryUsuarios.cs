@@ -5,6 +5,7 @@ using PdaAerolineas.Helpers;
 using PdaAerolineas.Models;
 using PdaAerolineas.Models.Auth;
 using PdaAerolineas.Models.Views;
+using System.Data;
 
 namespace PdaAerolineas.Repositories;
 
@@ -53,6 +54,50 @@ public class RepositoryUsuarios
         
     }
     
+    
+    
+    public async Task<(List<VistaAdministracionUsuarios> datos, int total)> GetUsuariosPaginadosAsync(
+        int pagina, int filas, string? busqueda = null, int? aerolineaId = null, bool? activo = null)
+    {
+        // Paso 1: resolvemos el nombre ANTES de construir el query
+        string? nombreAerolinea = null;
+        if (aerolineaId.HasValue)
+        {
+            nombreAerolinea = await _context.Aerolineas
+                .Where(a => a.IdAerolinea == aerolineaId.Value)
+                .Select(a => a.Nombre)
+                .FirstOrDefaultAsync();
+        }
+
+        // Paso 2: query sobre la vista (sin FromSqlRaw, sin SP)
+        var query = _context.VistaAdministracionUsuarios.AsQueryable();
+
+        if (nombreAerolinea != null)
+            query = query.Where(u => u.Aerolinea == nombreAerolinea);
+
+        if (activo.HasValue)
+            query = query.Where(u => u.Activo == activo.Value);
+
+        if (!string.IsNullOrEmpty(busqueda))
+            query = query.Where(u =>
+                u.Nombre.Contains(busqueda)    ||
+                u.Apellidos.Contains(busqueda) ||
+                u.Email.Contains(busqueda)     ||
+                u.Rol.Contains(busqueda)       ||
+                u.Aerolinea.Contains(busqueda));
+
+        int total = await query.CountAsync();
+
+        List<VistaAdministracionUsuarios> datos = await query
+            .OrderBy(u => u.Apellidos)
+            .ThenBy(u => u.Nombre)
+            .Skip((pagina - 1) * filas)
+            .Take(filas)
+            .ToListAsync();
+
+        return (datos, total);
+    }
+    
     public async Task RegisterUserAsync(string nombre,string apellidos,string email,int idAerolinea,string password,int idRol)
     {
         string salt = HelperTools.GenerateSalt();
@@ -60,13 +105,23 @@ public class RepositoryUsuarios
         
         string sql = "SP_Registrar_Usuario @Nombre,@Apellidos,@Email,@Password,@IdAerolinea,@Salt,@Pass,@IdRol";
 
+
+
         SqlParameter PamNombre = new SqlParameter("@Nombre", nombre);
         SqlParameter PamApellidos = new SqlParameter("@Apellidos", apellidos);
         SqlParameter PamEmail = new SqlParameter("@Email", email);
         SqlParameter PamPassword = new SqlParameter("@Password", password);
         SqlParameter PamAerolinea = new SqlParameter("@IdAerolinea", idAerolinea);
         SqlParameter PamSalt = new SqlParameter("@Salt", salt);
-        SqlParameter PamPass = new SqlParameter("@Pass", pass);
+        PamSalt.SqlDbType = System.Data.SqlDbType.NVarChar;
+        PamSalt.Size = 100;
+
+        //SqlParameter PamPass = new SqlParameter("@Pass", pass);
+        //PamPass.SqlDbType = System.Data.SqlDbType.VarBinary;
+        //PamPass.Size = -1;
+        SqlParameter PamPass = new SqlParameter("@Pass", SqlDbType.VarBinary);
+        PamPass.Value = pass; // Tus bytes ya cifrados
+        PamPass.Size = -1;    // Esto indica (MAX)
         SqlParameter PamRol = new SqlParameter("@IdRol", idRol);
 
     //TODO RECOGER ERRORES

@@ -30,18 +30,43 @@ public class PanelAdminController : Controller
         return View();
     }
     
-    public async Task<IActionResult> Usuarios()
+    public async Task<IActionResult> Aerolineas(int numPag = 1, int numFilas = 10, string? busqueda = null)
     {
-        List<VistaAdministracionUsuarios> usuarios = await _repoUsuarios.GetUsuariosAsync();
+        if (numPag < 1) numPag = 1;
+        if (numFilas < 1) numFilas = 10;
 
-        return View(usuarios);
-    }    
-    
-    public async Task<IActionResult> Aerolineas()
-    {
-        List<Aerolinea> aerolineas = await _repoAerolineas.GetAerolineasAsync();
+        var (aerolineas, total) = await _repoAerolineas.GetAerolineasPaginadasAsync(numPag, numFilas, busqueda);
+        int totalPaginas = (int)Math.Ceiling(total / (double)numFilas);
+
+        ViewData["TOTAL_REGISTROS"] = total;
+        ViewData["PAGINA_ACTUAL"]   = numPag;
+        ViewData["TOTAL_PAGINAS"]   = totalPaginas;
+        ViewData["REGISTROS_PAG"]   = numFilas;
+        ViewData["BUSQUEDA"]        = busqueda;
 
         return View(aerolineas);
+    }
+
+    public async Task<IActionResult> Usuarios(int numPag = 1, int numFilas = 10,
+        string? busqueda = null, int? aerolineaId = null, bool? activo = null)
+    {
+        if (numPag < 1) numPag = 1;
+        if (numFilas < 1) numFilas = 10;
+
+        var (usuarios, total) = await _repoUsuarios.GetUsuariosPaginadosAsync(numPag, numFilas, busqueda, aerolineaId, activo);
+        int totalPaginas = (int)Math.Ceiling(total / (double)numFilas);
+
+        // Para el select de aerolíneas en el filtro
+        ViewData["AEROLINEAS"]      = await _repoAerolineas.GetAerolineasAsync();
+        ViewData["TOTAL_REGISTROS"] = total;
+        ViewData["PAGINA_ACTUAL"]   = numPag;
+        ViewData["TOTAL_PAGINAS"]   = totalPaginas;
+        ViewData["REGISTROS_PAG"]   = numFilas;
+        ViewData["BUSQUEDA"]        = busqueda;
+        ViewData["AEROLINEA_ID"]    = aerolineaId;
+        ViewData["ACTIVO"]          = activo;
+
+        return View(usuarios);
     }
     
   

@@ -9,7 +9,7 @@ using PdaAerolineas.Helpers;
 namespace PdaAerolineas.Controllers;
 
 // TODO PASAR LOS ROLES TAMBIEN COMO AEROLINEAS
-[Authorize(Roles="Administrador,Gerente")]
+[Authorize("AdminOrGestor")]
 public class TripulacionController : Controller
 {
     private RepositoryTripulantes _repoTripulantes;

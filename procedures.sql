@@ -2853,3 +2853,177 @@ BEGIN
 END;
 go
 
+
+
+
+-- ══════════════════════════════════════════════════════════
+--  SP_AEROLINEAS_PAGINADO
+-- ══════════════════════════════════════════════════════════
+CREATE PROCEDURE SP_AEROLINEAS_PAGINADO
+    @PageNumber     INT           = 1,
+    @PageSize       INT           = 10,
+    @Busqueda       NVARCHAR(100) = NULL,   -- nombre, código IATA
+    @TotalRegistros INT           OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @PageNumber < 1   SET @PageNumber = 1;
+    IF @PageSize   < 1   SET @PageSize   = 10;
+    IF @PageSize   > 100 SET @PageSize   = 100;
+
+    SELECT @TotalRegistros = COUNT(*)
+    FROM dbo.aerolinea
+    WHERE
+        @Busqueda IS NULL OR
+        nombre      LIKE '%' + @Busqueda + '%' OR
+        codigo_iata LIKE '%' + @Busqueda + '%';
+
+    SELECT
+        id,
+        nombre,
+        logo,
+        codigo_iata,
+        @TotalRegistros                                      AS total_registros,
+        @PageNumber                                          AS pagina_actual,
+        @PageSize                                            AS registros_por_pagina,
+        CEILING(CAST(@TotalRegistros AS FLOAT) / @PageSize) AS total_paginas
+    FROM dbo.aerolinea
+    WHERE
+        @Busqueda IS NULL OR
+        nombre      LIKE '%' + @Busqueda + '%' OR
+        codigo_iata LIKE '%' + @Busqueda + '%'
+    ORDER BY nombre ASC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS
+        FETCH NEXT @PageSize ROWS ONLY;
+END;
+GO
+
+
+-- ══════════════════════════════════════════════════════════
+--  SP_USUARIOS_PAGINADO
+-- ══════════════════════════════════════════════════════════
+create or ALTER PROCEDURE SP_USUARIOS_PAGINADO
+    @PageNumber     INT           = 1,
+    @PageSize       INT           = 10,
+    @AerolineaId    INT           = NULL,
+    @Activo         BIT           = NULL,
+    @Busqueda       NVARCHAR(100) = NULL,
+    @TotalRegistros INT           OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @PageNumber < 1   SET @PageNumber = 1;
+    IF @PageSize   < 1   SET @PageSize   = 10;
+    IF @PageSize   > 100 SET @PageSize   = 100;
+
+    -- Total usando la vista directamente, igual que el resto de SPs
+    SELECT @TotalRegistros = COUNT(*)
+    FROM dbo.V_ADMINISTRACION_USUARIOS
+    WHERE
+        (@AerolineaId IS NULL OR AEROLINEA  = @AerolineaId)   -- añade esta columna a la vista si no existe
+      AND (@Activo      IS NULL OR ACTIVO        = @Activo)
+      AND (@Busqueda    IS NULL OR
+           NOMBRE     LIKE '%' + @Busqueda + '%' OR
+           APELLIDOS  LIKE '%' + @Busqueda + '%' OR
+           EMAIL      LIKE '%' + @Busqueda + '%' OR
+           ROL        LIKE '%' + @Busqueda + '%' OR
+           AEROLINEA  LIKE '%' + @Busqueda + '%');
+
+    -- Página: devuelve las mismas columnas que la vista (ID, NOMBRE, APELLIDOS, EMAIL, ROL, AEROLINEA, ACTIVO)
+    SELECT *
+    FROM dbo.V_ADMINISTRACION_USUARIOS
+    WHERE
+        (@AerolineaId IS NULL OR aerolinea  = @AerolineaId)
+      AND (@Activo      IS NULL OR ACTIVO        = @Activo)
+      AND (@Busqueda    IS NULL OR
+           NOMBRE     LIKE '%' + @Busqueda + '%' OR
+           APELLIDOS  LIKE '%' + @Busqueda + '%' OR
+           EMAIL      LIKE '%' + @Busqueda + '%' OR
+           ROL        LIKE '%' + @Busqueda + '%' OR
+           AEROLINEA  LIKE '%' + @Busqueda + '%')
+    ORDER BY APELLIDOS ASC, NOMBRE ASC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS
+        FETCH NEXT @PageSize ROWS ONLY;
+END;
+
+
+-- ══════════════════════════════════════════════════════════
+--  SP_RUTAS_PAGINADO
+-- ══════════════════════════════════════════════════════════
+CREATE PROCEDURE SP_RUTAS_PAGINADO
+    @PageNumber     INT           = 1,
+    @PageSize       INT           = 10,
+    @PaisOrigenId   INT           = NULL,   -- NULL = todos
+    @PaisDestinoId  INT           = NULL,   -- NULL = todos
+    @Busqueda       NVARCHAR(100) = NULL,   -- ciudad, código IATA/ICAO, aeropuerto
+    @TotalRegistros INT           OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @PageNumber < 1   SET @PageNumber = 1;
+    IF @PageSize   < 1   SET @PageSize   = 10;
+    IF @PageSize   > 100 SET @PageSize   = 100;
+
+    SELECT @TotalRegistros = COUNT(*)
+    FROM dbo.ruta            AS r
+             INNER JOIN dbo.aeropuerto AS ao ON ao.id = r.aeropuerto_origen_id
+             INNER JOIN dbo.aeropuerto AS ad ON ad.id = r.aeropuerto_destino_id
+             INNER JOIN dbo.pais       AS po ON po.id = ao.pais_id
+             INNER JOIN dbo.pais       AS pd ON pd.id = ad.pais_id
+    WHERE
+        (@PaisOrigenId  IS NULL OR ao.pais_id = @PaisOrigenId)
+      AND (@PaisDestinoId IS NULL OR ad.pais_id = @PaisDestinoId)
+      AND (@Busqueda      IS NULL OR
+           ao.nombre      LIKE '%' + @Busqueda + '%' OR
+           ad.nombre      LIKE '%' + @Busqueda + '%' OR
+           ao.codigo_iata LIKE '%' + @Busqueda + '%' OR
+           ad.codigo_iata LIKE '%' + @Busqueda + '%' OR
+           ao.ciudad      LIKE '%' + @Busqueda + '%' OR
+           ad.ciudad      LIKE '%' + @Busqueda + '%' OR
+           po.nombre      LIKE '%' + @Busqueda + '%' OR
+           pd.nombre      LIKE '%' + @Busqueda + '%');
+
+    SELECT
+        r.id,
+        r.distancia_km,
+        ao.id          AS id_aeropuerto_origen,
+        ao.nombre      AS aeropuerto_origen,
+        ao.codigo_iata AS codigo_origen,
+        ao.codigo_icao AS icao_origen,
+        ao.ciudad      AS ciudad_origen,
+        po.nombre      AS pais_origen,
+        ad.id          AS id_aeropuerto_destino,
+        ad.nombre      AS aeropuerto_destino,
+        ad.codigo_iata AS codigo_destino,
+        ad.codigo_icao AS icao_destino,
+        ad.ciudad      AS ciudad_destino,
+        pd.nombre      AS pais_destino,
+        @TotalRegistros                                      AS total_registros,
+        @PageNumber                                          AS pagina_actual,
+        @PageSize                                            AS registros_por_pagina,
+        CEILING(CAST(@TotalRegistros AS FLOAT) / @PageSize) AS total_paginas
+    FROM dbo.ruta            AS r
+             INNER JOIN dbo.aeropuerto AS ao ON ao.id = r.aeropuerto_origen_id
+             INNER JOIN dbo.aeropuerto AS ad ON ad.id = r.aeropuerto_destino_id
+             INNER JOIN dbo.pais       AS po ON po.id = ao.pais_id
+             INNER JOIN dbo.pais       AS pd ON pd.id = ad.pais_id
+    WHERE
+        (@PaisOrigenId  IS NULL OR ao.pais_id = @PaisOrigenId)
+      AND (@PaisDestinoId IS NULL OR ad.pais_id = @PaisDestinoId)
+      AND (@Busqueda      IS NULL OR
+           ao.nombre      LIKE '%' + @Busqueda + '%' OR
+           ad.nombre      LIKE '%' + @Busqueda + '%' OR
+           ao.codigo_iata LIKE '%' + @Busqueda + '%' OR
+           ad.codigo_iata LIKE '%' + @Busqueda + '%' OR
+           ao.ciudad      LIKE '%' + @Busqueda + '%' OR
+           ad.ciudad      LIKE '%' + @Busqueda + '%' OR
+           po.nombre      LIKE '%' + @Busqueda + '%' OR
+           pd.nombre      LIKE '%' + @Busqueda + '%')
+    ORDER BY ao.ciudad ASC, ad.ciudad ASC
+    OFFSET (@PageNumber - 1) * @PageSize ROWS
+        FETCH NEXT @PageSize ROWS ONLY;
+END;
+GO

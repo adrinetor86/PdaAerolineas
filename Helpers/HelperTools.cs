@@ -5,18 +5,27 @@ namespace PdaAerolineas.Helpers;
 
 public class HelperTools
 {
+    //public static string GenerateSalt()
+    //{
+    //    Random random = new Random();
+    //    string salt = "";
+    //    for (int i = 1; i <= 50; i++)
+    //    {
+    //        int num =random.Next(1, 255);
+    //        char letra = Convert.ToChar(num);
+    //        salt += letra;
+    //    }
+    //    return salt;
+    //}
+
+
     public static string GenerateSalt()
-    {
-        Random random = new Random();
-        string salt = "";
-        for (int i = 1; i <= 50; i++)
         {
-            int num =random.Next(1, 255);
-            char letra = Convert.ToChar(num);
-            salt += letra;
+        // Generamos 32 bytes reales de aleatoriedad
+        byte[] saltBytes = RandomNumberGenerator.GetBytes(32);
+        // Convertimos a una cadena de texto segura que NO tiene caracteres invisibles
+        return Convert.ToBase64String(saltBytes);
         }
-        return salt;
-    }
 
     public static bool CompareArrays(byte[] a, byte[] b)
     {

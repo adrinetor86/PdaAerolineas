@@ -10,7 +10,7 @@ using PdaAerolineas.Repositories;
 
 namespace PdaAerolineas.Controllers;
 
-[Authorize(Roles="Administrador, Gerente")]
+[Authorize("AdminOrGestor")]
 public class RutasController : Controller
 {
     private RepositoryRutas _repoRutas;
@@ -36,8 +36,7 @@ public class RutasController : Controller
         return View(rutasAerolinea);
     }
 
- 
-
+    
     [HttpPost]
     public async Task<IActionResult> Asignar(int idRuta, decimal? precioBase, int? frecuenciaSemanal)
     {

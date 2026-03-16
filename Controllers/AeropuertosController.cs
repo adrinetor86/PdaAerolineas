@@ -19,17 +19,21 @@ public class AeropuertosController : Controller
         _serviceMetar = serviceMetar;
     }
     
-    public async Task<IActionResult> Index(int? numPag, string busqueda)
+    public async Task<IActionResult> Aeropuertos(int numPag = 1, int numFilas = 10, string? busqueda = null)
     {
-        int pagina = numPag ?? 1;
-        int pageSize = 12; 
+        if (numPag < 1) numPag = 1;
+        if (numFilas < 1) numFilas = 10;
 
-        var resultado = await _repoAeropuertos.GetAeropuertosPaginadosAsync(pagina, pageSize, busqueda);
-            
-        ViewData["TOTAL_REGISTROS"] = resultado.TotalRegistros;
+        var (lista, total) = await _repoAeropuertos.GetAeropuertosPaginadosAsync(numPag, numFilas, busqueda ?? string.Empty);
+        int totalPaginas = (int)Math.Ceiling(total / (double)numFilas);
+
+        ViewData["TOTAL_REGISTROS"] = total;
+        ViewData["PAGINA_ACTUAL"] = numPag;
+        ViewData["TOTAL_PAGINAS"] = totalPaginas;
+        ViewData["REGISTROS_PAG"] = numFilas;
         ViewData["BUSQUEDA"] = busqueda;
 
-        return View(resultado.Aeropuertos);
+        return View(lista);
     }
     
     

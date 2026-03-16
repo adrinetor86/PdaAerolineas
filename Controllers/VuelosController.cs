@@ -10,7 +10,7 @@ using PdaAerolineas.Repositories;
 
 namespace PdaAerolineas.Controllers;
 
-[Authorize(Roles="Administrador,Gerente")]
+[Authorize("AdminOrGestor")]
 public class VuelosController : Controller
 {
     private RepositoryVuelos _repoVuelos;
@@ -57,7 +57,7 @@ public class VuelosController : Controller
     [HttpPost]
     [ActionName("Index")]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles="Administrador,Gerente")]
+    [Authorize("AdminOrGestor")]
     public IActionResult IndexPost(int numPag, int numFilas, int? idEstado, int? idAerolinea, DateTime? fechaSalida, string? busqueda)
     {
         return RedirectToAction("Index", new { numPag, numFilas, idEstado, idAerolinea, fechaSalida, busqueda });
@@ -75,7 +75,7 @@ public class VuelosController : Controller
     
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles="Administrador,Gerente")]
+    [Authorize("AdminOrGestor")]
     public async Task<IActionResult> Create(string numeroVuelo, int idRuta, int avion, DateTime fechaSalida,
         string puerta)
     {
@@ -218,7 +218,7 @@ public class VuelosController : Controller
     }
     [HttpPost]
     // [ValidateAntiForgeryToken]
-    [Authorize(Roles="Administrador,Gerente")]
+    [Authorize("AdminOrGestor")]
     public IActionResult ActualizarBorrador([FromBody] VueloCache datos)
     {
         if (datos == null) return BadRequest();

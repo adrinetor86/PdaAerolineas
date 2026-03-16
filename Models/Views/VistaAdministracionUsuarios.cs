@@ -30,6 +30,9 @@ public class VistaAdministracionUsuarios
     [Column("ROL")]
     public string Rol { get; set; }
     
+    [Column("AEROLINEA_ID")]
+    public int AerolineaId { get; set; }
+    
     [Required(ErrorMessage = "Debe seleccionar una Aerolinea")]
     [Column("AEROLINEA")]
     public string Aerolinea { get; set; }

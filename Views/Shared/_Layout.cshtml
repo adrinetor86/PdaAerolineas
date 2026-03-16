@@ -2,12 +2,38 @@
 @using System.Security.Claims
 @{
 
-    // int logged = Context.Session.GetObject<int>("LOGGED");
-    int id = int.Parse(Context.User.FindFirstValue(ClaimTypes.NameIdentifier));
-    string email = Context.User.FindFirstValue(ClaimTypes.Email);
-    string nombre =Context.User.FindFirstValue(ClaimTypes.Name);
-        
-        
+    //  int logged = Context.Session.GetObject<int>("LOGGED");
+    
+     int id = int.Parse(Context.User.FindFirstValue(ClaimTypes.NameIdentifier));
+    
+     string userIdClaim = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+     string email = Context.User.FindFirstValue(ClaimTypes.Email);
+     string nombre = Context.User.FindFirstValue(ClaimTypes.Name);
+    //
+    // // 2. Intentamos parsear el ID solo si existe, si no, usamos 0 o null
+    // int idUsuario = 0;
+    // if (!string.IsNullOrEmpty(userIdClaim))
+    // {
+    //     int.TryParse(userIdClaim, out idUsuario);
+    // }
+    //     
+    // int id = 0;
+    // string email = "invitado@pda.com";
+    // string nombre = "Invitado";
+    // bool isAuthenticated = Context.User.Identity.IsAuthenticated;
+    //
+    // if (isAuthenticated)
+    // {
+    //     // Solo intentamos obtener valores si el usuario inició sesión
+    //     string userIdClaim = Context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+    //     
+    //     // Usamos TryParse para evitar errores si el claim no es un número válido
+    //     int.TryParse(userIdClaim, out id);
+    //     
+    //     email = Context.User.FindFirstValue(ClaimTypes.Email) ?? email;
+    //     nombre = Context.User.FindFirstValue(ClaimTypes.Name) ?? nombre;
+    // }
+    //
     // ClaimsIdentity identity = new ClaimsIdentity(
     //     CookieAuthenticationDefaults.AuthenticationScheme,
     //     ClaimTypes.Email, ClaimTypes.Role);
@@ -148,7 +174,7 @@
                 
        
                 <!-- Aeropuertos -->
-                <a asp-controller="Aeropuertos" asp-action="Index"
+                <a asp-controller="Aeropuertos" asp-action="Aeropuertos"
                    class="flex items-center px-4 py-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors group">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
@@ -254,30 +280,30 @@
     
         
         <!-- Top Bar -->
-        <header class="bg-white border-b border-gray-200 sticky top-0 z-30">
-            <div class="flex items-center justify-between h-16 px-6">
-
-                <!-- Botón menú móvil -->
-                <button class="lg:hidden text-gray-500 hover:text-gray-700 focus:outline-none" onclick="toggleSidebar()">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                    </svg>
-                </button>
-
-                <!-- Page Title -->
-                <h2 class="text-lg font-semibold text-gray-800">@ViewData["Title"]</h2>
-
-                <!-- Right Section -->
-                <div class="flex items-center space-x-4">
-
-                    <!-- User Avatar -->
-                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-semibold">
-                        AD
-                    </div>
-
-                </div>
-            </div>
-        </header>
+        @* <header class="bg-white border-b border-gray-200 sticky top-0 z-30"> *@
+        @*     <div class="flex items-center justify-between h-16 px-6"> *@
+        @* *@
+        @*         <!-- Botón menú móvil --> *@
+        @*         <button class="lg:hidden text-gray-500 hover:text-gray-700 focus:outline-none" onclick="toggleSidebar()"> *@
+        @*             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"> *@
+        @*                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path> *@
+        @*             </svg> *@
+        @*         </button> *@
+        @* *@
+        @*         <!-- Page Title --> *@
+        @*         <h2 class="text-lg font-semibold text-gray-800">@ViewData["Title"]</h2> *@
+        @* *@
+        @*         <!-- Right Section --> *@
+        @*         <div class="flex items-center space-x-4"> *@
+        @* *@
+        @*             <!-- User Avatar --> *@
+        @*             <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-semibold"> *@
+        @*                 AD *@
+        @*             </div> *@
+        @* *@
+        @*         </div> *@
+        @*     </div> *@
+        @* </header> *@
         
         <!-- Page Content -->
         <main class="flex-1">

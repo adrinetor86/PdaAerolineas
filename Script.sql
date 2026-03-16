@@ -654,11 +654,6 @@ VALUES (1, 1),
 
 
 
--- SELECT COLUMN_NAME
--- FROM INFORMATION_SCHEMA.COLUMNS
--- WHERE TABLE_NAME = 'mantenimiento_tipo'
--- ORDER BY ORDINAL_POSITION;
-
 SELECT fk.name AS fk_nombre,
        tc.name AS tabla_con_fk
 FROM sys.foreign_keys fk

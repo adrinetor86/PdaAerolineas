@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using System.Data;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PdaAerolineas.Data;
 using PdaAerolineas.Helpers;
@@ -26,7 +27,31 @@ public class RepositoryAerolineas
             select datos;
         
         return await consulta.ToListAsync();
-    }     
+    }  
+    
+    public async Task<(List<Aerolinea> datos, int total)> GetAerolineasPaginadasAsync(
+        int pagina, int filas, string? busqueda = null)
+    {
+        // Parámetro OUTPUT para el total de registros
+        SqlParameter pamTotal = new SqlParameter("@TotalRegistros", SqlDbType.Int)
+        {
+            Direction = ParameterDirection.Output
+        };
+ 
+        SqlParameter pamPagina   = new SqlParameter("@PageNumber", pagina);
+        SqlParameter pamFilas    = new SqlParameter("@PageSize",   filas);
+        SqlParameter pamBusqueda = new SqlParameter("@Busqueda",
+            string.IsNullOrEmpty(busqueda) ? DBNull.Value : busqueda);
+ 
+        List<Aerolinea> datos = await _context.Aerolineas
+            .FromSqlRaw("EXEC SP_AEROLINEAS_PAGINADO @PageNumber, @PageSize, @Busqueda, @TotalRegistros OUTPUT",
+                pamPagina, pamFilas, pamBusqueda, pamTotal)
+            .ToListAsync();
+ 
+        int total = pamTotal.Value != DBNull.Value ? (int)pamTotal.Value : 0;
+ 
+        return (datos, total);
+    }
     
     public async Task<Aerolinea> FindAerolineaAsync(int idAerolinea)
     {

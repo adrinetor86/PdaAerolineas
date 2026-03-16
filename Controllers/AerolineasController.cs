@@ -84,8 +84,9 @@ public class AerolineasController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize("AdminOnly")]
-    public async Task<IActionResult> Update(int idAerolinea,string nombre,IFormFile? logo, string Cod_Iata)
+    public async Task<IActionResult> Update(int idAerolinea,string nombre,IFormFile? logo, string CodIata)
     {
+        Aerolinea aerolinea = await _repoAerolineas.FindAerolineaAsync(idAerolinea);
         if (logo != null)
         {
             var extensionesPermitidas = new[] { ".jpg", ".jpeg", ".png", ".svg", ".webp" };
@@ -93,12 +94,12 @@ public class AerolineasController : Controller
             if (!extensionesPermitidas.Contains(extension))
             {
                 ModelState.AddModelError("Logo", "Formato de imagen no válido.");
-                return View();
+                return View(aerolinea);
             }
         }
           
         try {
-            await _repoAerolineas.UpdateAerolineaAsync(idAerolinea, nombre, logo, Cod_Iata);
+            await _repoAerolineas.UpdateAerolineaAsync(idAerolinea, nombre, logo, CodIata);
             return RedirectToAction("Aerolineas","PanelAdmin");
         }
         catch (SqlException ex) {
@@ -107,12 +108,12 @@ public class AerolineasController : Controller
                 ModelState.AddModelError("Nombre", ex.Message);
             }
             else if (ex.Message.Contains("codigo IATA")) {
-                ModelState.AddModelError("Cod_Iata", ex.Message);
+                ModelState.AddModelError("CodIata", ex.Message);
             }
             else {
                 ModelState.AddModelError("", "Error: " + ex.Message);
             }
-            return View();
+            return View(aerolinea);
         }
         
     }
