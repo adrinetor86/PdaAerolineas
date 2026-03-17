@@ -710,6 +710,7 @@ VALUES (1, 1),
 INSERT INTO dbo.usuario (nombre, apellidos, email, password, aerolinea_id, activo)
 VALUES ('Adrian', 'Jacek', 'admin@gmail.com', '12345', 1, 1);
 
+
 -- Obtenemos el ID del usuario recién creado
 DECLARE @UserId INT = SCOPE_IDENTITY();
 

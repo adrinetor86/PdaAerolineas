@@ -96,7 +96,7 @@ public class RepositoryAeropuertos
                 new SqlParameter("@PaisId", idPais),
                 new SqlParameter("@Latitud", latitud),
                 new SqlParameter("@Longitud", longitud));
-            return (true, "Aeropuerto actualizado correctamente.");
+            return (true, "");
         }
         catch (SqlException ex)
         {

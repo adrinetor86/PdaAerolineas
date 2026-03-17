@@ -76,12 +76,16 @@ public class VuelosController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize("AdminOrGestor")]
-    public async Task<IActionResult> Create(string numeroVuelo, int idRuta, int avion, DateTime fechaSalida,
+    public async Task<IActionResult> Create(string? numeroVuelo, string? numeroVueloNuevo, int idRuta, int avion, DateTime fechaSalida,
         string puerta)
     {
         var errores = new List<FormError>();
+        
+        string finalNumeroVuelo = !string.IsNullOrWhiteSpace(numeroVueloNuevo) 
+            ? numeroVueloNuevo 
+            : numeroVuelo;
 
-        if (string.IsNullOrWhiteSpace(numeroVuelo))
+        if (string.IsNullOrWhiteSpace(finalNumeroVuelo))
             errores.Add(new FormError { Field = "numeroVuelo", Message = "El número de vuelo es obligatorio." });
         if (avion <= 0)
             errores.Add(new FormError { Field = "avion", Message = "Debe seleccionar una aeronave." });
@@ -98,7 +102,7 @@ public class VuelosController : Controller
 
         try
         {
-            await _repoVuelos.CreateVueloAsync(numeroVuelo, idAerolinea, idRuta,
+            await _repoVuelos.CreateVueloAsync(finalNumeroVuelo, idAerolinea, idRuta,
                 avion, fechaSalida, puerta);
 
             return Json(new { success = true, message = "Vuelo creado correctamente." });
@@ -329,5 +333,23 @@ public class VuelosController : Controller
             return NotFound();
             
         return View(vuelo);
+    }
+
+    [HttpPost]
+    [Authorize("AdminOnly")]
+    public async Task<IActionResult> GenerateHardVuelos()
+    {
+        await _repoVuelos.InsertarHardVuelosAsync();
+        TempData["SUCCESS"] = "Se han generado vuelos de prueba exitosamente.";
+        return RedirectToAction("Index");
+    }  
+    
+    [HttpPost]
+    [Authorize("AdminOnly")]
+    public async Task<IActionResult> BorrarHardVuelos()
+    {
+        await _repoVuelos.BorrarHardVuelosAsync();
+        TempData["SUCCESS"] = "Se han borrado vuelos de prueba exitosamente.";
+        return RedirectToAction("Index");
     }
 }

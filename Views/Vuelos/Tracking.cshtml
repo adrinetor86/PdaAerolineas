@@ -17,21 +17,33 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <div class="lg:col-span-3">
-            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                <div id="map" style="height: 520px;"></div>
+        <div class="lg:col-span-5">
+            @* <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"> *@
+            @*     <div id="map" style="height: 700px;"></div> *@
+            @* </div> *@
+            
+            <div class="flex gap-2 mb-2">
+                <button id="btn2D" onclick="setVista('2d')"
+                        class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white">2D</button>
+                <button id="btn3D" onclick="setVista('3d')"
+                        class="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-200 text-gray-700">3D</button>
             </div>
-        </div>
-        <div class="lg:col-span-1">
-            <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4">
-                <div class="text-xs font-mono text-gray-500">Estado conexión</div>
-                <div id="trackingStatus" class="mt-1 text-sm font-semibold text-gray-900">—</div>
 
-                <div class="mt-4 text-xs font-mono text-gray-500">Info</div>
-                <div id="trackingInfo" class="mt-1 text-sm text-gray-800 space-y-1"></div>
-                
+            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div id="map"   style="height:520px;"></div>
+                <div id="map3d" style="height:520px; display:none;"></div>
             </div>
         </div>
+        @* <div class="lg:col-span-1"> *@
+        @*     <div class="rounded-xl border border-gray-200 bg-white shadow-sm p-4"> *@
+        @*         <div class="text-xs font-mono text-gray-500">Estado conexión</div> *@
+        @*         <div id="trackingStatus" class="mt-1 text-sm font-semibold text-gray-900">—</div> *@
+        @* *@
+        @*         <div class="mt-4 text-xs font-mono text-gray-500">Info</div> *@
+        @*         <div id="trackingInfo" class="mt-1 text-sm text-gray-800 space-y-1"></div> *@
+        @*          *@
+        @*     </div> *@
+        @* </div> *@
     </div>
 </div>
 

@@ -1381,7 +1381,7 @@ go
 -- SP_GET_RUTAS_DISPONIBLES_POR_AVION_Y_FECHA (MODIFICADO)
 -- Solo muestra rutas que la aerolínea del avión opera
 -- ============================================
-CREATE   PROCEDURE SP_GET_RUTAS_DISPONIBLES_POR_AVION_Y_FECHA
+CREATE  or alter  PROCEDURE SP_GET_RUTAS_DISPONIBLES_POR_AVION_Y_FECHA
     @avion_id INT,
     @fecha_salida_deseada DATETIME
 AS
@@ -1435,11 +1435,11 @@ BEGIN
         r.id AS ruta_id,
         r.distancia_km,
         ao.id AS aeropuerto_origen_id,
+        ao.id AS aeropuerto_origen_id,
         ao.codigo_iata AS codigo_origen,
         ao.nombre AS nombre_origen,
         ao.ciudad AS ciudad_origen,
-        ao.latitud AS latitud_origen,
-        ao.longitud AS longitud_origen,
+        ad.id AS aeropuerto_destino_id,
         ad.id AS aeropuerto_destino_id,
         ad.codigo_iata AS codigo_destino,
         ad.nombre AS nombre_destino,
@@ -1501,7 +1501,7 @@ BEGIN
 END;
 go
 
-CREATE       PROCEDURE SP_GET_RUTAS_POR_AVION
+CREATE   or alter    PROCEDURE SP_GET_RUTAS_POR_AVION
 @avion_id INT
 AS
 BEGIN
@@ -2294,7 +2294,8 @@ BEGIN
       AND (@Activo IS NULL OR T.ACTIVO = @Activo)
       AND (@Busqueda IS NULL OR
            T.NOMBRE LIKE '%' + @Busqueda + '%' OR
-           T.APELLIDO LIKE '%' + @Busqueda + '%');
+           T.APELLIDO LIKE '%' + @Busqueda + '%' OR
+           T.ROL LIKE '%' + @Busqueda + '%' );
 
 
     SELECT
@@ -2377,7 +2378,7 @@ BEGIN
 END
 go
 
-CREATE    PROCEDURE SP_UPDATE_ESTADOVUELO
+CREATE   or alter PROCEDURE SP_UPDATE_ESTADOVUELO
 (@idvuelo int, @idestado int)
 AS
 UPDATE VUELO SET estado_id=@idestado

@@ -331,5 +331,16 @@ public class RepositoryVuelos
         }
     }
     
+    public async Task InsertarHardVuelosAsync()
+    {
+        string sql = "EXEC SP_GENERAR_VUELOS_HARD";
+        await _context.Database.ExecuteSqlRawAsync(sql);
+    } 
+    
+    public async Task BorrarHardVuelosAsync()
+    {
+        string sql = "EXEC SP_BORRAR_VUELOS_EN_VUELO";
+        await _context.Database.ExecuteSqlRawAsync(sql);
+    }
 
 }

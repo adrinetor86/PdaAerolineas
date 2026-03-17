@@ -24,9 +24,26 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <div class="lg:col-span-3">
-            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-900/5">
-                <div id="map" style="height: 100vh; width: 100%;"></div>
+            @* <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-900/5"> *@
+            @*     <div id="map" style="height: 100vh; width: 100%;"></div> *@
+            @* </div> *@
+            @* *@
+            <div class="flex gap-2 mb-2">
+                <button id="btn2D" onclick="setVista('2d')"
+                        class="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white">
+                    2D Mapa
+                </button>
+                <button id="btn3D" onclick="setVista('3d')"
+                        class="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-200 text-gray-700">
+                    3D Cesium
+                </button>
             </div>
+
+            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-900/5">
+                <div id="map"    style="height:100vh; width:100%;"></div>
+                <div id="map3d"  style="height:100vh; width:100%; display:none;"></div>
+            </div>
+            
         </div>
         
   
@@ -40,16 +57,7 @@
             </div>
 
             <!-- Ayuda de selección -->
-            <div class="rounded-xl border border-blue-100 bg-blue-50/50 p-3">
-                <div class="flex items-start gap-2">
-                    <svg class="w-4 h-4 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <p class="text-[10px] text-blue-700 leading-relaxed">
-                        <b>Click en un avión</b> para ver su ruta, aeropuertos de origen/destino y progreso en el mapa. Click en el mapa para deseleccionar.
-                    </p>
-                </div>
-            </div>
+         
 
             <div class="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
                 <div class="bg-gray-50 px-4 py-2 border-b border-gray-200">

@@ -178,8 +178,10 @@ public class RepositoryUsuarios
 
     }
     
-    
-    
-
-
+    public async Task DeleteUsuarioAsync(int idUsuario)
+    {
+        string sql = "EXEC SP_DELETE_USUARIO @idUsuario";
+        SqlParameter pamUsuario = new SqlParameter("@idUsuario", idUsuario);
+        await _context.Database.ExecuteSqlRawAsync(sql, pamUsuario);
+    }
 }

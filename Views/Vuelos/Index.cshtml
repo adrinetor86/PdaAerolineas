@@ -64,15 +64,36 @@
                 @totalRegistros vuelos &nbsp;·&nbsp; página @currentPage de @totalPaginas
             </p>
         </div>
-        <button id="btnOpenModal"
-                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:bg-blue-800 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="3">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Nuevo Vuelo
-        </button>
+        
+        <div class="flex gap-3">
+             <form method="post" asp-action="GenerateHardVuelos" class="inline">
+                 <button type="submit"
+                        class="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-orange-700 active:bg-orange-800 transition-colors"
+                        title="Generar 5 vuelos de prueba aleatorios en estado 'En Vuelo'">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    Hard Vuelos
+                </button>
+             </form>          
+             
+             <form method="post" asp-action="BorrarHardVuelos" class="inline">
+                 <button type="submit"
+                        class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-orange-700 active:bg-orange-800 transition-colors"
+                        title="Generar 5 vuelos de prueba aleatorios en estado 'En Vuelo'">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    Borrar Vuelos
+                </button>
+            </form>
+
+            <button id="btnOpenModal"
+                    class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-700 active:bg-blue-800 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="3">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Nuevo Vuelo
+            </button>
+        </div>
     </div>
 
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -426,22 +447,30 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Nº Vuelo
-                        *</label>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Nº Vuelo *</label>
                     
-                    <select id="selectNumeroVuelo" name="numeroVuelo" class="w-full border rounded-lg p-2">
-                        <option value="">Seleccionar número de vuelo</option>
-                        @foreach(var vuelo in numeroVuelos)
-                        {
-                            <option value="@vuelo">@vuelo</option>
-                        }
-                    </select>
+                    <div class="flex items-center mb-2">
+                        <input id="toggle-nuevo-vuelo" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <label for="toggle-nuevo-vuelo" class="ml-2 block text-sm text-gray-900">Crear nuevo número de vuelo</label>
+                    </div>
+
+                    <div id="contenedor-numero-vuelo-existente">
+                        <select id="selectNumeroVuelo" name="numeroVuelo" class="w-full border rounded-lg p-2">
+                            <option value="">Seleccionar número de vuelo</option>
+                            @foreach(var vuelo in numeroVuelos)
+                            {
+                                <option value="@vuelo">@vuelo</option>
+                            }
+                        </select>
+                    </div>
+                    <div id="contenedor-numero-vuelo-nuevo" class="hidden">
+                        <input type="text" id="numeroVueloNuevo" name="numeroVueloNuevo" class="w-full border rounded-lg p-2" placeholder="Ej: IBE1234">
+                    </div>
                     <p id="error-crear-numeroVuelo" class="mt-1 hidden text-xs font-bold text-red-600"></p>
                 </div>
                 
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Aeronave Asignada
-                        *</label>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Aeronave Asignada *</label>
                     <select id="selectAvion" name="avion" required
                             class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition cursor-pointer">
                         <option value="" disabled selected>Seleccionar matrícula</option>
@@ -454,8 +483,7 @@
                 </div>
         
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fecha y Hora de
-                        Salida *</label>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fecha y Hora de Salida *</label>
                     <input type="datetime-local" name="FechaSalida" required
                            class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition"/>
                     <p id="error-crear-FechaSalida" class="mt-1 hidden text-xs font-bold text-red-600"></p>
@@ -693,12 +721,19 @@
 
             // Validación client-side
             const erroresLocal = [];
-            const numVuelo = $("#selectNumeroVuelo").val();
+            const esNuevoVuelo = $('#toggle-nuevo-vuelo').is(':checked');
+            const numVueloExistente = $("#selectNumeroVuelo").val();
+            const numVueloNuevo = $("#numeroVueloNuevo").val();
             const avion = $("#selectAvion").val();
             const fecha = $("input[name='FechaSalida']").val();
             const ruta = $("#selectDestino").val();
 
-            if (!numVuelo) erroresLocal.push({ field: 'numeroVuelo', message: 'Debe seleccionar un número de vuelo.' });
+            if (esNuevoVuelo) {
+                if (!numVueloNuevo) erroresLocal.push({ field: 'numeroVuelo', message: 'Debe ingresar un nuevo número de vuelo.' });
+            } else {
+                if (!numVueloExistente) erroresLocal.push({ field: 'numeroVuelo', message: 'Debe seleccionar un número de vuelo existente.' });
+            }
+            
             if (!avion) erroresLocal.push({ field: 'avion', message: 'Debe seleccionar una aeronave.' });
             if (!fecha) erroresLocal.push({ field: 'FechaSalida', message: 'La fecha de salida es obligatoria.' });
             if (!ruta) erroresLocal.push({ field: 'idRuta', message: 'Debe seleccionar un destino.' });
@@ -745,6 +780,19 @@
                 });
             } finally {
                 btn.prop('disabled', false).text('Confirmar y Crear');
+            }
+        });
+
+        // Lógica para el toggle de nuevo número de vuelo
+        $('#toggle-nuevo-vuelo').change(function() {
+            if(this.checked) {
+                $('#contenedor-numero-vuelo-existente').hide();
+                $('#contenedor-numero-vuelo-nuevo').show();
+                $('#selectNumeroVuelo').val('').trigger('change'); // Limpiar selección
+            } else {
+                $('#contenedor-numero-vuelo-existente').show();
+                $('#contenedor-numero-vuelo-nuevo').hide();
+                $('#numeroVueloNuevo').val(''); // Limpiar input
             }
         });
 

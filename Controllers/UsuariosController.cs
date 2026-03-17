@@ -100,6 +100,7 @@ public class UsuariosController : Controller
         return userPrincipal;
     }
     
+    
     [Authorize]
     [HttpGet]
     public async Task<IActionResult> Logout()
@@ -186,10 +187,7 @@ public class UsuariosController : Controller
             {
                 ModelState.AddModelError("Email", "Ya existe un usuario con ese email.");
             }
-            else
-            {
-                ModelState.AddModelError("", "Error: " + ex.Message);
-            }
+        
             
             return await CargarVistaRegister();
         }
@@ -257,8 +255,28 @@ public class UsuariosController : Controller
         ViewBag.Roles = new SelectList(roles, "Nombre", "Nombre");
         
     }
+
+
+    public async Task<IActionResult> Delete()
+    {
+        return RedirectToAction("Usuarios","PanelAdmin");
+    }
     
-    
-    
-  
+    [HttpPost]
+    [Authorize("AdminOnly")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int idUsuario)
+    {
+        var idLogueado = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+        if (idUsuario == idLogueado)
+        {
+            TempData["ERROR"] = "No puedes eliminar tu propia cuenta.";
+            return RedirectToAction("Usuarios", "PanelAdmin");
+        }
+
+        await _repoUsuarios.DeleteUsuarioAsync(idUsuario);
+        TempData["SUCCESS"] = "Usuario eliminado correctamente.";
+        return RedirectToAction("Usuarios", "PanelAdmin");
+    }
 }
