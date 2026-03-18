@@ -34,4 +34,6 @@ public class VistaAvion
     
     [Column("CICLOS_TOTALES")]
     public int CiclosTotales { get; set; }
+    
+    
 }

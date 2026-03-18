@@ -24,15 +24,7 @@
         </div>
     </div>
 
-    @if (TempData["SUCCESS"] != null)
-    {
-        <div class="max-w-2xl mx-auto mb-5 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-sm">
-            <svg class="w-4 h-4 shrink-0 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-            </svg>
-            @TempData["SUCCESS"]
-        </div>
-    }
+   
     
 
     <form asp-action="Update" method="post" class="max-w-2xl mx-auto space-y-5">

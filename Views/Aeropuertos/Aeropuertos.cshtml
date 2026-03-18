@@ -1,5 +1,4 @@
-﻿
-@model List<Aeropuerto>
+﻿@model List<Aeropuerto>
 
 @{
     Layout = "_Layout";
@@ -96,25 +95,21 @@
                             <td class="px-4 py-3 text-xs font-mono text-slate-600">@a.Latitud, @a.Longitud</td>
                             
                             <td class="px-4 py-3 text-right">
-                                <div class="flex justify-end gap-2"> 
+                                <div class="flex justify-end gap-2">
                                     <a asp-action="Clima" asp-route-iata="@a.Cod_Icao"
-                                       class="p-2 text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors" title="Clima Realtime">
+                                       class="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100 transition-colors" title="Clima Realtime">
                                         Ver Información Metar
                                     </a>
-                                
-                                </div>
-                         
-                            
-                                @if (ClaimsExtensions.IsAdmin(User))
-                                {
-                                   
+                                    @if (ClaimsExtensions.IsAdmin(User))
+                                    {
                                         <a asp-controller="Aeropuertos"
                                            asp-action="Update"
-                                           asp-route-idAeropuerto="@a.IdAeropuerto" class="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 ring-1 ring-blue-200 hover:bg-blue-100">
+                                           asp-route-idAeropuerto="@a.IdAeropuerto"
+                                           class="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 ring-1 ring-blue-200 hover:bg-blue-100">
                                             Editar
                                         </a>
-                                    
-                                }
+                                    }
+                                </div>
                             </td>
                         </tr>
                     }
@@ -164,8 +159,7 @@
                         }
                     }
 
-                    @if (end < totalPaginas)
-                    {
+                    @if (end < totalPaginas) {
                         if (end < totalPaginas - 1)
                         {
                             <span class="px-1 font-mono text-xs text-gray-400">…</span>

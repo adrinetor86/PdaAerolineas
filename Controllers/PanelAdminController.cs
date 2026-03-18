@@ -90,8 +90,7 @@ public class PanelAdminController : Controller
             ModelState.AddModelError(string.Empty, message);
             return View(modelo);
         }
-
-        TempData["SUCCESS"] = message;
+        
         return RedirectToAction("ModeloAviones");
     }
 

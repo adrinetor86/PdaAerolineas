@@ -88,7 +88,15 @@
 
     /* ═══════════════ INIT ═══════════════ */
     document.addEventListener('DOMContentLoaded', async () => {
-        map = L.map('map', { zoomControl: true }).setView([40.4167, -3.7032], 5);
+        map = L.map('map', {
+            zoomControl: true,
+            fullscreenControl: true,
+            fullscreenControlOptions: {
+                position: 'topleft',
+                title: 'Pantalla completa',
+                titleCancel: 'Salir de pantalla completa'
+            }
+        }).setView([40.4167, -3.7032], 5);
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             maxZoom:     19,

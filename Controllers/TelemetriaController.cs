@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PdaAerolineas.Data;
@@ -110,48 +111,84 @@ public class TelemetriaController : Controller
     
     
     [HttpGet("RadarFlota")]
+    [Authorize("AdminOrGestor")]
     public IActionResult RadarFlota()
     {
         return View();
     }
     
+    
+    
     [HttpGet("GetAllTracking")]
     public async Task<IActionResult> GetAllTracking()
     {
-
-        var lista = await _context.VuelosTracking
-            .AsNoTracking()
-            .Where(v => v.EstadoId == 3) 
-            .ToListAsync();
-        
-        if (lista == null)
-        {
-            return Ok(new { success = true, data = new List<object>() });
-        }
-
-        // Proyectamos a un JSON limpio, controlando los nulos de lat/lng
-        var data = lista.Select(t => new
-        {
-            vueloId = t.VueloId,
-            numeroVuelo = t.NumeroVuelo,
-            matricula = t.Matricula,
-            lat = (double?)t.LatitudActual, 
-            lng = (double?)t.LongitudActual,
-            info = new
+        var data = await (
+            from t in _context.VuelosTracking.AsNoTracking()
+            join a in _context.Aviones on t.Matricula equals a.Matricula
+            join m in _context.ModelosAvion on a.IdModelo equals m.IdModelo
+            where t.EstadoId == 3
+            select new
             {
-                origen = t.CodigoOrigen,
-                destino = t.CodigoDestino,
-                ciudadOrigen = t.CiudadOrigen,
-                ciudadDestino = t.CiudadDestino,
-                latOrigen = (double?)t.LatOrigen,
-                lngOrigen = (double?)t.LngOrigen,
-                latDestino = (double?)t.LatDestino,
-                lngDestino = (double?)t.LngDestino,
-                altitud = t.AltitudPies,
-                progreso = t.Progreso ?? 0
+                vueloId     = t.VueloId,
+                numeroVuelo = t.NumeroVuelo,
+                matricula   = t.Matricula,
+                lat = (double?)t.LatitudActual,
+                lng = (double?)t.LongitudActual,
+                info = new
+                {
+                    origen        = t.CodigoOrigen,
+                    destino       = t.CodigoDestino,
+                    ciudadOrigen  = t.CiudadOrigen,
+                    ciudadDestino = t.CiudadDestino,
+                    latOrigen     = (double?)t.LatOrigen,
+                    lngOrigen     = (double?)t.LngOrigen,
+                    latDestino    = (double?)t.LatDestino,
+                    lngDestino    = (double?)t.LngDestino,
+                    altitud       = t.AltitudPies,
+                    progreso      = t.Progreso ?? 0,
+                    modelo        = m.Nombre  // ✅ nombre del modelo del avión
+                }
             }
-        });
+        ).ToListAsync();
 
-        return Ok(new { success = true, data = data });
+        if (!data.Any())
+            return Ok(new { success = true, data = new List<object>() });
+
+        return Ok(new { success = true, data });
+        // var lista = await _context.VuelosTracking
+        //     .AsNoTracking()
+        //     .Where(v => v.EstadoId == 3) 
+        //     .ToListAsync();
+        //
+        // if (lista == null)
+        // {
+        //     return Ok(new { success = true, data = new List<object>() });
+        // }
+        // var modelo= _context.Aviones.Mode(lista.Select(v => v.Matricula).ToList());
+        // // Proyectamos a un JSON limpio, controlando los nulos de lat/lng
+        // var data = lista.Select(t => new
+        // {
+        //     vueloId = t.VueloId,
+        //     numeroVuelo = t.NumeroVuelo,
+        //     matricula = t.Matricula,
+        //     lat = (double?)t.LatitudActual, 
+        //     lng = (double?)t.LongitudActual,
+        //     info = new
+        //     {
+        //         origen = t.CodigoOrigen,
+        //         destino = t.CodigoDestino,
+        //         ciudadOrigen = t.CiudadOrigen,
+        //         ciudadDestino = t.CiudadDestino,
+        //         latOrigen = (double?)t.LatOrigen,
+        //         lngOrigen = (double?)t.LngOrigen,
+        //         latDestino = (double?)t.LatDestino,
+        //         lngDestino = (double?)t.LngDestino,
+        //         altitud = t.AltitudPies,
+        //         progreso = t.Progreso ?? 0,
+        //    
+        //     }
+        // });
+        //
+        // return Ok(new { success = true, data = data });
     }
 }

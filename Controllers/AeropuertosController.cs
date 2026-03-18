@@ -39,14 +39,14 @@ public class AeropuertosController : Controller
     
     public async Task<IActionResult> Clima(string iata)
     {
-        if (string.IsNullOrEmpty(iata)) return RedirectToAction("Index");
+        if (string.IsNullOrEmpty(iata)) return RedirectToAction("Aeropuertos");
 
         var clima = await _serviceMetar.GetMetarAsync(iata);
     
         if (clima == null)
         {
-            TempData["Error"] = "No se pudo obtener la información meteorológica.";
-            return RedirectToAction("Index");
+       
+            return RedirectToAction("Aeropuertos");
         }
 
         return View(clima);
@@ -93,9 +93,6 @@ public class AeropuertosController : Controller
             await CargarSelects();
             return View(aeropuerto);
         }
-
-        TempData["SUCCESS"] = result.Message;
-        
         return RedirectToAction("Aeropuertos", "PanelAdmin");
     }
 
@@ -138,8 +135,7 @@ public class AeropuertosController : Controller
             await CargarSelects();
             return View(aeropuerto);
         }
-
-        TempData["SUCCESS"] = result.Message;
+        
         return RedirectToAction("Aeropuertos", "PanelAdmin");
     }
 

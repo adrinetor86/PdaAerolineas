@@ -219,17 +219,24 @@ public class RepositoryRutas
         }
     }
 
-    // Obtener detalle de una ruta asignada
-    public async Task<VistaRutaAerolinea?> GetRutaAerolineaAsync(int idRuta, int idAerolinea)
+    public async Task<(List<VistaRutaAerolinea> Rutas, int TotalRegistros)> GetRutasAerolineaPaginadasAsync(int aerolineaId, int numPag, int numFilas, string? busqueda)
     {
-        return await _context.VistaRutasAerolinea
-            .FirstOrDefaultAsync(r => r.RutaId == idRuta && r.AerolineaId == idAerolinea);
-    }
-    
+        string sql = "EXEC SP_RUTAS_POR_AEROLINEA @AerolineaId, @PageNumber, @PageSize, @Busqueda, @TotalRegistros OUTPUT";
 
-    public async Task<List<VistaRuta>> GetRutasAerolinea(int idBase, int idAerolinea)
-    {
-        return await GetRutasMapaAerolineaAsync(idAerolinea);
+        var pamId = new SqlParameter("@AerolineaId", aerolineaId);
+        var pamNumPagina = new SqlParameter("@PageNumber", numPag);
+        var pamNumFilas = new SqlParameter("@PageSize", numFilas);
+        var pamBusqueda = new SqlParameter("@Busqueda", string.IsNullOrWhiteSpace(busqueda) ? DBNull.Value : busqueda.Trim());
+        var pamTotal = new SqlParameter("@TotalRegistros", System.Data.SqlDbType.Int) { Direction = System.Data.ParameterDirection.Output };
+
+
+        var lista = await _context.VistaRutasAerolinea
+            .FromSqlRaw(sql, pamId, pamNumPagina, pamNumFilas, pamBusqueda, pamTotal)
+            .ToListAsync();
+
+        int total = (pamTotal.Value != DBNull.Value) ? (int)pamTotal.Value : 0;
+
+        return (lista, total);
     }
 
     public async Task<(List<VistaRuta> Rutas, int TotalRegistros)> GetRutasPaginadasAsync(int numPag, int numFilas, string? busqueda)

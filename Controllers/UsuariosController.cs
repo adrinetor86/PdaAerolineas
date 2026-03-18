@@ -271,7 +271,7 @@ public class UsuariosController : Controller
 
         if (idUsuario == idLogueado)
         {
-            TempData["ERROR"] = "No puedes eliminar tu propia cuenta.";
+            //TODO AVISAR NO PUEDES ELIMINAR
             return RedirectToAction("Usuarios", "PanelAdmin");
         }
 

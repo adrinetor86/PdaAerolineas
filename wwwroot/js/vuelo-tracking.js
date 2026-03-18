@@ -1,6 +1,4 @@
-﻿// Tracking en directo de un vuelo usando SignalR + Leaflet + Cesium
-// Requiere que la vista defina: window.VUELO_TRACKING = { idVuelo, hubUrl, bootstrapUrl }
-
+﻿
 (function () {
   'use strict';
 
@@ -19,41 +17,44 @@
   function setInfo(lines) {
     if (!elInfo) return;
     elInfo.innerHTML = '';
-    for (const l of lines) {
+    lines.forEach(l => {
       const div = document.createElement('div');
       div.textContent = l;
       elInfo.appendChild(div);
-    }
+    });
   }
 
   /* ═══════════════ LEAFLET ═══════════════ */
-  const map = L.map('map', { zoomControl: true });
-  map.setView([40.4168, -3.7038], 5);
+  const map = L.map('map', {
+    zoomControl: true,
+    fullscreenControl: true
+  }).setView([40.4, -3.7], 5);
 
-  const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
-    attribution: '&copy; OpenStreetMap'
-  });
+    attribution: '&copy; CartoDB &copy; OSM'
+  }).addTo(map);
 
-  tiles.on('tileerror', (e) => {
-    console.error('[tracking] tile error', e);
-    setStatus('Mapa cargado, pero fallan los tiles.');
-  });
-
-  tiles.addTo(map);
   setTimeout(() => map.invalidateSize(true), 250);
 
   const planeIcon = L.divIcon({
-    className: 'plane-marker',
-    html: `<div id="plane-icon-body" style="transition:transform 0.6s ease-out;display:flex;justify-content:center;align-items:center;">
-                   <img src="/assets/images/icons/plane-icon.png" style="width:40px;height:40px"/>
-               </div>`,
+    className: '',
+    html: `
+    <div id="plane-icon-body" style="
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        transform-origin:center;
+    ">
+        <img src="/assets/images/icons/plane-icon.png"
+             style="width:40px;height:40px;background:transparent;display:block;" />
+    </div>
+  `,
     iconSize: [40, 40],
     iconAnchor: [20, 20]
   });
-
-  let marker         = null;
-  let routeLine      = null;
+  let marker = null;
+  let routeLine = null;
   let frameAnimacion = null;
 
   function calcularAngulo(lat1, lng1, lat2, lng2) {
@@ -66,85 +67,97 @@
   }
 
   function upsertMarker(lat, lng) {
-    if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) return;
-
     if (!marker) {
-      marker = L.marker([lat, lng], { title: 'Avión', icon: planeIcon }).addTo(map);
-      map.setView([lat, lng], 6);
+      marker = L.marker([lat, lng], { icon: planeIcon }).addTo(map);
       return;
     }
 
-    const origen  = marker.getLatLng();
+    const origen = marker.getLatLng();
     const destino = L.latLng(lat, lng);
-
-    if (origen.lat === destino.lat && origen.lng === destino.lng) return;
 
     const angulo = calcularAngulo(origen.lat, origen.lng, destino.lat, destino.lng);
     const divAvion = document.getElementById('plane-icon-body');
     if (divAvion) divAvion.style.transform = `rotate(${angulo}deg)`;
 
-    const tiempoInicio      = performance.now();
-    const duracionAnimacion = 2900;
+    const inicio = performance.now();
+    const duracion = 2000;
+    marker.setLatLng([lat, lng]);
+    
+    
+    function animar(t) {
+      let p = (t - inicio) / duracion;
+      if (p > 1) p = 1;
 
-    function animar(tiempoActual) {
-      let progreso = (tiempoActual - tiempoInicio) / duracionAnimacion;
-      if (progreso > 1) progreso = 1;
-
-      const latActual = origen.lat + (destino.lat - origen.lat) * progreso;
-      const lngActual = origen.lng + (destino.lng - origen.lng) * progreso;
+      const latActual = origen.lat + (destino.lat - origen.lat) * p;
+      const lngActual = origen.lng + (destino.lng - origen.lng) * p;
 
       marker.setLatLng([latActual, lngActual]);
 
-      if (progreso < 1) frameAnimacion = requestAnimationFrame(animar);
+      if (p < 1) frameAnimacion = requestAnimationFrame(animar);
     }
 
     if (frameAnimacion) cancelAnimationFrame(frameAnimacion);
     frameAnimacion = requestAnimationFrame(animar);
   }
 
-  function upsertRoute(origen, destino) {
-    if (!origen || !destino) return;
-    const coords = [[origen.lat, origen.lng], [destino.lat, destino.lng]];
-    if (routeLine) { routeLine.setLatLngs(coords); return; }
-    routeLine = L.polyline(coords, { color: '#2563eb', weight: 3, opacity: 0.7 }).addTo(map);
-    map.fitBounds(routeLine.getBounds(), { padding: [20, 20] });
+  function upsertRoute(o, d) {
+    if (!o || !d) return;
+    const coords = [[o.lat, o.lng], [d.lat, d.lng]];
+    if (routeLine) return routeLine.setLatLngs(coords);
+
+    routeLine = L.polyline(coords, { color: '#2563eb' }).addTo(map);
+    map.fitBounds(routeLine.getBounds());
   }
 
-  /* ═══════════════ BOOTSTRAP ═══════════════ */
-  async function bootstrap() {
-    setStatus('Cargando datos del vuelo...');
+  /* ═══════════════ CESIUM ═══════════════ */
+  let cesiumViewer = null;
+  let cesiumEntity = null;
+  let vista3DActiva = false;
 
-    const r = await fetch(cfg.bootstrapUrl, { headers: { 'Accept': 'application/json' } });
-    let data = null;
-    try { data = await r.json(); } catch {}
+  let headingSuave = 0;
 
-    if (!r.ok || (data && data.success === false)) {
-      setStatus('No se pudo cargar la posición inicial.');
-      setInfo(['Error cargando datos del backend.']);
-      return;
-    }
 
-    const infoLines = [];
-    if (data.numeroVuelo) infoLines.push(`Vuelo: ${data.numeroVuelo}`);
-    if (data.origen && data.destino) infoLines.push(`Ruta: ${data.origen.codigo} → ${data.destino.codigo}`);
+  function iniciarCesium(lat, lng, alt, heading) {
+    if (cesiumViewer) return;
 
-    if (data.origen && data.destino) upsertRoute(data.origen, data.destino);
+    cesiumViewer = new Cesium.Viewer('map3d', {
+      terrain: Cesium.Terrain.fromWorldTerrain(),
+      timeline: false,
+      animation: false
+    });
 
-    const tienePosicion = data.posicion &&
-        typeof data.posicion.lat === 'number' &&
-        typeof data.posicion.lng === 'number';
+    const pos = Cesium.Cartesian3.fromDegrees(lng, lat, alt * 0.3048);
 
-    if (tienePosicion) {
-      upsertMarker(data.posicion.lat, data.posicion.lng);
-      infoLines.push(`Posición: OK (${data.posicion.lat.toFixed(4)}, ${data.posicion.lng.toFixed(4)})`);
-    } else if (data.origen && typeof data.origen.lat === 'number') {
-      upsertMarker(data.origen.lat, data.origen.lng);
-      infoLines.push('Posición actual: mostrando avión en ORIGEN');
-    }
+    cesiumEntity = cesiumViewer.entities.add({
+      position: pos,
+      model: {
+        uri: '/assets/models/AirbusA320.glb',
+        minimumPixelSize: 64
+      }
+    });
 
-    setInfo(infoLines);
-    setStatus('Conectando en directo...');
-    setTimeout(() => map.invalidateSize(true), 250);
+    cesiumViewer.trackedEntity = cesiumEntity;
+  }
+
+  function actualizarCesium(lat, lng, alt, heading) {
+    if (!cesiumEntity) return;
+
+    const pos = Cesium.Cartesian3.fromDegrees(lng, lat, alt * 0.3048);
+
+    const h = heading;
+
+    // 🔥 CORRECCIÓN CLAVE
+    const headingCorregido = h - 90;
+
+    cesiumEntity.position = pos;
+    cesiumEntity.orientation = Cesium.Transforms.headingPitchRollQuaternion(
+        pos,
+        new Cesium.HeadingPitchRoll(
+            Cesium.Math.toRadians(headingCorregido),
+            0,
+            0
+        )
+    );
   }
 
   /* ═══════════════ SIGNALR ═══════════════ */
@@ -154,147 +167,77 @@
         .withAutomaticReconnect()
         .build();
 
-    connection.onreconnecting(() => setStatus('Reconectando...'));
-    connection.onreconnected(() => setStatus('Conectado (reconectado).'));
-    connection.onclose(() => setStatus('Desconectado.'));
+    connection.on('PosicionActualizada', msg => {
+      if (msg.vueloId !== vueloId) return;
 
-    connection.on('PosicionActualizada', (msg) => {
-      if (!msg) return;
-      const msgVueloId = Number(msg.vueloId);
-      if (!Number.isFinite(msgVueloId) || msgVueloId !== vueloId) return;
+      if (marker) {
+        const prev = marker.getLatLng();
+        const heading = calcularAngulo(prev.lat, prev.lng, msg.lat, msg.lng);
 
-      if (typeof msg.lat === 'number' && typeof msg.lng === 'number') {
+        upsertMarker(msg.lat, msg.lng);
+
+        if (vista3DActiva) {
+          actualizarCesium(msg.lat, msg.lng, msg.altitud || 35000, heading);
+        }
+      } else {
         upsertMarker(msg.lat, msg.lng);
       }
-
-      if (vista3DActiva) {
-        actualizarCesiumTracking(msg.lat, msg.lng, msg.altitud || 35000, msg.heading || 0);
-      }
-    });
-
-    connection.on('VueloCompletado', (msg) => {
-      if (!msg) return;
-      const msgVueloId = Number(msg.vueloId);
-      if (!Number.isFinite(msgVueloId) || msgVueloId !== vueloId) return;
-      setStatus('Vuelo completado.');
     });
 
     await connection.start();
     await connection.invoke('JoinVueloGroup', vueloId);
-    setStatus('Conectado en directo.');
   }
 
+  /* ═══════════════ INIT ═══════════════ */
   (async () => {
-    try {
-      await bootstrap();
-      await startRealtime();
-    } catch (e) {
-      console.error('[tracking] Error:', e);
-      setStatus('Error iniciando el tracking.');
+    const r = await fetch(cfg.bootstrapUrl);
+    const data = await r.json();
+
+    if (data.origen && data.destino) {
+      upsertRoute(data.origen, data.destino);
     }
+
+    if (data.posicion) {
+      upsertMarker(data.posicion.lat, data.posicion.lng);
+    }
+
+    startRealtime();
   })();
 
-  /* ═══════════════ CESIUM TRACKING ═══════════════ */
-  let cesiumViewer   = null;
-  let cesiumEntity   = null;
-  let vista3DActiva  = false;
-
-  function iniciarCesiumTracking(lat, lng, alt, heading) {
-    if (cesiumViewer) return;
-
-    cesiumViewer = new Cesium.Viewer('map3d', {
-      terrain: Cesium.Terrain.fromWorldTerrain(),
-      baseLayerPicker:      false,
-      navigationHelpButton: false,
-      timeline:             false,
-      animation:            false,
-      fullscreenButton:     false,
-      homeButton:           false,
-      geocoder:             false,
-      infoBox:              true,
-      selectionIndicator:   true,
-    });
-
-    const altMetros = (alt || 0) * 0.3048;
-    const posicion  = Cesium.Cartesian3.fromDegrees(lng, lat, altMetros);
-
-    cesiumEntity = cesiumViewer.entities.add({
-      position: posicion,
-      orientation: Cesium.Transforms.headingPitchRollQuaternion(
-          posicion,
-          new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(heading || 0), 0, 0)
-      ),
-      model: {
-        uri:              '/assets/models/AirbusA320.glb',
-        minimumPixelSize: 64,
-        maximumScale:     20000,
-        silhouetteColor:  Cesium.Color.WHITE,
-        silhouetteSize:   2,
-      },
-      path: {
-        resolution: 1,
-        material: new Cesium.PolylineGlowMaterialProperty({
-          glowPower: 0.1,
-          color:     Cesium.Color.fromCssColorString('#3b82f6'),
-        }),
-        width:     3,
-        leadTime:  0,
-        trailTime: 3600,
-      }
-    });
-
-    cesiumViewer.trackedEntity = cesiumEntity;
-  }
-
-  function actualizarCesiumTracking(lat, lng, alt, heading) {
-    if (!cesiumViewer || !cesiumEntity) return;
-
-    const altMetros = (alt || 0) * 0.3048;
-    const pos       = Cesium.Cartesian3.fromDegrees(lng, lat, altMetros);
-
-    cesiumEntity.position    = pos;
-    cesiumEntity.orientation = Cesium.Transforms.headingPitchRollQuaternion(
-        pos,
-        new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(heading || 0), 0, 0)
-    );
-  }
-
-  /* ═══════════════ TOGGLE VISTA ═══════════════ */
+  /* ═══════════════ UI ═══════════════ */
   function setVista(modo) {
     const map2d = document.getElementById('map');
     const map3d = document.getElementById('map3d');
-    const btn2D = document.getElementById('btn2D');
-    const btn3D = document.getElementById('btn3D');
+    const btn2d = document.getElementById('btn2D');
+    const btn3d = document.getElementById('btn3D');
+
+    const activarBoton = (btnActivo, btnInactivo) => {
+      if (!btnActivo || !btnInactivo) return;
+      btnActivo.classList.add('bg-blue-600', 'text-white');
+      btnActivo.classList.remove('bg-gray-200', 'text-gray-700');
+      btnInactivo.classList.remove('bg-blue-600', 'text-white');
+      btnInactivo.classList.add('bg-gray-200', 'text-gray-700');
+    };
 
     if (modo === '3d') {
       map2d.style.display = 'none';
       map3d.style.display = 'block';
       vista3DActiva = true;
-
-      btn3D.classList.replace('bg-gray-200', 'bg-blue-600');
-      btn3D.classList.replace('text-gray-700', 'text-white');
-      btn2D.classList.replace('bg-blue-600', 'bg-gray-200');
-      btn2D.classList.replace('text-white',   'text-gray-700');
+      activarBoton(btn3d, btn2d);
 
       if (marker) {
         const ll = marker.getLatLng();
-        iniciarCesiumTracking(ll.lat, ll.lng, 35000, 0);
+        iniciarCesium(ll.lat, ll.lng, 35000, 0);
       }
     } else {
       map3d.style.display = 'none';
       map2d.style.display = 'block';
       vista3DActiva = false;
-
-      btn2D.classList.replace('bg-gray-200', 'bg-blue-600');
-      btn2D.classList.replace('text-gray-700', 'text-white');
-      btn3D.classList.replace('bg-blue-600',  'bg-gray-200');
-      btn3D.classList.replace('text-white',    'text-gray-700');
-
-      setTimeout(() => map.invalidateSize(true), 100);
+      activarBoton(btn2d, btn3d);
+      setTimeout(() => map.invalidateSize(), 100);
     }
   }
 
-  /* ═══════════════ EXPONER AL WINDOW ═══════════════ */
   window.setVista = setVista;
 
 })();

@@ -9,5 +9,6 @@
     <file url="file://$PROJECT_DIR$/procedures.sql" dialect="TSQL" />
     <file url="file://$PROJECT_DIR$/prueba.sql" dialect="TSQL" />
     <file url="file://$PROJECT_DIR$/tables.sql" dialect="TSQL" />
+    <file url="file://$PROJECT_DIR$/updatefinal.sql" dialect="TSQL" />
   </component>
 </project>

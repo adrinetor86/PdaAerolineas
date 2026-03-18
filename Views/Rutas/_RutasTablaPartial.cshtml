@@ -1,0 +1,171 @@
+﻿@model List<PdaAerolineas.Models.Views.VistaRutaAerolinea>
+@{
+    var paginaActual = ViewData["PAGINA_ACTUAL"] as int? ?? 1;
+    var totalPaginas = ViewData["TOTAL_PAGINAS"] as int? ?? 1;
+    var totalRegistros = ViewData["TOTAL_REGISTROS"] as int? ?? 0;
+    var registrosPag = ViewData["REGISTROS_PAG"] as int? ?? 10;
+
+    var inicioReg = totalRegistros == 0 ? 0 : (paginaActual - 1) * registrosPag + 1;
+    var finReg = Math.Min(totalRegistros, paginaActual * registrosPag);
+}
+
+<div class="overflow-x-auto">
+    <table class="w-full text-left text-sm" id="tablaRutas">
+        <thead class="border-b border-gray-200 bg-gray-50/40">
+        <tr>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Ruta</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Origen</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Destino</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Distancia</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Precio Base</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Freq/Sem</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Vuelos</th>
+            <th class="px-5 py-3 text-xs font-bold uppercase tracking-wider text-gray-500">Estado</th>
+            <th class="px-5 py-3 text-right text-xs font-bold uppercase tracking-wider text-gray-500">Acciones</th>
+        </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100" id="tbodyRutas">
+        @if (!Model.Any())
+        {
+            <tr>
+                <td colspan="9" class="px-5 py-16 text-center">
+                    <p class="mt-2 text-sm text-gray-400">No hay rutas asignadas a tu aerolinea.</p>
+                </td>
+            </tr>
+        }
+        @foreach (var ruta in Model)
+        {
+            <tr class="group transition-colors hover:bg-gray-50/70 fila-ruta"
+                data-search="@ruta.CodigoRuta @ruta.CodigoOrigen @ruta.CodigoDestino @ruta.CiudadOrigen @ruta.CiudadDestino @ruta.AeropuertoOrigen @ruta.AeropuertoDestino">
+                <td class="px-5 py-3.5">
+                    <span class="font-mono text-sm font-semibold text-gray-900">@ruta.CodigoRuta</span>
+                </td>
+                <td class="px-5 py-3.5">
+                    <div class="text-sm font-bold text-gray-800">@ruta.CodigoOrigen</div>
+                    <div class="text-xs text-gray-500">@ruta.CiudadOrigen</div>
+                </td>
+                <td class="px-5 py-3.5">
+                    <div class="text-sm font-bold text-gray-800">@ruta.CodigoDestino</div>
+                    <div class="text-xs text-gray-500">@ruta.CiudadDestino</div>
+                </td>
+                <td class="px-5 py-3.5">
+                    <span class="font-mono text-xs text-gray-500">@ruta.DistanciaKm km</span>
+                </td>
+                <td class="px-5 py-3.5">
+                    <span class="font-mono text-xs text-gray-500">@(ruta.PrecioBase.HasValue ? ruta.PrecioBase.Value.ToString("N2") + " EUR" : "-")</span>
+                </td>
+                <td class="px-5 py-3.5">
+                    <span class="font-mono text-xs text-gray-500">@(ruta.FrecuenciaSemanal?.ToString() ?? "-")</span>
+                </td>
+                <td class="px-5 py-3.5">
+                    <span class="font-mono text-xs text-gray-700 font-bold">@ruta.VuelosCompletados/@ruta.TotalVuelos</span>
+                </td>
+                <td class="px-5 py-3.5">
+                    @if (ruta.Activa)
+                    {
+                        <span class="inline-block rounded-md px-2.5 py-0.5 text-xs font-bold bg-green-50 text-green-700 ring-1 ring-inset ring-green-200">Activa</span>
+                    }
+                    else
+                    {
+                        <span class="inline-block rounded-md px-2.5 py-0.5 text-xs font-bold bg-red-50 text-red-700 ring-1 ring-inset ring-red-200">Inactiva</span>
+                    }
+                </td>
+                <td class="px-5 py-3.5 text-right">
+                    <div class="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <button onclick="abrirEditar(@ruta.RutaId, '@ruta.CodigoRuta', @(ruta.PrecioBase?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null"), @(ruta.FrecuenciaSemanal?.ToString() ?? "null"))"
+                                class="px-3 py-1.5 rounded-lg bg-blue-600 text-xs font-bold text-white hover:bg-blue-700 transition-all">
+                            Editar
+                        </button>
+                        @if (ruta.Activa)
+                        {
+                            <button onclick="desactivarRuta(@ruta.RutaId, '@ruta.CodigoRuta')"
+                                    class="px-3 py-1.5 rounded-lg bg-red-600 text-xs font-bold text-white hover:bg-red-700 transition-all">
+                                Desactivar
+                            </button>
+                        }
+                        else
+                        {
+                            <button onclick="reactivarRuta(@ruta.RutaId, '@ruta.CodigoRuta')"
+                                    class="px-3 py-1.5 rounded-lg bg-green-600 text-xs font-bold text-white hover:bg-green-700 transition-all">
+                                Reactivar
+                            </button>
+                        }
+                    </div>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<div class="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 bg-gray-50/70 px-5 py-3">
+
+    <p class="font-mono text-xs text-gray-500">
+        Mostrando <strong class="text-gray-800">@inicioReg</strong>
+        a <strong class="text-gray-800">@finReg</strong>
+        de <strong class="text-gray-800">@totalRegistros</strong> rutas
+    </p>
+
+    <div class="flex items-center gap-3">
+
+        <div class="flex items-center gap-1">
+            <button type="button" onclick="cambiarPaginaAjax(1)" @(paginaActual <= 1 ? "disabled" : "")
+                    class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30">«</button>
+            <button type="button" onclick="cambiarPaginaAjax(@(paginaActual - 1))" @(paginaActual <= 1 ? "disabled" : "")
+                    class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30">‹</button>
+
+            @{
+                var rng   = 2;
+                var start = Math.Max(1, paginaActual - rng);
+                var end   = Math.Min(totalPaginas, paginaActual + rng);
+            }
+
+            @if (start > 1)
+            {
+                <button type="button" onclick="cambiarPaginaAjax(1)"
+                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-600 transition-all hover:border-blue-400 hover:text-blue-600">1</button>
+                if (start > 2) { <span class="px-1 font-mono text-xs text-gray-400">…</span> }
+            }
+
+            @for (var p = start; p <= end; p++)
+            {
+                <button type="button" onclick="cambiarPaginaAjax(@p)"
+                        class="flex h-8 w-8 items-center justify-center rounded-lg @(p == paginaActual ? "border-gray-900 bg-gray-900 font-bold text-white" : "border-gray-200 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-600") border font-mono text-xs transition-all">@p</button>
+            }
+
+            @if (end < totalPaginas)
+            {
+                if (end < totalPaginas - 1) { <span class="px-1 font-mono text-xs text-gray-400">…</span> }
+                <button type="button" onclick="cambiarPaginaAjax(@totalPaginas)"
+                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-600 transition-all hover:border-blue-400 hover:text-blue-600">@totalPaginas</button>
+            }
+
+            <button type="button" onclick="cambiarPaginaAjax(@(paginaActual + 1))" @(paginaActual >= totalPaginas ? "disabled" : "")
+                    class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30">›</button>
+            <button type="button" onclick="cambiarPaginaAjax(@totalPaginas)" @(paginaActual >= totalPaginas ? "disabled" : "")
+                    class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30">»</button>
+        </div>
+
+        <div class="relative">
+            <select id="selectFilasPartial"
+                    onchange="cambiarPaginaAjax(1)"
+                    class="appearance-none cursor-pointer rounded-lg border border-gray-300 bg-white py-1.5 pl-3 pr-7 font-mono text-xs text-gray-700 outline-none transition-all hover:border-gray-400 focus:border-blue-400 focus:ring-1 focus:ring-blue-100">
+                <option value="5"  selected="@(registrosPag == 5)">5</option>
+                <option value="10" selected="@(registrosPag == 10)">10</option>
+                <option value="20" selected="@(registrosPag == 20)">20</option>
+                <option value="50" selected="@(registrosPag == 50)">50</option>
+            </select>
+            <svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400"
+                 xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="6 9 12 15 18 9"/>
+            </svg>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    var info = document.getElementById('infoPaginacion');
+    if (info) info.textContent = 'Página @paginaActual de @totalPaginas';
+</script>

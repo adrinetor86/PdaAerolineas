@@ -22,20 +22,68 @@ public class RutasController : Controller
         _repoAeropuertos = repoAeropuertos;
     }
 
-    public async Task<IActionResult> Index()
+    // public async Task<IActionResult> Index()
+    // {
+    //     int idAerolinea= ClaimsExtensions.GetAerolineaId(User);
+    //
+    //     var rutasAerolinea = await _repoRutas.GetRutasAerolineaAsync(idAerolinea);
+    //     var rutasMapa = await _repoRutas.GetRutasMapaAerolineaAsync(idAerolinea);
+    //     var rutasDisponibles = await _repoRutas.GetRutasNoOperadasAsync(idAerolinea);
+    //
+    //     ViewData["RUTAS_MAPA"] = rutasMapa;
+    //     ViewData["RUTAS_DISPONIBLES"] = rutasDisponibles;
+    //
+    //     return View(rutasAerolinea);
+    // }
+    //
+    //
+    // public async Task<IActionResult> Index(int numPag = 1, int numFilas = 10, string? busqueda = null)
+    // {
+    //
+    //      int idAerolinea= ClaimsExtensions.GetAerolineaId(User);
+    //      
+    //     var (rutas, total) = await _repoRutas.GetRutasAerolineaPaginadasAsync(idAerolinea, numPag, numFilas, busqueda);
+    //
+    //     ViewData["TOTAL_REGISTROS"] = total;
+    //     ViewData["PAGINA_ACTUAL"] = numPag;
+    //     ViewData["TOTAL_PAGINAS"] = (int)Math.Ceiling(total / (double)numFilas);
+    //     ViewData["REGISTROS_PAG"] = numFilas;
+    //     ViewData["BUSQUEDA"] = busqueda;
+    //     
+    //     var rutasAerolinea = await _repoRutas.GetRutasAerolineaAsync(idAerolinea);
+    //     var rutasMapa = await _repoRutas.GetRutasMapaAerolineaAsync(idAerolinea);
+    //     var rutasDisponibles = await _repoRutas.GetRutasNoOperadasAsync(idAerolinea);
+    //     ViewData["RUTAS_MAPA"] = rutasMapa;
+    //         ViewData["RUTAS_DISPONIBLES"] = rutasDisponibles;
+    //         
+    //         
+    //     return View(rutas);
+    // }
+    
+    public async Task<IActionResult> Index(int numPag = 1, int numFilas = 10, string? busqueda = null)
     {
         int idAerolinea= ClaimsExtensions.GetAerolineaId(User);
+        var (rutas, total) = await _repoRutas.GetRutasAerolineaPaginadasAsync(idAerolinea, numPag, numFilas, busqueda);
 
-        var rutasAerolinea = await _repoRutas.GetRutasAerolineaAsync(idAerolinea);
+        ViewData["TOTAL_REGISTROS"] = total;
+        ViewData["PAGINA_ACTUAL"] = numPag;
+        ViewData["TOTAL_PAGINAS"] = (int)Math.Ceiling(total / (double)numFilas);
+        ViewData["REGISTROS_PAG"] = numFilas;
+        ViewData["BUSQUEDA"] = busqueda;
+
+        // Si es una petición AJAX (fetch), devolvemos solo la Partial
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+            return PartialView("_RutasTablaPartial", rutas);
+        }      
+        
         var rutasMapa = await _repoRutas.GetRutasMapaAerolineaAsync(idAerolinea);
         var rutasDisponibles = await _repoRutas.GetRutasNoOperadasAsync(idAerolinea);
-
         ViewData["RUTAS_MAPA"] = rutasMapa;
         ViewData["RUTAS_DISPONIBLES"] = rutasDisponibles;
-
-        return View(rutasAerolinea);
+        
+        return View(rutas);
     }
-
     
     [HttpPost]
     public async Task<IActionResult> Asignar(int idRuta, decimal? precioBase, int? frecuenciaSemanal)
@@ -105,7 +153,6 @@ public class RutasController : Controller
             return View(aeropuertos);
         }
 
-        TempData["SUCCESS"] = result.Message;
         return RedirectToAction("Rutas", "PanelAdmin");
     }
 

@@ -334,13 +334,26 @@ public class VuelosController : Controller
             
         return View(vuelo);
     }
+    
+    private static double CalcularHeading(double lat1, double lng1, double lat2, double lng2)
+    {
+        double toRad = Math.PI / 180;
+        double dLng = (lng2 - lng1) * toRad;
+        double lat1Rad = lat1 * toRad;
+        double lat2Rad = lat2 * toRad;
+
+        double y = Math.Sin(dLng) * Math.Cos(lat2Rad);
+        double x = Math.Cos(lat1Rad) * Math.Sin(lat2Rad) -
+                   Math.Sin(lat1Rad) * Math.Cos(lat2Rad) * Math.Cos(dLng);
+
+        return (Math.Atan2(y, x) * 180 / Math.PI + 360) % 360;
+    }
 
     [HttpPost]
     [Authorize("AdminOnly")]
     public async Task<IActionResult> GenerateHardVuelos()
     {
         await _repoVuelos.InsertarHardVuelosAsync();
-        TempData["SUCCESS"] = "Se han generado vuelos de prueba exitosamente.";
         return RedirectToAction("Index");
     }  
     
@@ -349,7 +362,6 @@ public class VuelosController : Controller
     public async Task<IActionResult> BorrarHardVuelos()
     {
         await _repoVuelos.BorrarHardVuelosAsync();
-        TempData["SUCCESS"] = "Se han borrado vuelos de prueba exitosamente.";
         return RedirectToAction("Index");
     }
 }
