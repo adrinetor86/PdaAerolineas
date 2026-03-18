@@ -1,6 +1,4 @@
-﻿// Radar de flota en directo usando SignalR + Leaflet + Cesium
-// Requiere que la vista defina: window.RADAR_CONFIG = { hubUrl, bootstrapUrl }
-
+﻿
 (function () {
     'use strict';
 
