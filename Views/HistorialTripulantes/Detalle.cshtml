@@ -1,0 +1,194 @@
+@model PdaAerolineas.Repositories.TripulanteEstadisticas
+@{
+    ViewData["Title"] = "Perfil de Tripulante";
+    var historial = ViewBag.HistorialVuelos as List<PdaAerolineas.Models.Views.VistaHistorialTripulante>;
+
+    var paginaActual   = ViewData["PAGINA_ACTUAL"] as int? ?? 1;
+    var totalPaginas   = ViewData["TOTAL_PAGINAS"] as int? ?? 1;
+    var totalRegistros = ViewData["TOTAL_REGISTROS"] as int? ?? 0;
+    var registrosPag   = ViewData["REGISTROS_PAG"] as int? ?? 10;
+
+    var inicioRegistro = totalRegistros == 0 ? 0 : (paginaActual - 1) * registrosPag + 1;
+    var finRegistro    = Math.Min(totalRegistros, paginaActual * registrosPag);
+
+    string FormatHoras(decimal horas)
+    {
+        var totalMin = (int)Math.Round(horas * 60m, MidpointRounding.AwayFromZero);
+        var h = totalMin / 60;
+        var m = totalMin % 60;
+        return $"{h}h {m:00}m";
+    }
+
+    string FormatHorasNullable(decimal? horas)
+    {
+        return FormatHoras(horas ?? 0m);
+    }
+}
+
+<div class="p-6">
+    <div class="mb-6">
+        <a asp-controller="Tripulacion" asp-action="Index" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+            ← Volver a tripulación
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="flex items-start justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">
+                    @Model.Tripulante.Nombre @Model.Tripulante.Apellido
+                </h1>
+                <div class="mt-2 space-y-1">
+                    <p class="text-sm text-gray-600">
+                        <span class="font-medium">Rol:</span> @Model.Tripulante.Rol
+                    </p>
+                </div>
+            </div>
+            <span class="px-3 py-1 text-sm font-medium rounded-full @(
+                Model.Tripulante.Activo ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-700")">
+                @(Model.Tripulante.Activo ? "Activo" : "Inactivo")
+            </span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500">
+            <div class="text-sm text-gray-600 mb-1">Total vuelos</div>
+            <div class="text-2xl font-bold text-gray-900">@Model.TotalVuelos</div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow border-l-4 border-green-500">
+            <div class="text-sm text-gray-600 mb-1">Total horas</div>
+            <div class="text-2xl font-bold text-gray-900">@FormatHoras(Model.TotalHoras)</div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow border-l-4 border-purple-500">
+            <div class="text-sm text-gray-600 mb-1">Promedio por vuelo</div>
+            <div class="text-2xl font-bold text-gray-900">
+                @FormatHoras(Model.TotalVuelos > 0 ? (Model.TotalHoras / Model.TotalVuelos) : 0m)
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow border-l-4 border-yellow-500">
+            <div class="text-sm text-gray-600 mb-1">Último vuelo</div>
+            <div class="text-sm font-bold text-gray-900">
+                @(Model.UltimoVuelo?.ToString("dd/MM/yyyy") ?? "N/A")
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <form method="get" asp-action="Detalle" id="formDetalle">
+            <input type="hidden" name="tripulanteId" value="@Model.Tripulante.IdTripulante" />
+            <input type="hidden" name="numPag" id="inputNumPag" value="@paginaActual" />
+
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-900">Historial de vuelos</h2>
+                    <p class="text-xs text-gray-500 mt-0.5">
+                        Mostrando <strong>@inicioRegistro</strong> a <strong>@finRegistro</strong> de <strong>@totalRegistros</strong>
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-gray-500">Filas</label>
+                    <select name="numFilas" onchange="resetPage(); this.form.submit()"
+                            class="cursor-pointer rounded-lg border border-gray-300 bg-white py-1.5 pl-3 pr-7 text-xs font-mono text-gray-700 outline-none transition-all hover:border-gray-400 focus:border-blue-400 focus:ring-1 focus:ring-blue-100">
+                        <option value="5" selected="@(registrosPag == 5 ? "selected" : null)">5</option>
+                        <option value="10" selected="@(registrosPag == 10 ? "selected" : null)">10</option>
+                        <option value="20" selected="@(registrosPag == 20 ? "selected" : null)">20</option>
+                        <option value="50" selected="@(registrosPag == 50 ? "selected" : null)">50</option>
+                    </select>
+                </div>
+            </div>
+
+            @if (historial != null && historial.Any())
+            {
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vuelo</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ruta</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">Rol</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase w-28">Tiempo</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            @foreach (var vuelo in historial)
+                            {
+                                var rolMostrar = string.IsNullOrWhiteSpace(vuelo.Rol)
+                                    ? Model.Tripulante.Rol
+                                    : (vuelo.Rol.Equals("Tripulante de Vuelo", StringComparison.OrdinalIgnoreCase)
+                                       ? Model.Tripulante.Rol
+                                       : vuelo.Rol);
+
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">@vuelo.NumeroVuelo</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">@vuelo.Ruta</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">@vuelo.FechaSalida.ToString("dd/MM/yyyy HH:mm")</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-medium rounded-full @(
+                                            rolMostrar == "Comandante" ? "bg-blue-100 text-blue-800" :
+                                            rolMostrar == "Copiloto" ? "bg-green-100 text-green-800" :
+                                            "bg-gray-100 text-gray-800")">
+                                            @rolMostrar
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            @FormatHorasNullable(vuelo.HorasVoladas)
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                    <p class="text-xs text-gray-500">Página @paginaActual</p>
+
+                    <div class="flex items-center gap-2 justify-end ml-auto">
+                        <button type="button" onclick="cambiarPagina(1)" @(paginaActual <= 1 ? "disabled" : "")
+                                class="px-3 py-1.5 rounded border border-gray-200 bg-white text-xs text-gray-600 disabled:opacity-30">«</button>
+                        <button type="button" onclick="cambiarPagina(@(paginaActual - 1))" @(paginaActual <= 1 ? "disabled" : "")
+                                class="px-3 py-1.5 rounded border border-gray-200 bg-white text-xs text-gray-600 disabled:opacity-30">‹</button>
+                        <span class="text-xs text-gray-500">@paginaActual / @totalPaginas</span>
+                        <button type="button" onclick="cambiarPagina(@(paginaActual + 1))" @(paginaActual >= totalPaginas ? "disabled" : "")
+                                class="px-3 py-1.5 rounded border border-gray-200 bg-white text-xs text-gray-600 disabled:opacity-30">›</button>
+                        <button type="button" onclick="cambiarPagina(@totalPaginas)" @(paginaActual >= totalPaginas ? "disabled" : "")
+                                class="px-3 py-1.5 rounded border border-gray-200 bg-white text-xs text-gray-600 disabled:opacity-30">»</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="px-6 py-8 text-center text-gray-500">
+                    <p class="font-semibold text-gray-700">Este tripulante aún no ha realizado ningún vuelo.</p>
+                    <p class="text-sm mt-2">Cuando participe en un vuelo completado, aparecerá aquí su historial.</p>
+                </div>
+            }
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function cambiarPagina(num) {
+        if (num < 1) return;
+        document.getElementById('inputNumPag').value = num;
+        document.getElementById('formDetalle').submit();
+    }
+    function resetPage() {
+        document.getElementById('inputNumPag').value = 1;
+    }
+</script>
+}

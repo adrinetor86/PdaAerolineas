@@ -13,17 +13,20 @@ public class RepositoryRetrasos
     {
         _context = context;
     }
-    
-    
-    
-    
+
     public async Task<(bool Success, string Message)> RegistrarRetrasoAsync(int idVuelo, int minutos, int idCodRetraso)
     {
         if (idVuelo <= 0) return (false, "Vuelo inválido");
         if (minutos <= 0) return (false, "Los minutos deben ser mayor que 0");
 
-        string sql = "SP_REGISTRAR_RETRASO @vuelo_id,@codigo_retraso_id,@minutos";
+        // Si el vuelo está 'En Vuelo' (3), no debemos cambiarlo a 'Retrasado' (6).
+        // El retraso se refleja por la tabla retraso_vuelo y se muestra en gestionar vuelo.
+        var estadoAntes = await _context.Vuelos
+            .Where(v => v.IdVuelo == idVuelo)
+            .Select(v => v.IdEstado)
+            .FirstOrDefaultAsync();
 
+        string sql = "SP_REGISTRAR_RETRASO @vuelo_id,@codigo_retraso_id,@minutos";
 
         SqlParameter pamVuelo = new SqlParameter("@vuelo_id", idVuelo);
         SqlParameter pamCodRetraso = new SqlParameter("@codigo_retraso_id", idCodRetraso);
@@ -32,6 +35,17 @@ public class RepositoryRetrasos
         try
         {
             await _context.Database.ExecuteSqlRawAsync(sql, pamVuelo, pamCodRetraso, pamMinutos);
+
+            // Restaurar estado si estaba en vuelo.
+            if (estadoAntes == 3)
+            {
+                var vuelo = await _context.Vuelos.FindAsync(idVuelo);
+                if (vuelo != null && vuelo.IdEstado != 3)
+                {
+                    vuelo.IdEstado = 3;
+                    await _context.SaveChangesAsync();
+                }
+            }
 
             return (true, $"Retraso registrado: +{minutos} min");
         }

@@ -48,9 +48,12 @@
                 <div>
                     <label asp-for="IdPais" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">País *</label>
                     <select asp-for="IdPais" asp-items="ViewBag.Paises"
+                            data-enhance="select2" data-placeholder="Buscar país..."
                             class="w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm font-medium text-slate-800
                                    outline-none transition focus:bg-white focus:ring-2
-                                   @(ViewData.ModelState["IdPais"]?.Errors.Any() == true ? "border-red-400 focus:ring-red-100" : "border-gray-200 focus:border-blue-500 focus:ring-blue-500")">
+                                   @(ViewData.ModelState["IdPais"]?.Errors.Any() == true
+                                       ? "border-red-400 focus:ring-red-100"
+                                       : "border-gray-200 focus:border-blue-500 focus:ring-blue-500")">
                         <option value="">Selecciona un país</option>
                     </select>
                     <p asp-validation-for="IdPais" class="mt-1 text-xs font-bold text-red-600"></p>
@@ -136,3 +139,10 @@
         </div>
     </form>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        if (window.PDASelect2) window.PDASelect2.init(document);
+    </script>
+}

@@ -1,5 +1,4 @@
-﻿
-(function () {
+﻿(function () {
     'use strict';
 
     const cfg = window.RADAR_CONFIG;
@@ -26,10 +25,33 @@
         return (toDeg(Math.atan2(y, x)) + 360) % 360;
     }
 
-    /* ── Icono avión rotado ── */
-    function crearIconoAvion(heading, seleccionado) {
-        const color  = seleccionado ? '#ef4444' : '#3b82f6';
-        const size   = seleccionado ? 36 : 28;
+    function getIconPathByModelo(modelo) {
+        const m = (modelo || '').toLowerCase();
+
+        // Heurística simple: widebody/heavy
+        const heavyKeys = [
+            'a330', 'a340', 'a350', 'a380',
+            'b747', '747', 'b767', '767', 'b777', '777', 'b787', '787',
+            'md-11', 'md11',
+            'il-96', 'il96'
+        ];
+
+        const isHeavy = heavyKeys.some(k => m.includes(k));
+        return isHeavy
+            ? '/assets/images/icons/heavy.png'
+            : '/assets/images/icons/plane-icon.png';
+    }
+
+    /* ── Icono avión rotado (según modelo) ── */
+    function crearIconoAvion(heading, seleccionado, modelo) {
+        const src = getIconPathByModelo(modelo);
+        const isHeavy = src.includes('/heavy.png');
+
+        // Tamaños: mantenemos heavy como estaba y aumentamos el default.
+        const size = seleccionado
+            ? 36
+            : (isHeavy ? 28 : 34);
+
         const shadow = seleccionado
             ? 'filter:drop-shadow(0 0 8px rgba(239,68,68,0.7));'
             : 'filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));';
@@ -43,11 +65,9 @@
                 height:${size}px;
                 transform: rotate(${h}deg);
                 ${shadow}
-                transition: none; 
+                transition: none;
             ">
-                <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}">
-                    <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
-                </svg>
+                <img src="${src}" alt="Avión" style="width:${size}px;height:${size}px;display:block;" />
             </div>
         `,
             className: 'bg-transparent',
@@ -180,6 +200,11 @@
         if (isNaN(v.lat) || isNaN(v.lng)) return;
 
         const existing    = markers[v.vueloId];
+        const modeloIncoming = (v && v.info) ? v.info.modelo : null;
+        const modelo = (modeloIncoming != null && String(modeloIncoming).trim() !== '')
+            ? modeloIncoming
+            : (existing ? existing.modelo : null);
+
         let heading       = 0;
         const newRouteInfo = extraerRouteInfo(v);
 
@@ -203,8 +228,11 @@
             if (newRouteInfo) existing.routeInfo = newRouteInfo;
             existing.data = v;
 
+            // Persistimos modelo (solo si llega) / mantenemos el anterior
+            existing.modelo = modelo;
+
             existing.marker.setLatLng([v.lat, v.lng]);
-            existing.marker.setIcon(crearIconoAvion(heading, v.vueloId === selectedVueloId));
+            existing.marker.setIcon(crearIconoAvion(heading, v.vueloId === selectedVueloId, modelo));
 
             if (existing.marker.isPopupOpen()) {
                 existing.marker.setPopupContent(crearPopup(v, heading, existing.routeInfo));
@@ -221,7 +249,7 @@
                     routeInfo.latDestino, routeInfo.lngDestino);
             }
 
-            const marker = L.marker([v.lat, v.lng], { icon: crearIconoAvion(heading, false) })
+            const marker = L.marker([v.lat, v.lng], { icon: crearIconoAvion(heading, false, modelo) })
                 .addTo(map)
                 .bindPopup(crearPopup(v, heading, routeInfo));
 
@@ -236,7 +264,8 @@
                 prevLat:  v.lat,
                 prevLng:  v.lng,
                 heading,
-                routeInfo
+                routeInfo,
+                modelo
             };
 
             agregarAListaLateral(v);
@@ -254,14 +283,14 @@
 
         if (selectedVueloId && markers[selectedVueloId]) {
             const prev = markers[selectedVueloId];
-            prev.marker.setIcon(crearIconoAvion(prev.heading || 0, false));
+            prev.marker.setIcon(crearIconoAvion(prev.heading || 0, false, prev.modelo));
         }
 
         selectedVueloId = vueloId;
         const entry = markers[vueloId];
         if (!entry) return;
 
-        entry.marker.setIcon(crearIconoAvion(entry.heading || 0, true));
+        entry.marker.setIcon(crearIconoAvion(entry.heading || 0, true, entry.modelo));
         entry.marker.openPopup();
         dibujarRuta(entry);
 
@@ -291,7 +320,7 @@
     function deseleccionarVuelo() {
         if (selectedVueloId && markers[selectedVueloId]) {
             const prev = markers[selectedVueloId];
-            prev.marker.setIcon(crearIconoAvion(prev.heading || 0, false));
+            prev.marker.setIcon(crearIconoAvion(prev.heading || 0, false, prev.modelo));
             prev.marker.closePopup();
         }
         selectedVueloId = null;
@@ -432,6 +461,35 @@
         });
     }
 
+    function getCesiumModelUriByModelo(modelo) {
+        const m = (modelo || '').toLowerCase();
+
+        // Usamos los GLB disponibles en /assets/models
+        // Fallback: AirbusA320
+        if (m.includes('747') || m.includes('b747')) return '/assets/models/boeing_747-8i.glb';
+        if (m.includes('737') || m.includes('b737') || m.includes('max')) return '/assets/models/737_max_lion_air.glb';
+
+        // Si en algún momento quieres mapear modelos militares/stealth:
+        if (m.includes('b-2') || m.includes('b2') || m.includes('spirit')) return '/assets/models/b2_spirit.glb';
+
+        return '/assets/models/AirbusA320.glb';
+    }
+
+    function headingOffsetDegByModelo(modelo) {
+        const m = (modelo || '').toLowerCase();
+        // Ajustes por GLB (cada modelo puede venir con un eje 'frontal' distinto)
+        // Nota: usamos 0=Norte desde la telemetría y lo convertimos a heading Cesium.
+
+        // 747: venía 90º de lado → corregimos con -180 (equivale a girar 90º más respecto al -90 base)
+        if (m.includes('747') || m.includes('b747')) return 0;
+
+        // 737 max
+        if (m.includes('737') || m.includes('b737') || m.includes('max')) return -90;
+
+        // AirbusA320.glb
+        return -90;
+    }
+
     function agregarEntidadCesium(vueloId, entry) {
         if (!cesiumViewer || cesiumEntities[vueloId]) return;
 
@@ -440,6 +498,9 @@
         const alt  = (info.altitud || 0) * 0.3048;
         const pos  = Cesium.Cartesian3.fromDegrees(v.lng, v.lat, alt);
 
+        const modelUri = getCesiumModelUriByModelo(entry.modelo || info.modelo);
+        const offsetDeg = headingOffsetDegByModelo(entry.modelo || info.modelo);
+
         const entity = cesiumViewer.entities.add({
             id:   `vuelo_${vueloId}`,
             name: v.numeroVuelo || 'N/A',
@@ -447,13 +508,13 @@
             orientation: Cesium.Transforms.headingPitchRollQuaternion(
                 pos,
                 new Cesium.HeadingPitchRoll(
-                    Cesium.Math.toRadians((entry.heading || 0) - 90),
+                    Cesium.Math.toRadians((entry.heading || 0) + offsetDeg),
                     0,
                     0
                 )
             ),
             model: {
-                uri:              '/assets/models/AirbusA320.glb',
+                uri:              modelUri,
                 minimumPixelSize: 48,
                 maximumScale:     20000,
                 silhouetteColor:  Cesium.Color.WHITE,
@@ -497,14 +558,26 @@
 
         const entity     = cesiumEntities[vueloId];
         entity.position  = pos;
+        const offsetDeg = headingOffsetDegByModelo(entry.modelo || info.modelo);
         entity.orientation = Cesium.Transforms.headingPitchRollQuaternion(
             pos,
             new Cesium.HeadingPitchRoll(
-                Cesium.Math.toRadians((entry.heading || 0) - 90),
+                Cesium.Math.toRadians((entry.heading || 0) + offsetDeg),
                 0,
                 0
             )
         );
+
+        // Actualizar modelo 3D si el avión cambió de tipo/modelo.
+        const newUri = getCesiumModelUriByModelo(entry.modelo || info.modelo);
+        if (entity.model && entity.model.uri && entity.model.uri.getValue) {
+            const currentUri = entity.model.uri.getValue(Cesium.JulianDate.now());
+            if (currentUri !== newUri) {
+                entity.model.uri = newUri;
+            }
+        } else if (entity.model) {
+            entity.model.uri = newUri;
+        }
     }
 
     function eliminarEntidadCesium(vueloId) {

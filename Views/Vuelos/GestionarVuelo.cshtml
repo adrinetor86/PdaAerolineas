@@ -1,4 +1,4 @@
-﻿    @using PdaAerolineas.Models.FormViews
+﻿@using PdaAerolineas.Models.FormViews
     @model VistaVuelo
 
     @{
@@ -12,8 +12,9 @@
         int estadoActual = cache?.IdEstado ?? 1;
 
         VistaRetraso retrasoData = ViewData["RETRASO_ACTUAL"] as VistaRetraso ?? new();
-        // Si el estado es 6 (Retrasado) o el texto de la base de datos lo indica
-        bool estaRetrasado = estadoActual == 6 || (Model.Estado != null && Model.Estado.Contains("Retrasado", StringComparison.OrdinalIgnoreCase));
+        var minutosRetraso = retrasoData.MinRetraso;
+        // El retraso se indica por la vista V_RETRASOS_DETALLADOS (minutos), no por el estado del vuelo.
+        bool estaRetrasado = minutosRetraso > 0;
 
         // Estados reales (7 estados): 5=Cancelado, 7=Completado
         bool cancelado = estadoActual == 5;
@@ -89,9 +90,8 @@
 
                     @if (estaRetrasado)
                     {
-                        // Calculamos sumando los minutos a ambas fechas (usamos formato completo por si el retraso hace que cambie de día)
-                        string nuevaSalida = Model.Salida.AddMinutes(retrasoData.MinRetraso).ToString("dd/MM/yyyy HH:mm");
-                        string nuevaLlegada = Model.Llegada.AddMinutes(retrasoData.MinRetraso).ToString("dd/MM/yyyy HH:mm");
+                        string nuevaSalida = Model.Salida.AddMinutes(minutosRetraso).ToString("dd/MM/yyyy HH:mm");
+                        string nuevaLlegada = Model.Llegada.AddMinutes(minutosRetraso).ToString("dd/MM/yyyy HH:mm");
 
                         <div class="mt-3 p-2 bg-red-50/80 border border-red-200 rounded-lg">
                             <div class="text-[11px] font-black text-red-700 uppercase tracking-widest mb-1">Nuevos Tiempos
@@ -105,8 +105,7 @@
                     <div id="infoRetrasoText"
                          class="@(estaRetrasado ? "" : "hidden") mt-3 text-[10px] font-bold text-amber-800 bg-amber-200/50 px-3 py-2 rounded-lg border border-amber-300/50">
                         <ul class="list-disc pl-5 space-y-0.5 text-amber-900">
-                            <li>Retraso Total: <span id="lblMinutosRetraso"
-                                                     class="font-black">@(retrasoData.MinRetraso)</span> min.
+                            <li>Retraso Total: <span id="lblMinutosRetraso" class="font-black">@(minutosRetraso)</span> min.
                             </li>
                             <li>Categoría: <span
                                     class="uppercase bg-amber-100 px-1 rounded border border-amber-200">@(retrasoData?.CategoriaRetraso ?? "")</span>
@@ -360,6 +359,7 @@
                 <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Motivo de retraso</label>
 
                 <select id="selectMotivoRetraso"
+                        data-enhance="select2" data-placeholder="Buscar motivo de retraso..."
                         class="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-amber-400">
 
                     @foreach (CodigoRetrasoIata codigo in codigosRetrasos)
@@ -442,10 +442,8 @@
                         field: 'PasajerosConfirmados',
                         message: `Los pasajeros confirmados (${datos.PasajerosConfirmados}) no pueden superar la capacidad del avión (${maxPlazas}).`
                     });
-                    if (datos.PasajerosEmbarcados > datos.PasajerosConfirmados) errores.push({
-                        field: 'PasajerosEmbarcados',
-                        message: 'El combustible cargado no puede superar al confirmado.'
-                    });
+
+                    // PasajerosEmbarcados se usa como 'combustible cargado' (litros) y puede ser mayor.
                 }
 
                 return errores;
@@ -485,10 +483,8 @@
                         field: 'PasajerosConfirmados',
                         message: `Los pasajeros confirmados (${datos.PasajerosConfirmados}) no pueden superar la capacidad del avión (${maxPlazas}).`
                     });
-                    if (datos.PasajerosEmbarcados > datos.PasajerosConfirmados) errores.push({
-                        field: 'PasajerosEmbarcados',
-                        message: 'El combustible cargado no puede superar al confirmado.'
-                    });
+
+                    // PasajerosEmbarcados se usa como 'combustible cargado' (litros) y puede ser mayor.
                 }
 
                 return errores;
@@ -615,24 +611,47 @@
                 if (!swalResult.isConfirmed) return;
 
                 try {
-                    await fetch('/Vuelos/ActualizarBorrador', {
+                    const respBorrador = await fetch('/Vuelos/ActualizarBorrador', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify(datos)
                     });
 
+                    if (!respBorrador.ok) {
+                        const txt = await respBorrador.text();
+                        throw new Error(txt || `Error HTTP ${respBorrador.status} guardando el borrador`);
+                    }
+
                     const response = await fetch(`/Vuelos/ConfirmarVueloFinal?idVuelo=${datos.IdVuelo}`, {method: 'POST'});
+
+                    // Si el backend devuelve 500/401/etc, intentamos leer el cuerpo para mostrarlo.
+                    if (!response.ok) {
+                        const txt = await response.text();
+                        throw new Error(txt || `Error HTTP ${response.status} al confirmar el vuelo`);
+                    }
+
                     const result = await response.json();
 
                     if (result.success) {
-                        await Swal.fire({
-                            icon: 'success',
-                            title: '¡Confirmado!',
-                            text: result.message || 'Estado actualizado correctamente.',
-                            confirmButtonColor: '#2563eb',
-                            timer: 2000,
-                            timerProgressBar: true
-                        });
+                        // Si hay warning (ej. combustible no registrado), lo mostramos como info.
+                        if (result.warning) {
+                            await Swal.fire({
+                                icon: 'warning',
+                                title: 'Confirmado con aviso',
+                                text: result.warning,
+                                confirmButtonColor: '#2563eb'
+                            });
+                        } else {
+                            await Swal.fire({
+                                icon: 'success',
+                                title: '¡Confirmado!',
+                                text: result.message || 'Estado actualizado correctamente.',
+                                confirmButtonColor: '#2563eb',
+                                timer: 2000,
+                                timerProgressBar: true
+                            });
+                        }
+
                         window.location.reload();
                     } else {
                         if (result.errors && result.errors.length) mostrarErrores(result.errors);
@@ -642,10 +661,11 @@
                         }]);
                     }
                 } catch (err) {
+                    const msg = (err && err.message) ? err.message : 'Error de red al comunicar con el servidor.';
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error crítico',
-                        text: 'Error de red al comunicar con el servidor.',
+                        title: 'Error',
+                        text: msg,
                         confirmButtonColor: '#dc2626'
                     });
                     console.error(err);
@@ -960,23 +980,31 @@
                             timer: 2000,
                             timerProgressBar: true
                         });
-                        window.location.reload();
 
-                        // --- MAGIA VISUAL: ACTUALIZAMOS LA TARJETA DE FECHAS ---
-                        document.getElementById('tarjetaFechas')?.classList.replace('bg-slate-50/40', 'bg-amber-50');
-                        document.getElementById('tarjetaFechas')?.classList.replace('border-slate-100', 'border-amber-300');
+                        // Mantener estado en vuelo si venía en vuelo
+                        if (result.idEstado) {
+                            document.getElementById('inputEstado')?.setAttribute('value', String(result.idEstado));
+                        }
+
+                        // --- ACTUALIZAMOS LA TARJETA DE FECHAS / INFOS DE RETRASO ---
+                        document.getElementById('tarjetaFechas')?.classList.remove('border-slate-100', 'bg-slate-50/40');
+                        document.getElementById('tarjetaFechas')?.classList.add('border-amber-300', 'bg-amber-50');
                         document.getElementById('badgeRetraso')?.classList.remove('hidden');
 
-                        document.getElementById('salidaContainer')?.classList.replace('text-slate-800', 'text-amber-800');
-                        document.getElementById('llegadaContainer')?.classList.replace('text-slate-800', 'text-amber-800');
+                        document.getElementById('salidaContainer')?.classList.remove('text-slate-800');
+                        document.getElementById('salidaContainer')?.classList.add('text-amber-800', 'line-through', 'opacity-60');
+                        document.getElementById('llegadaContainer')?.classList.remove('text-slate-800');
+                        document.getElementById('llegadaContainer')?.classList.add('text-amber-800', 'line-through', 'opacity-60');
 
                         const infoBox = document.getElementById('infoRetrasoText');
                         const lblMin = document.getElementById('lblMinutosRetraso');
                         if (infoBox && lblMin) {
                             infoBox.classList.remove('hidden');
-                            lblMin.innerText = minutos;
+                            lblMin.innerText = (result.retraso && result.retraso.minRetraso != null)
+                                ? String(result.retraso.minRetraso)
+                                : String(minutos);
                         }
-                        // -------------------------------------------------------
+                        // -----------------------------------------------------------
 
                     } else {
                         const msg = (result.errors && result.errors.length) ? result.errors.join(', ') : (result.message || 'No se pudo registrar el retraso');

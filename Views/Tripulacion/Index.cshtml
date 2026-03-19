@@ -131,10 +131,16 @@
                                     }
                                 </td>
                                 <td class="px-5 py-4 text-right">
-                                    <a asp-action="Update" asp-route-idTripulante="@trip.IdTripulante"
-                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-xs font-bold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md active:scale-95">
-                                        Editar
-                                    </a>
+                                    <div class="flex items-center justify-end gap-2">
+                                        <a asp-controller="HistorialTripulantes" asp-action="Detalle" asp-route-tripulanteId="@trip.IdTripulante"
+                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-xs font-bold text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-100 transition-colors">
+                                            Ver historial
+                                        </a>
+                                        <a asp-action="Update" asp-route-idTripulante="@trip.IdTripulante"
+                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-xs font-bold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md active:scale-95">
+                                            Editar
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         }

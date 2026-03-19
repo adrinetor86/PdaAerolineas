@@ -1,0 +1,112 @@
+@model List<PdaAerolineas.Models.ViewModels.TopRutaRentableViewModel>
+@{
+    ViewData["Title"] = "Rutas y Tarifas";
+    var aerolineas  = ViewBag.Aerolineas as List<PdaAerolineas.Models.Aerolinea> ?? new();
+    int aerolineaId = (int)(ViewBag.AerolineaId ?? 1);
+}
+
+<div class="min-h-screen bg-gray-50 text-slate-900 p-6">
+
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-extrabold text-slate-900 flex items-center gap-3">
+                <span class="text-blue-600">🗺</span> Rutas y Tarifas
+            </h1>
+            <p class="text-slate-500 mt-1">Rentabilidad y precios de billete por ruta</p>
+        </div>
+        <a asp-controller="Finanzas" asp-action="Index" class="text-slate-600 hover:text-slate-900 border border-slate-200 bg-white hover:border-slate-300 px-4 py-2 rounded-xl text-sm transition-colors shadow-sm">
+            ← Volver a Finanzas
+        </a>
+    </div>
+
+    @if (TempData["Exito"] != null)
+    {
+        <div class="bg-green-50 border border-green-200 text-green-800 rounded-xl px-5 py-3 mb-6 shadow-sm">
+            @TempData["Exito"]
+        </div>
+    }
+
+    <!-- Filtro aerolínea -->
+    <form method="get" class="bg-white rounded-xl p-4 mb-6 flex gap-4 items-end border border-slate-200 shadow-sm">
+        <div class="flex flex-col gap-1">
+            <label class="text-sm text-slate-600">Aerolínea</label>
+            <select name="aerolineaId" onchange="this.form.submit()"
+                    class="bg-white border border-slate-300 text-slate-900 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400">
+                @foreach (var a in aerolineas)
+                {
+                    <option value="@a.IdAerolinea" selected="@(aerolineaId == a.IdAerolinea)">@a.Nombre</option>
+                }
+            </select>
+        </div>
+    </form>
+
+    <!-- Tabla rutas rentables -->
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                    <tr>
+                        <th class="px-5 py-4 text-center">#</th>
+                        <th class="px-5 py-4 text-left">Ruta</th>
+                        <th class="px-5 py-4 text-right">Distancia</th>
+                        <th class="px-5 py-4 text-right">Precio billete</th>
+                        <th class="px-5 py-4 text-center">Vuelos</th>
+                        <th class="px-5 py-4 text-center">Pax totales</th>
+                        <th class="px-5 py-4 text-right">Ingresos totales</th>
+                        <th class="px-5 py-4 text-right">Ingreso medio/vuelo</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @foreach (var (r, i) in Model.Select((r, i) => (r, i + 1)))
+                    {
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-5 py-4 text-center">
+                                @if (i <= 3)
+                                {
+                                    var medal = i == 1 ? "🥇" : i == 2 ? "🥈" : "🥉";
+                                    <span class="text-lg">@medal</span>
+                                }
+                                else
+                                {
+                                    <span class="text-slate-500">@i</span>
+                                }
+                            </td>
+                            <td class="px-5 py-4">
+                                <div class="font-bold text-slate-900">@r.Ruta</div>
+                                <div class="text-xs text-slate-500">@r.Ciudades</div>
+                            </td>
+                            <td class="px-5 py-4 text-right text-slate-700">@r.DistanciaKm.ToString("N0") km</td>
+                            <td class="px-5 py-4 text-right font-semibold text-blue-700">@r.PrecioBillete.ToString("N2") €</td>
+                            <td class="px-5 py-4 text-center text-slate-700">@r.NumVuelos</td>
+                            <td class="px-5 py-4 text-center text-slate-700">@r.TotalPasajeros.ToString("N0")</td>
+                            <td class="px-5 py-4 text-right font-extrabold text-green-700">@r.IngresosTotales.ToString("N0") €</td>
+                            <td class="px-5 py-4 text-right text-slate-600">
+                                @(r.NumVuelos > 0 ? (r.IngresosTotales / r.NumVuelos).ToString("N0") + " €" : "—")
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="px-6 py-12 text-center text-slate-500">
+                                No hay datos de rutas para esta aerolínea.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                @if (Model.Any())
+                {
+                    <tfoot class="bg-slate-50 border-t border-slate-200">
+                        <tr>
+                            <td colspan="4" class="px-5 py-3 text-right text-slate-500 text-xs font-semibold uppercase">TOTALES</td>
+                            <td class="px-5 py-3 text-center font-extrabold text-slate-700">@Model.Sum(r => r.NumVuelos)</td>
+                            <td class="px-5 py-3 text-center font-extrabold text-slate-700">@Model.Sum(r => r.TotalPasajeros).ToString("N0")</td>
+                            <td class="px-5 py-3 text-right font-extrabold text-green-700">@Model.Sum(r => r.IngresosTotales).ToString("N0") €</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+</div>

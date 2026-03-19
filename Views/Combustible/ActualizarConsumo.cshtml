@@ -1,0 +1,42 @@
+@model PdaAerolineas.Models.ViewModels.ActualizarConsumoViewModel
+@{
+    ViewData["Title"] = "Actualizar consumo";
+}
+
+<div class="min-h-screen bg-gray-50 text-slate-900 p-6 flex items-start justify-center">
+    <div class="w-full max-w-md">
+
+        <a asp-controller="Combustible" asp-action="Index" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 transition-colors text-sm">
+            <span class="text-lg">←</span> Volver a combustible
+        </a>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+            <h1 class="text-2xl font-extrabold text-slate-900 mb-2">Actualizar consumo</h1>
+            <p class="text-slate-500 text-sm mb-8">Introduce los litros realmente consumidos al finalizar el vuelo</p>
+
+            <form asp-action="ActualizarConsumo" asp-controller="Combustible" method="post" class="space-y-5">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="CombustibleId" />
+
+                <div>
+                    <label class="block text-sm text-slate-600 mb-2">Litros consumidos <span class="text-slate-500">*</span></label>
+                    <div class="relative">
+                        <input asp-for="LitrosConsumidos" type="number" step="0.01" min="0"
+                               class="w-full bg-white border border-slate-300 text-slate-900 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
+                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">L</span>
+                    </div>
+                    <span asp-validation-for="LitrosConsumidos" class="text-slate-600 text-xs mt-1"></span>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition-colors">
+                        Actualizar
+                    </button>
+                    <a asp-controller="Combustible" asp-action="Index" class="px-6 py-3 rounded-xl border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-colors font-semibold shadow-sm">
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,4 +1,4 @@
-﻿using System.Data;
+﻿﻿using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -254,15 +254,12 @@ public class RepositoryVuelos
             if (datos.PasajerosConfirmados <= 0)
                 errores.Add(new FormError
                     { Field = "PasajerosConfirmados", Message = "Los pasajeros confirmados deben ser mayor a 0." });
+
+            // Importante: en esta app usamos PasajerosEmbarcados como 'litros cargados' de combustible.
+            // Por eso NO debe tener el límite de confirmados; solo validamos que no sea negativo.
             if (datos.PasajerosEmbarcados < 0)
                 errores.Add(new FormError
                     { Field = "PasajerosEmbarcados", Message = "El combustible cargado no puede ser negativo." });
-            if (datos.PasajerosEmbarcados > datos.PasajerosConfirmados)
-                errores.Add(new FormError
-                {
-                    Field = "PasajerosEmbarcados",
-                    Message = "El combustible cargado no puede superar al confirmado."
-                });
         }
 
         return errores;

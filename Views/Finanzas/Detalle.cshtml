@@ -1,0 +1,193 @@
+﻿@model PdaAerolineas.Models.FinanzasVuelo
+@{
+    ViewData["Title"] = "Detalle Financiero";
+}
+
+<div class="p-6">
+    <div class="mb-6">
+        <a asp-action="Index" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+            ← Volver a finanzas
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 mb-4">Detalle Financiero del Vuelo</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-gray-600">Vuelo ID</p>
+                <p class="text-lg font-semibold text-gray-900">@Model.VueloId</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Fecha de Calculo</p>
+                <p class="text-lg font-semibold text-gray-900">@Model.FechaCalculo.ToString("dd/MM/yyyy HH:mm")</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Ingresos</h2>
+            
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Ingresos por Pasajes</span>
+                    <span class="text-lg font-bold text-green-600">@Model.IngresoPasajes.ToString("C2")</span>
+                </div>
+            </div>
+            
+            <div class="mt-6 pt-4 border-t">
+                <div class="flex justify-between items-center">
+                    <span class="text-base font-semibold text-gray-900">Total Ingresos</span>
+                    <span class="text-xl font-bold text-green-600">@Model.IngresoPasajes.ToString("C2")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Costes</h2>
+            
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Combustible</span>
+                    <span class="text-sm font-semibold text-red-600">@Model.CosteCombustible.ToString("C2")</span>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Tripulacion</span>
+                    <span class="text-sm font-semibold text-red-600">@Model.CosteTripulacion.ToString("C2")</span>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Mantenimiento</span>
+                    <span class="text-sm font-semibold text-red-600">@Model.CosteMantenimiento.ToString("C2")</span>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">Otros Costes</span>
+                    <span class="text-sm font-semibold text-red-600">@Model.OtrosCostes.ToString("C2")</span>
+                </div>
+            </div>
+            
+            <div class="mt-6 pt-4 border-t">
+                <div class="flex justify-between items-center">
+                    <span class="text-base font-semibold text-gray-900">Total Costes</span>
+                    <span class="text-xl font-bold text-red-600">@Model.CosteTotal.ToString("C2")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Resultado Final</h2>
+            
+            <div class="space-y-4">
+                <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                    <span class="text-base font-semibold text-gray-900">Beneficio Neto</span>
+                    <span class="text-2xl font-bold @(Model.BeneficioNeto >= 0 ? "text-green-600" : "text-red-600")">
+                        @Model.BeneficioNeto.ToString("C2")
+                    </span>
+                </div>
+                
+                <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                    <span class="text-base font-semibold text-gray-900">Margen</span>
+                    <span class="text-2xl font-bold @(Model.MargenPorcentaje >= 0 ? "text-green-600" : "text-red-600")">
+                        @Model.MargenPorcentaje.ToString("F2")%
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Desglose Porcentual</h2>
+
+            @{
+                var totalIngresos = Model.IngresoPasajes;
+                var pctCombustible = totalIngresos > 0 ? (Model.CosteCombustible / totalIngresos * 100) : 0;
+                var pctTripulacion = totalIngresos > 0 ? (Model.CosteTripulacion / totalIngresos * 100) : 0;
+                var pctMantenimiento = totalIngresos > 0 ? (Model.CosteMantenimiento / totalIngresos * 100) : 0;
+                var pctOtros = totalIngresos > 0 ? (Model.OtrosCostes / totalIngresos * 100) : 0;
+            }
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <div class="h-56">
+                    <canvas id="donutDesglose"></canvas>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Combustible</span>
+                        <span class="text-sm font-semibold text-gray-900">@pctCombustible.ToString("F1")%</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Tripulación</span>
+                        <span class="text-sm font-semibold text-gray-900">@pctTripulacion.ToString("F1")%</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Mantenimiento</span>
+                        <span class="text-sm font-semibold text-gray-900">@pctMantenimiento.ToString("F1")%</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Otros</span>
+                        <span class="text-sm font-semibold text-gray-900">@pctOtros.ToString("F1")%</span>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function() {
+            const ctx = document.getElementById('donutDesglose');
+            if (!ctx) return;
+
+            const data = {
+                labels: ['Combustible', 'Tripulación', 'Mantenimiento', 'Otros'],
+                datasets: [{
+                    data: [@pctCombustible.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                           @pctTripulacion.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                           @pctMantenimiento.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                           @pctOtros.ToString(System.Globalization.CultureInfo.InvariantCulture)],
+                    backgroundColor: [
+                        'rgba(16, 185, 129, 0.55)',
+                        'rgba(34, 197, 94, 0.40)',
+                        'rgba(5, 150, 105, 0.35)',
+                        'rgba(100, 116, 139, 0.25)'
+                    ],
+                    borderColor: [
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(34, 197, 94, 1)',
+                        'rgba(5, 150, 105, 1)',
+                        'rgba(100, 116, 139, 0.8)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(c) {
+                                    const v = c.raw ?? 0;
+                                    return `${c.label}: ${Number(v).toFixed(1)}%`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        })();
+    </script>
+}

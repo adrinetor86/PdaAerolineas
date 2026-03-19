@@ -29,9 +29,7 @@ public class RepositoryRutas
         return await _context.VistaRutas.ToListAsync();
     }
     
-    
-    
-    // Rutas para el mapa (VistaRuta) filtradas por aerolínea
+        
     public async Task<List<VistaRuta>> GetRutasMapaAerolineaAsync(int idAerolinea)
     {
         var rutasActivasIds = await _context.RutasAerolinea
@@ -44,24 +42,26 @@ public class RepositoryRutas
             .ToListAsync();
     }
 
-    // Rutas que la aerolínea NO opera (para asignar nuevas)
+
     public async Task<List<VistaRuta>> GetRutasNoOperadasAsync(int idAerolinea)
     {
+       
         var rutasOperadas = await _context.RutasAerolinea
             .Where(ra => ra.AerolineaId == idAerolinea)
             .Select(ra => ra.RutaId)
             .ToListAsync();
-
-        return await _context.VistaRutas
+        
+        var rutasDisponibles = await _context.VistaRutas
             .Where(r => !rutasOperadas.Contains(r.Id))
             .OrderBy(r => r.CodOrigen)
             .ThenBy(r => r.CodDestino)
             .ToListAsync();
+
+
+        return rutasDisponibles.DistinctBy(r => r.Id).ToList();
     }
 
-
-    // Busca la ruta inversa (mismos aeropuertos pero origen/destino intercambiados).
-    // Si no existe, la crea con la misma distancia.
+    
     private async Task<int> GetOrCreateRutaInversaAsync(int idRuta)
     {
         var rutaOriginal = await _context.Rutas.FindAsync(idRuta);
@@ -258,7 +258,7 @@ public class RepositoryRutas
             total = (int)pamTotal.Value;
         }
 
-        return (lista, total);
+        return (lista.DistinctBy(r => r.Id).ToList(), total);
     }
 
     public async Task<(bool Success, string Message)> CreateRutaAsync(int idOrigen, int idDestino, int distanciaKm)
@@ -303,7 +303,13 @@ public class RepositoryRutas
             }
 
             await tx.CommitAsync();
-            return (true, "Ruta creada correctamente (ida y vuelta).");
+            return (true, "Ruta creada correctamente (ida y vuelta)." );
+        }
+        catch (DbUpdateException dbEx)
+        {
+            await tx.RollbackAsync();
+            var msg = dbEx.InnerException?.Message ?? dbEx.Message;
+            return (false, msg);
         }
         catch (Exception ex)
         {

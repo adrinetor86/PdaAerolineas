@@ -18,15 +18,18 @@ public class VuelosController : Controller
     private RepositoryRetrasos _repoRetrasos;
     private RepositoryAviones _repoAviones;
     private IMemoryCache _memoryCache;
+    private readonly RepositoryCombustible _repoCombustible;
 
     public VuelosController(RepositoryVuelos repoVuelos, RepositoryTripulantes repoTripulantes,
-        RepositoryRetrasos repoRetrasos,IMemoryCache memoryCache,RepositoryAviones repoAviones)
+        RepositoryRetrasos repoRetrasos,IMemoryCache memoryCache,RepositoryAviones repoAviones,
+        RepositoryCombustible repoCombustible)
     {
         _repoVuelos = repoVuelos;
         _repoTripulantes = repoTripulantes;
         _repoRetrasos = repoRetrasos;
         _repoAviones = repoAviones;
         _memoryCache = memoryCache;
+        _repoCombustible = repoCombustible;
     }
     
     public async Task<IActionResult> Index(
@@ -247,8 +250,8 @@ public class VuelosController : Controller
             const int estadoAterrizado = 4;
             const int estadoCancelado = 5;
             const int estadoCompletado = 7;
-            
-    
+
+            // Si el vuelo queda cancelado o completado, salimos.
             if (vueloActual.IdEstado == estadoCancelado || vueloActual.IdEstado == estadoCompletado)
             {
                 _memoryCache.Remove($"VUELO_{idVuelo}");
@@ -257,26 +260,40 @@ public class VuelosController : Controller
 
             int nuevoEstado;
 
-            // Nuevo flujo: En vuelo (3) -> Completado (7)
             if (vueloActual.IdEstado == estadoEnVuelo)
-            {
                 nuevoEstado = estadoCompletado;
-            }
-
             else if (vueloActual.IdEstado == estadoAterrizado)
-            {
                 nuevoEstado = estadoCompletado;
-            }
             else
-            {
                 nuevoEstado = vueloActual.IdEstado + 1;
-            }
 
+            string? warning = null;
+
+            // 1) Persistimos el nuevo estado
             await _repoVuelos.UpdateEstadoVueloAsync(idVuelo, nuevoEstado);
+
+            // 2) Auto-registro combustible
+            if (nuevoEstado == estadoEnVuelo)
+            {
+                try
+                {
+                    const decimal precioPorLitroDefault = 0.73m;
+                    await _repoCombustible.AutoRegistrarCombustibleDesdeVueloAsync(
+                        idVuelo,
+                        precioPorLitroDefault,
+                        observaciones: "Auto-registro desde gestión de vuelo"
+                    );
+                }
+                catch (Exception ex)
+                {
+                    warning = $"El combustible no se pudo registrar automáticamente: {ex.Message}";
+                    Console.WriteLine($"[Combustible] Auto-registro falló para vuelo {idVuelo}: {ex}");
+                }
+            }
 
             _memoryCache.Remove($"VUELO_{idVuelo}");
 
-            return Json(new { success = true, message = "Paso confirmado correctamente." });
+            return Json(new { success = true, message = "Paso confirmado correctamente.", warning });
         }
 
         return Json(new { success = false, message = result.Message, errors = new List<FormError>() });
@@ -311,7 +328,19 @@ public class VuelosController : Controller
         }
 
         var result = await _repoRetrasos.RegistrarRetrasoAsync(input.IdVuelo, input.Minutos, input.IdCodRetraso);
-        return Json(new { success = result.Success, message = result.Message });
+
+        // Enviamos también el estado actual y el detalle del retraso para refrescar la UI sin recargar.
+        var vuelo = await _repoVuelos.GetDatosVueloByIdAsync(input.IdVuelo);
+        var retrasoDetalle = await _repoRetrasos.GetDetalleRetrasoAsync(input.IdVuelo);
+
+        return Json(new
+        {
+            success = result.Success,
+            message = result.Message,
+            idEstado = vuelo.IdEstado,
+            estado = vuelo.Estado,
+            retraso = retrasoDetalle
+        });
     }
 
     public async Task<IActionResult> Tracking(int idVuelo)

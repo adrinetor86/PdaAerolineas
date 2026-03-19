@@ -18,4 +18,7 @@ public class Ruta
     
     [Column("DISTANCIA_KM")]
     public int  Distancia { get; set; } 
+    
+    [Column("PRECIO_BILLETE")]
+   public decimal PrecioBillete { get; set; } = 150.00m;
 }

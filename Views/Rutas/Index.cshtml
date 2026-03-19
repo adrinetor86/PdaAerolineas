@@ -78,7 +78,8 @@
             <div>
                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Ruta *</label>
                 <select id="selectRutaAsignar"
-                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                        data-enhance="select2" data-placeholder="Buscar ruta..."
+                        class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 cursor-pointer">
                     <option value="" disabled selected>Seleccionar ruta...</option>
                     @foreach (var r in rutasDisponibles)
                     {
@@ -386,6 +387,21 @@
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') { cerrarModalAsignar(); cerrarModalEditar(); }
         });
+
+        // Delegación de eventos: el select está dentro del partial y se reemplaza con AJAX
+        document.addEventListener('change', function (e) {
+            const target = e.target;
+            if (!target) return;
+
+            if (target.id === 'selectFilasPartial') {
+                const busqueda = document.getElementById('inputBusquedaAjax')?.value ?? '';
+                const filas = target.value || '10';
+                paginaGlobal = 1;
+                cargarTablaRutas(1, busqueda, filas);
+            }
+        });
+    </script>
+    <script>
+        if (window.PDASelect2) window.PDASelect2.init(document);
     </script>
 }
-

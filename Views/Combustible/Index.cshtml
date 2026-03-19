@@ -1,0 +1,209 @@
+@model List<PdaAerolineas.Models.ViewModels.GastoCombustibleViewModel>
+@{
+    ViewData["Title"] = "Combustible";
+    var aerolineas = ViewBag.Aerolineas as List<PdaAerolineas.Models.Aerolinea> ?? new();
+
+    var paginaActual   = ViewData["PAGINA_ACTUAL"] as int? ?? 1;
+    var totalPaginas   = ViewData["TOTAL_PAGINAS"] as int? ?? 1;
+    var totalRegistros = ViewData["TOTAL_REGISTROS"] as int? ?? 0;
+    var registrosPag   = ViewData["REGISTROS_PAG"] as int? ?? 10;
+
+    var inicioRegistro = totalRegistros == 0 ? 0 : (paginaActual - 1) * registrosPag + 1;
+    var finRegistro    = Math.Min(totalRegistros, paginaActual * registrosPag);
+}
+
+<div class="min-h-screen bg-gray-50 text-slate-900 p-6">
+
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-extrabold text-slate-900">Combustible</h1>
+            <p class="text-slate-500 mt-1">Control de cargas y consumos por vuelo</p>
+        </div>
+    </div>
+
+    @if (TempData["Exito"] != null)
+    {
+        <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl px-5 py-3 mb-6 shadow-sm">
+            @TempData["Exito"]
+        </div>
+    }
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+            <p class="text-slate-500 text-sm mb-2">Total cargado</p>
+            <p class="text-3xl font-extrabold text-slate-900">@((decimal)ViewBag.TotalLitrosCargados > 0 ? ((decimal)ViewBag.TotalLitrosCargados).ToString("N0") : "0") <span class="text-lg text-slate-500">L</span></p>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+            <p class="text-slate-500 text-sm mb-2">Total consumido</p>
+            <p class="text-3xl font-extrabold text-slate-900">@((decimal)ViewBag.TotalLitrosConsumidos > 0 ? ((decimal)ViewBag.TotalLitrosConsumidos).ToString("N0") : "0") <span class="text-lg text-slate-500">L</span></p>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+            <p class="text-slate-500 text-sm mb-2">Gasto total (€)</p>
+            <p class="text-3xl font-extrabold text-slate-900">@((decimal)ViewBag.TotalCoste > 0 ? ((decimal)ViewBag.TotalCoste).ToString("N2") : "0,00") €</p>
+        </div>
+    </div>
+
+    <!-- Tabla registros -->
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+
+        <!-- Filtros + info + filas -->
+        <form method="get" id="formFiltros" class="border-b border-slate-200 bg-slate-50/70 px-5 py-3 flex flex-wrap items-center justify-between gap-3">
+            <input type="hidden" name="numPag" id="inputNumPag" value="@paginaActual" />
+
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-slate-500">Aerolínea</label>
+                    <select name="aerolineaId" onchange="resetPage(); this.form.submit()"
+                            class="bg-white border border-slate-300 text-slate-900 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400">
+                        <option value="">Todas</option>
+                        @foreach (var a in aerolineas)
+                        {
+                            <option value="@a.IdAerolinea" selected="@(ViewBag.AerolineaId?.ToString() == a.IdAerolinea.ToString())">@a.Nombre</option>
+                        }
+                    </select>
+                </div>
+
+                <a asp-controller="Combustible" asp-action="Index"
+                   class="text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 bg-white transition-colors shadow-sm text-xs">
+                    Limpiar
+                </a>
+
+                <p class="text-xs text-slate-500">
+                    Mostrando <strong class="text-slate-800">@inicioRegistro</strong> a <strong class="text-slate-800">@finRegistro</strong> de <strong class="text-slate-800">@totalRegistros</strong>
+                </p>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <label class="text-xs text-slate-500">Filas</label>
+                <select name="numFilas" onchange="resetPage(); this.form.submit()"
+                        class="appearance-none cursor-pointer rounded-lg border border-gray-300 bg-white py-1.5 pl-3 pr-7 text-xs font-mono text-gray-700 outline-none transition-all hover:border-gray-400 focus:border-blue-400 focus:ring-1 focus:ring-blue-100">
+                    <option value="5" selected="@(registrosPag == 5 ? "selected" : null)">5</option>
+                    <option value="10" selected="@(registrosPag == 10 ? "selected" : null)">10</option>
+                    <option value="20" selected="@(registrosPag == 20 ? "selected" : null)">20</option>
+                    <option value="50" selected="@(registrosPag == 50 ? "selected" : null)">50</option>
+                </select>
+            </div>
+        </form>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                    <tr>
+                        <th class="px-5 py-4 text-left">Vuelo</th>
+                        <th class="px-5 py-4 text-left">Ruta</th>
+                        <th class="px-5 py-4 text-left">Fecha</th>
+                        <th class="px-5 py-4 text-right">Litros cargados</th>
+                        <th class="px-5 py-4 text-right">Litros consumidos</th>
+                        <th class="px-5 py-4 text-center">% consumo</th>
+                        <th class="px-5 py-4 text-right">€/L</th>
+                        <th class="px-5 py-4 text-right">Coste (€)</th>
+                        <th class="px-5 py-4 text-center">Estado</th>
+                        <th class="px-5 py-4 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @foreach (var g in Model)
+                    {
+                        var estadoColor = g.EstadoVuelo switch {
+                            "Completado"  => "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+                            "En Vuelo"    => "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
+                            "Aterrizado"  => "bg-teal-50 text-teal-700 ring-1 ring-teal-200",
+                            // Sin rojo
+                            "Cancelado"   => "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
+                            _             => "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
+                        };
+                        var costeReal = g.CosteConsumo > 0 ? g.CosteConsumo : g.CosteCarga;
+
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-5 py-4 font-mono font-extrabold text-blue-700">@g.NumeroVuelo</td>
+                            <td class="px-5 py-4">
+                                <div class="font-semibold text-slate-900">@g.IataOrigen <span class="text-slate-400">→</span> @g.IataDestino</div>
+                                <div class="text-xs text-slate-500">@g.CiudadOrigen - @g.CiudadDestino</div>
+                            </td>
+                            <td class="px-5 py-4 text-slate-500 text-xs">@g.FechaSalida.ToString("dd/MM/yy HH:mm")</td>
+                            <td class="px-5 py-4 text-right text-slate-800">@g.LitrosCargados.ToString("N0") L</td>
+                            <td class="px-5 py-4 text-right @(g.LitrosConsumidos.HasValue ? "text-slate-800" : "text-slate-400")">
+                                @(g.LitrosConsumidos.HasValue ? g.LitrosConsumidos.Value.ToString("N0") + " L" : "—")
+                            </td>
+                            <td class="px-5 py-4 text-center">
+                                @if (g.PctConsumido.HasValue)
+                                {
+                                    var pct = (int)g.PctConsumido.Value;
+                                    // Sin rojos/naranjas: escala azul -> gris
+                                    var barColor = pct > 90 ? "bg-slate-500" : pct > 70 ? "bg-blue-500" : "bg-emerald-500";
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex-1 bg-slate-200 rounded-full h-2">
+                                            <div class="@barColor h-2 rounded-full" style="width:@pct%"></div>
+                                        </div>
+                                        <span class="text-xs text-slate-500 w-8">@pct%</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-slate-500 text-xs">En vuelo</span>
+                                }
+                            </td>
+                            <td class="px-5 py-4 text-right text-slate-500 text-xs">@g.PrecioPorLitro.ToString("F4")</td>
+                            <td class="px-5 py-4 text-right font-semibold text-slate-900">@costeReal.ToString("N2") €</td>
+                            <td class="px-5 py-4 text-center">
+                                <span class="px-2 py-1 rounded-full text-xs @estadoColor">@g.EstadoVuelo</span>
+                            </td>
+                            <td class="px-5 py-4 text-center">
+                                <div class="flex justify-center gap-2">
+                                    @if (!g.LitrosConsumidos.HasValue)
+                                    {
+                                        <a asp-controller="Combustible" asp-action="ActualizarConsumo" asp-route-id="@g.Id"
+                                           class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-xs transition-colors">
+                                            Actualizar consumo
+                                        </a>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="10" class="px-6 py-12 text-center text-slate-500">
+                                No hay registros de combustible.
+                                <span class="text-slate-500 ml-2">Se generan automáticamente al gestionar un vuelo.</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginación (abajo derecha) -->
+        <div class="px-5 py-3 border-t border-slate-200 bg-slate-50/70 flex items-center justify-between">
+            <p class="text-xs text-slate-500">Página @paginaActual</p>
+
+            <div class="flex items-center gap-2 justify-end ml-auto">
+                <button type="button" onclick="cambiarPagina(1)" @(paginaActual <= 1 ? "disabled" : "")
+                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30">«</button>
+                <button type="button" onclick="cambiarPagina(@(paginaActual - 1))" @(paginaActual <= 1 ? "disabled" : "")
+                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30">‹</button>
+                <span class="text-xs text-slate-500">@paginaActual / @totalPaginas</span>
+                <button type="button" onclick="cambiarPagina(@(paginaActual + 1))" @(paginaActual >= totalPaginas ? "disabled" : "")
+                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30">›</button>
+                <button type="button" onclick="cambiarPagina(@totalPaginas)" @(paginaActual >= totalPaginas ? "disabled" : "")
+                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white font-mono text-xs text-gray-500 transition-all hover:border-blue-400 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-30">»</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function cambiarPagina(num) {
+        if (num < 1) return;
+        document.getElementById('inputNumPag').value = num;
+        document.getElementById('formFiltros').submit();
+    }
+    function resetPage() {
+        document.getElementById('inputNumPag').value = 1;
+    }
+</script>
+}

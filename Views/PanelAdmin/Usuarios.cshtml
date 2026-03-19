@@ -75,7 +75,8 @@
             <div class="flex flex-wrap items-center gap-2">
 
                 <div class="relative">
-                    <select name="aerolineaId" onchange="resetPage(); this.form.submit()"
+                    <select name="aerolineaId"
+                            data-enhance="select2" data-placeholder="Buscar aerolínea..."
                             class="appearance-none cursor-pointer rounded-lg border py-1.5 pl-3 pr-7 font-mono text-xs outline-none transition-all @(aerolineaId.HasValue ? "border-indigo-400 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200" : "border-gray-300 bg-white text-gray-700 hover:border-gray-400 focus:border-blue-400")">
                         <option value="">Todas las aerolíneas</option>
                         @foreach (var a in aerolineas)
@@ -299,5 +300,6 @@
         form.submit();
     }
     
+    if (window.PDASelect2) window.PDASelect2.init(document);
 </script>
 }

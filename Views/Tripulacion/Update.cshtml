@@ -66,6 +66,7 @@
                     <div>
                         <label asp-for="Rol" class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Rol en Cabina</label>
                         <select asp-for="Rol" required
+                                data-enhance="select2" data-placeholder="Buscar rol..."
                                 class="block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 focus:bg-white focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all sm:text-sm cursor-pointer appearance-none">
                             <option value="">Seleccione un rol...</option>
         
@@ -87,6 +88,7 @@
                         <select asp-for="IdAerolinea"
                                 asp-items="ViewBag.Aerolineas"
                                 required
+                                data-enhance="select2" data-placeholder="Buscar aerolínea..."
                                 class="block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 focus:bg-white focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all sm:text-sm cursor-pointer appearance-none">
                             <option value="">Seleccione aerolínea...</option>
                         </select>
@@ -128,5 +130,8 @@
 </div>
 
 @section Scripts {
-    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        if (window.PDASelect2) window.PDASelect2.init(document);
+    </script>
 }

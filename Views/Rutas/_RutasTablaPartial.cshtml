@@ -147,8 +147,7 @@
         </div>
 
         <div class="relative">
-            <select id="selectFilasPartial"
-                    onchange="cambiarPaginaAjax(1)"
+            <select id="selectFilasPartial" data-no-select2="true"
                     class="appearance-none cursor-pointer rounded-lg border border-gray-300 bg-white py-1.5 pl-3 pr-7 font-mono text-xs text-gray-700 outline-none transition-all hover:border-gray-400 focus:border-blue-400 focus:ring-1 focus:ring-blue-100">
                 <option value="5"  selected="@(registrosPag == 5)">5</option>
                 <option value="10" selected="@(registrosPag == 10)">10</option>

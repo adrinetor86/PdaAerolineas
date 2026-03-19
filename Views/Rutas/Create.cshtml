@@ -29,7 +29,9 @@
             <div>
                 <label class="text-[11px] font-black uppercase tracking-wide text-slate-500">Aeropuerto origen</label>
                 <div class="relative mt-1">
-                    <select id="selectOrigen" name="aeropuertoOrigen" class="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-200">
+                    <select id="selectOrigen" name="aeropuertoOrigen"
+                            data-enhance="select2" data-placeholder="Buscar aeropuerto origen..."
+                            class="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-200">
                         <option value="">Seleccione origen</option>
                         @foreach (var a in Model)
                         {
@@ -44,7 +46,9 @@
             <div>
                 <label class="text-[11px] font-black uppercase tracking-wide text-slate-500">Aeropuerto destino</label>
                 <div class="relative mt-1">
-                    <select id="selectDestino" name="aeroPuertoDestino" class="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-200">
+                    <select id="selectDestino" name="aeroPuertoDestino"
+                            data-enhance="select2" data-placeholder="Buscar aeropuerto destino..."
+                            class="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-200">
                         <option value="">Seleccione destino</option>
                         @foreach (var a in Model)
                         {
@@ -91,10 +95,22 @@
             if (!opt.value) return;
             opt.disabled = opt.value === dVal;
         });
+
+        // Select2 no refresca disabled automáticamente si cambias options
+        if (window.jQuery && jQuery.fn.select2) {
+            jQuery(selectOrigen).trigger('change.select2');
+            jQuery(selectDestino).trigger('change.select2');
+        }
     }
 
     selectOrigen.addEventListener('change', syncOptions);
     selectDestino.addEventListener('change', syncOptions);
+
+    // Inicializa select2 para esta vista (por si llega antes del DOMContentLoaded global)
+    if (window.PDASelect2) {
+        window.PDASelect2.init(document);
+    }
+
     syncOptions();
 </script>
 }

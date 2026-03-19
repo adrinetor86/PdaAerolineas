@@ -66,7 +66,10 @@ builder.Services.AddTransient<RepositoryUsuarios>();
 builder.Services.AddTransient<RepositoryAerolineas>();
 builder.Services.AddTransient<RepositoryAeropuertos>();
 builder.Services.AddTransient<RepositoryDashboard>();
-
+builder.Services.AddTransient<RepositoryCombustible>();
+builder.Services.AddTransient<RepositoryFinanzas>();
+builder.Services.AddTransient<RepositoryHistorialTripulantes>();
+builder.Services.AddScoped<RepositoryAutomatizacion>();
 builder.Services.AddDbContext<DataContext>
     (options => options.UseSqlServer(connectionString));
 

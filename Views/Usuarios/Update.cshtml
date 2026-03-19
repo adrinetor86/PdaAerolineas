@@ -52,6 +52,7 @@
                 <label asp-for="Aerolinea" class="block text-sm font-semibold text-gray-700 mb-2"></label>
                 <select asp-for="Aerolinea" 
                         asp-items="ViewBag.Aerolineas"
+                        data-enhance="select2" data-placeholder="Buscar aerolínea..."
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     <option value="">-- Seleccione una aerolinea --</option>
                 </select>
@@ -62,6 +63,7 @@
                 <label asp-for="Rol" class="block text-sm font-semibold text-gray-700 mb-2"></label>
                 <select asp-for="Rol" 
                         asp-items="ViewBag.Roles"
+                        data-enhance="select2" data-placeholder="Buscar rol..."
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     <option value="">-- Seleccione un rol --</option>
                 </select>
@@ -95,4 +97,7 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        if (window.PDASelect2) window.PDASelect2.init(document);
+    </script>
 }
