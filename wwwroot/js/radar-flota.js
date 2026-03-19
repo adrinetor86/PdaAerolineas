@@ -33,13 +33,23 @@
         const shadow = seleccionado
             ? 'filter:drop-shadow(0 0 8px rgba(239,68,68,0.7));'
             : 'filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));';
+
         const h = Math.round(heading || 0);
+
         return L.divIcon({
-            html: `<div style="width:${size}px;height:${size}px;transform:rotate(${h}deg);${shadow}transition:transform 0.8s ease;">
-                       <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}">
-                           <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
-                       </svg>
-                   </div>`,
+            html: `
+            <div style="
+                width:${size}px;
+                height:${size}px;
+                transform: rotate(${h}deg);
+                ${shadow}
+                transition: none; 
+            ">
+                <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}">
+                    <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+                </svg>
+            </div>
+        `,
             className: 'bg-transparent',
             iconSize:   [size, size],
             iconAnchor: [size / 2, size / 2]
@@ -436,7 +446,11 @@
             position: pos,
             orientation: Cesium.Transforms.headingPitchRollQuaternion(
                 pos,
-                new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(entry.heading || 0), 0, 0)
+                new Cesium.HeadingPitchRoll(
+                    Cesium.Math.toRadians((entry.heading || 0) - 90),
+                    0,
+                    0
+                )
             ),
             model: {
                 uri:              '/assets/models/AirbusA320.glb',
@@ -485,7 +499,11 @@
         entity.position  = pos;
         entity.orientation = Cesium.Transforms.headingPitchRollQuaternion(
             pos,
-            new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(entry.heading || 0), 0, 0)
+            new Cesium.HeadingPitchRoll(
+                Cesium.Math.toRadians((entry.heading || 0) - 90),
+                0,
+                0
+            )
         );
     }
 
