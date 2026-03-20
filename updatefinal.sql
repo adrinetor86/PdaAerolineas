@@ -1283,11 +1283,6 @@ PRINT '¡Se han generado 15 vuelos de prueba con éxito para el Dashboard!';
 GO
 
 
-
-
-
-SELECT * FROM V_RUTAS_AVION
-
 CREATE   OR ALTER     VIEW V_RUTAS_AVION
 AS
 SELECT DISTINCT

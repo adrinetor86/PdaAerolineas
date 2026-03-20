@@ -46,7 +46,7 @@
         align-items:center;
         transform-origin:center;
     ">
-        <img src="/assets/images/icons/plane-icon.png"
+        <img src="/assets/images/icons/plane-icon2.png"
              style="width:40px;height:40px;background:transparent;display:block;" />
     </div>
   `,

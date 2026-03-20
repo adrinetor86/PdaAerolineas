@@ -39,7 +39,7 @@
         const isHeavy = heavyKeys.some(k => m.includes(k));
         return isHeavy
             ? '/assets/images/icons/heavy.png'
-            : '/assets/images/icons/plane-icon.png';
+            : '/assets/images/icons/plane-icon2.png';
     }
 
     /* ── Icono avión rotado (según modelo) ── */
